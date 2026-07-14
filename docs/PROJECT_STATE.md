@@ -6,7 +6,7 @@
 `claude/push-main-github-c3qd9w`
 
 ## فاز فعلی
-**فاز A تکمیل شد + بخش زیادی از فاز B (احراز هویت) هم پیاده‌سازی و تست شد.**
+**فاز A و فاز B (احراز هویت + چندمستأجری) تکمیل شدند.** آماده برای شروع فاز C.
 
 ## خلاصهٔ کارهای تکمیل‌شده
 
@@ -19,6 +19,7 @@
 - [x] **Frontend**: اسکلت Vite+React+TS+Tailwind v4 با تنظیم دستی shadcn/ui (چون `npx shadcn init/add` به دلیل محدودیت شبکهٔ محیط به `ui.shadcn.com` مسدود بود — کامپوننت‌های پایه Button/Card/Input/Label دستی نوشته شدند)، توکن‌های طراحی سه‌لایه، صفحهٔ ورود/ثبت‌نام، AppShell ریسپانسیو (سایدبار تیره راست در دسکتاپ، Drawer در موبایل)، صفحهٔ داشبورد نمونه.
 - [x] **تست سرتاسری واقعی با Playwright** (نه فقط curl): جریان signup→login→dashboard در دو ویوپورت (1280px دسکتاپ، 375px موبایل) با مرورگر واقعی تأیید شد؛ اسکرین‌شات‌ها ذخیره شدند.
 - [x] `docker-compose.yml` نوشته شد (postgres, redis, backend, worker, frontend).
+- [x] اسکریپت seed برای اولین کاربر `platform_admin` (`backend/scripts/seed_platform_admin.py`) — تست شد: لاگین می‌شود، `organization_id` آن `null` است و نقش به‌درستی در JWT قرار می‌گیرد.
 
 ## در حال انجام / ناقص
 
