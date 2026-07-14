@@ -17,9 +17,9 @@ type AuthState = {
 }
 
 // Access token is kept in memory only (not localStorage) to limit exposure to
-// XSS-based token theft — see docs/ARCHITECTURE.md security section. This means
-// a full page reload requires re-login until the Phase H refresh-token/cookie
-// flow is implemented.
+// XSS-based token theft — see docs/ARCHITECTURE.md security section. On a full
+// page reload, auth-bootstrap.tsx silently re-derives a session from the
+// httpOnly refresh-token cookie instead.
 export const useAuthStore = create<AuthState>((set) => ({
   accessToken: null,
   user: null,
