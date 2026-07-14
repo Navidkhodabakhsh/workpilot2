@@ -5,6 +5,8 @@ import { ProtectedRoute } from "@/app/protected-route"
 import { LoginPage } from "@/features/auth/pages/login-page"
 import { SignupPage } from "@/features/auth/pages/signup-page"
 import { DashboardPage } from "@/features/dashboard/pages/dashboard-page"
+import { ProjectsListPage } from "@/features/projects/pages/projects-list-page"
+import { ProjectDetailPage } from "@/features/projects/pages/project-detail-page"
 
 function ComingSoon({ title }: { title: string }) {
   return (
@@ -25,7 +27,8 @@ export const router = createBrowserRouter([
         element: <AppShell />,
         children: [
           { path: "/", element: <DashboardPage /> },
-          { path: "/projects", element: <ComingSoon title="پروژه‌ها" /> },
+          { path: "/projects", element: <ProjectsListPage /> },
+          { path: "/projects/:projectId", element: <ProjectDetailPage /> },
           { path: "/tasks", element: <ComingSoon title="کارها" /> },
           { path: "/reports", element: <ComingSoon title="گزارش‌ها" /> },
           { path: "/calendar", element: <ComingSoon title="تقویم" /> },

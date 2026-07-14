@@ -1,0 +1,125 @@
+import { useState } from "react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
+import { Link } from "react-router-dom"
+import { Plus } from "lucide-react"
+
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { createProject, listProjects } from "@/features/projects/api"
+import { useAuthStore } from "@/features/auth/auth-store"
+
+const schema = z.object({
+  name: z.string().min(2, "نام پروژه را وارد کنید"),
+  description: z.string().optional(),
+})
+type FormValues = z.infer<typeof schema>
+
+const STATUS_LABEL: Record<string, string> = {
+  active: "فعال",
+  completed: "تکمیل‌شده",
+  archived: "بایگانی‌شده",
+}
+
+export function ProjectsListPage() {
+  const role = useAuthStore((s) => s.user?.role)
+  const canCreate = role === "org_admin" || role === "project_manager"
+  const [open, setOpen] = useState(false)
+  const queryClient = useQueryClient()
+
+  const { data: projects, isLoading } = useQuery({ queryKey: ["projects"], queryFn: listProjects })
+
+  const form = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { name: "", description: "" } })
+
+  const createMutation = useMutation({
+    mutationFn: createProject,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] })
+      setOpen(false)
+      form.reset()
+    },
+  })
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">پروژه‌ها</h1>
+          <p className="text-muted-foreground">فهرست پروژه‌های سازمان</p>
+        </div>
+        {canCreate && (
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="size-4" />
+                پروژه جدید
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>ایجاد پروژهٔ جدید</DialogTitle>
+                <DialogDescription>نام و توضیحات پروژه را وارد کنید</DialogDescription>
+              </DialogHeader>
+              <form
+                onSubmit={form.handleSubmit((values) => createMutation.mutate(values))}
+                className="flex flex-col gap-4"
+              >
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="name">نام پروژه</Label>
+                  <Input id="name" {...form.register("name")} />
+                  {form.formState.errors.name && (
+                    <p className="text-sm text-danger">{form.formState.errors.name.message}</p>
+                  )}
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="description">توضیحات (اختیاری)</Label>
+                  <Input id="description" {...form.register("description")} />
+                </div>
+                <Button type="submit" disabled={createMutation.isPending}>
+                  {createMutation.isPending ? "در حال ایجاد..." : "ایجاد پروژه"}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        )}
+      </div>
+
+      {isLoading && <p className="text-muted-foreground">در حال بارگذاری...</p>}
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {projects?.map((project) => (
+          <Link key={project.id} to={`/projects/${project.id}`}>
+            <Card className="h-full transition-shadow hover:shadow-md">
+              <CardHeader>
+                <CardTitle className="text-base">{project.name}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="line-clamp-2 text-sm text-muted-foreground">
+                  {project.description || "بدون توضیحات"}
+                </p>
+                <span className="mt-3 inline-block rounded-full bg-muted px-2 py-1 text-xs">
+                  {STATUS_LABEL[project.status] ?? project.status}
+                </span>
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
+        {projects?.length === 0 && (
+          <p className="text-muted-foreground">هنوز پروژه‌ای ایجاد نشده است.</p>
+        )}
+      </div>
+    </div>
+  )
+}
