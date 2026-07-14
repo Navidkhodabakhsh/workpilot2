@@ -1,12 +1,21 @@
 # WorkPilot
 
-سیستم مدیریت پروژه، وظایف و گزارش‌دهی سازمانی — پلتفرم تحت وب چندمستأجری (Multi-tenant SaaS) برای مدیریت پروژه‌ها، تخصیص وظایف، ثبت فعالیت کاری، تأیید گزارش و تحلیل عملکرد تیم.
+سیستم مدیریت پروژه، وظایف و گزارش‌دهی سازمانی — پلتفرم تحت وب چندمستأجری (Multi-tenant SaaS) برای مدیریت پروژه‌ها، تخصیص وظایف، ثبت فعالیت کاری، تأیید گزارش و تحلیل عملکرد تیم. طراحی RTL و کاملاً واکنش‌گرا (Mobile-First) بر پایهٔ محتوای فارسی.
 
 ## وضعیت فعلی توسعه
 
-پروژه در حال ساخت است. برای وضعیت دقیق و آخرین Handoff به [`docs/PROJECT_STATE.md`](docs/PROJECT_STATE.md) مراجعه کنید.
+**فازهای A تا I تکمیل شده‌اند؛ فاز J (نهایی‌سازی Docker و مستندات) در حال انجام است.** تمام ۸ خروجی نهایی پروژه طبق بخش ۱۵ RFB ساخته و تست شده‌اند:
 
-**فاز فعلی:** فاز A (اسکلت پروژه) تکمیل شد؛ احراز هویت (signup/login/me) کار می‌کند و با مرورگر واقعی در دسکتاپ و موبایل تست شده. فازهای C تا J (مدیریت پروژه/وظایف، گزارش کاری، داشبورد، خروجی فایل، اعلان‌ها، امنیت، تست، Docker نهایی) باقی مانده‌اند.
+- [x] پنل مدیریت سازمان (ساخت/مدیریت کاربران با نقش، Audit Log)
+- [x] پنل کاربران (پروفایل، نقش‌ها: platform_admin / org_admin / project_manager / employee)
+- [x] مدیریت پروژه‌ها (CRUD + عضویت)
+- [x] مدیریت وظایف (CRUD + زیروظیفه + وابستگی با تشخیص چرخه + تختهٔ Kanban)
+- [x] گزارش‌دهی کاری (ثبت → تأیید/رد توسط مدیر پروژه)
+- [x] داشبورد تحلیلی (آمار پروژه/وظیفه/ساعت کاری + نمودار + گزارش‌گیری با فیلتر)
+- [x] سیستم خروجی فایل (CSV / Excel / PDF، تولید ناهمزمان با Celery)
+- [x] سیستم امنیتی (JWT + Refresh Token httpOnly، RBAC، Rate Limiting، سیاست رمز عبور، Audit Log)
+
+برای وضعیت دقیق، تصمیم‌های معماری، و تاریخچهٔ کامل هر مرحلهٔ توسعه به [`docs/PROJECT_STATE.md`](docs/PROJECT_STATE.md) مراجعه کنید.
 
 ## مستندات
 
@@ -14,22 +23,24 @@
 |---|---|
 | [`docs/RFB-WorkPilot-Project-Proposal.md`](docs/RFB-WorkPilot-Project-Proposal.md) | سند نیازمندی و پیشنهاد پروژه (RFB) |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | تصمیم‌های معماری فنی |
-| [`docs/UI-DESIGN.md`](docs/UI-DESIGN.md) | جهت‌گیری طراحی رابط کاربری |
-| [`docs/PROJECT_STATE.md`](docs/PROJECT_STATE.md) | وضعیت فعلی و تاریخچهٔ Handoff |
+| [`docs/UI-DESIGN.md`](docs/UI-DESIGN.md) | جهت‌گیری طراحی رابط کاربری (غیرنهایی) |
+| [`docs/PROJECT_STATE.md`](docs/PROJECT_STATE.md) | وضعیت فعلی و تاریخچهٔ Handoff هر فاز |
 
 ## تکنولوژی‌ها
 
-- **Frontend:** React + TypeScript + Vite + Tailwind CSS + shadcn/ui
-- **Backend:** FastAPI (Python) + SQLAlchemy + Alembic
+- **Frontend:** React 19 + TypeScript + Vite + Tailwind CSS v4 + shadcn/ui (دستی، بدون CLI) + React Query + Zustand + react-router + recharts
+- **Backend:** FastAPI (Python) + SQLAlchemy 2.0 + Alembic + Pydantic
 - **پایگاه داده:** PostgreSQL
-- **صف کار / کش:** Redis + Celery
+- **صف کار / کش:** Redis + Celery (worker + beat)
+- **تست:** pytest (بک‌اند)، vitest + React Testing Library (فرانت)
+- **CI:** GitHub Actions (`.github/workflows/ci.yml`)
 - **استقرار:** Docker / docker-compose
 
 ## ساختار پروژه
 
 ```
-backend/      → اپلیکیشن FastAPI
-frontend/     → اپلیکیشن React + Vite
+backend/      → اپلیکیشن FastAPI (app/{models,schemas,services,api,workers,db,core}, alembic/, tests/)
+frontend/     → اپلیکیشن React + Vite (src/{features,components,app,lib})
 docker-compose.yml
 docs/         → مستندات پروژه
 skill/        → Skill های Claude نصب‌شده در این مخزن
@@ -40,31 +51,60 @@ skill/        → Skill های Claude نصب‌شده در این مخزن
 ### با Docker (روش پیشنهادی)
 
 ```bash
-cp backend/.env.example backend/.env
+cp backend/.env.example backend/.env    # اختیاری برای اجرای محلی؛ برای production حتماً SECRET_KEY را عوض کنید
 docker compose up
 ```
 
-- Backend روی `http://localhost:8000` (مستندات API: `/docs`)
-- Frontend روی `http://localhost:5173`
+Migration دیتابیس به‌صورت خودکار توسط سرویس `backend` هنگام بالا آمدن اجرا می‌شود (نیازی به دستور دستی نیست).
+
+- Backend: `http://localhost:8000` (مستندات API خودکار: `/docs`)
+- Frontend: `http://localhost:5173`
+- سرویس‌های `worker` و `beat` به‌صورت خودکار برای پردازش خروجی فایل و یادآوری مهلت اجرا می‌شوند.
+
+> **محدودیت شناخته‌شده:** پیکربندی `docker-compose.yml` در این مخزن با `docker compose config` اعتبارسنجی شده، ولی به‌دلیل محدودیت دسترسی دیمان Docker در محیط توسعهٔ این جلسه (sandbox)، اجرای واقعی `docker compose up` امکان‌پذیر نبود. تمام فازهای توسعه با Postgres/Redis نصب‌شدهٔ سیستم‌عامل به‌صورت native تأیید شدند (جزئیات در `docs/PROJECT_STATE.md`، بخش «محدودیت محیط»). در یک محیط با دسترسی کامل به Docker باید یک بار `docker compose up` تأیید نهایی شود.
 
 ### بدون Docker (اجرای مستقیم)
 
 ```bash
+# پیش‌نیاز: PostgreSQL و Redis در حال اجرا (به‌صورت native یا هر روش دیگر)
+
 # Backend
 cd backend
-python -m venv .venv && source .venv/bin/activate   # یا: uv venv .venv
-pip install -r requirements.txt                       # یا: uv pip install -r requirements.txt
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
 cp .env.example .env   # و DATABASE_URL/SECRET_KEY را متناسب با محیط خودتان تنظیم کنید
 alembic upgrade head
 uvicorn app.main:app --reload
 
-# Frontend (در ترمینال دیگر)
+# Celery worker (ترمینال جدا، برای خروجی فایل)
+celery -A app.workers.celery_app worker --loglevel=info
+
+# Celery beat (ترمینال جدا، برای یادآوری مهلت روزانه — اختیاری برای توسعهٔ محلی)
+celery -A app.workers.celery_app beat --loglevel=info
+
+# Frontend (ترمینال جدا)
 cd frontend
 npm install
 npm run dev
 ```
 
-> نکته: در محیط‌های sandboxed که دیمان Docker بالا نمی‌آید، از Postgres/Redis نصب‌شدهٔ سیستم‌عامل (`service postgresql start` و `service redis-server start`) استفاده کنید — همین روش برای تست فاز A استفاده شد (جزئیات در `docs/PROJECT_STATE.md`).
+> نکته: در محیط‌های sandboxed که دیمان Docker بالا نمی‌آید، از سرویس‌های سیستم‌عامل استفاده کنید: `service postgresql start` و `service redis-server start`.
+
+## اجرای تست‌ها
+
+```bash
+# Backend (نیاز به یک Postgres در دسترس؛ پایگاه‌دادهٔ تست به‌صورت خودکار ساخته می‌شود)
+cd backend
+pytest
+
+# Frontend
+cd frontend
+npm run test          # یک‌بار اجرا
+npm run test:watch    # حالت watch
+npm run build          # typecheck + build production
+```
+
+هر دو سوییت روی هر `push`/`pull request` توسط GitHub Actions (`.github/workflows/ci.yml`) نیز اجرا می‌شوند.
 
 ## مشارکت
 

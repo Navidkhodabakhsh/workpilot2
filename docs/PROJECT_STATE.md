@@ -6,7 +6,7 @@
 `claude/push-main-github-c3qd9w`
 
 ## فاز فعلی
-**فاز A تا I تکمیل شدند.** آماده برای شروع فاز J (Docker نهایی + مستندات نهایی).
+**فاز A تا J تکمیل شدند — RFB به‌طور کامل پیاده‌سازی شده است.**
 
 ## خلاصهٔ کارهای تکمیل‌شده
 
@@ -163,3 +163,24 @@
 - **فایل‌های تغییریافتهٔ کوچک:** `frontend/src/features/auth/auth-store.ts` (یک کامنت قدیمی که به‌اشتباه می‌گفت رفرش‌توکن هنوز پیاده نشده، به‌روز شد — چون در فاز H تکمیل شده بود).
 - **کارهای باقی‌مانده:** فاز J (نهایی‌سازی Docker + مستندات نهایی + تطبیق با چک‌لیست بخش ۱۵ RFB). تست E2E خودکار با Playwright در CI هنوز اضافه نشده (فقط دستی در طول فازهای قبل اجرا شده) — کار آیندهٔ اختیاری.
 - **گام بعدی برای ادامه‌دهنده:** شروع فاز J — تأیید ساختار `docker-compose.yml` (چون در این سندباکس امکان `docker compose up` واقعی وجود ندارد، این نکته باید به‌وضوح در README مستند بماند)، به‌روزرسانی نهایی `README.md` با دستورالعمل کامل اجرا، و مرور نهایی چک‌لیست «خروجی نهایی پروژه» (بخش ۱۵ RFB) در برابر آنچه واقعاً ساخته شده.
+
+### Handoff — تکمیل فاز J (نهایی‌سازی Docker و مستندات) — پایان پروژه طبق RFB
+
+- **خلاصه:** آخرین فاز پلن تکمیل شد. `docker-compose.yml` با `docker compose config` اعتبارسنجی شد (بدون نیاز به دیمان در حال اجرا) و دو باگ واقعی پیدا و رفع شدند؛ `README.md` به‌طور کامل بازنویسی شد تا وضعیت واقعی (نه فاز A) را نشان دهد؛ چک‌لیست «خروجی نهایی پروژه» (بخش ۱۵ RFB) با کد واقعی تطبیق داده شد — هر ۸ مورد ساخته و تست شده‌اند.
+- **باگ‌های واقعی کشف و رفع‌شده در `docker-compose.yml` (هرگز واقعاً اجرا نشده بود چون دیمان Docker در این سندباکس بالا نمی‌آید، پس تا این بازبینی نهایی کشف نشده بودند):**
+  1. سرویس‌های `backend`/`worker`/`beat` به `env_file: ./backend/.env` وابسته بودند، ولی این فایل عمداً gitignore شده و در یک clone تازه وجود ندارد — یعنی اولین اجرای `docker compose up` بلافاصله با خطای «env file not found» شکست می‌خورد. رفع شد با سینتکس جدید `env_file: [{path: ..., required: false}]` (پشتیبانی‌شده در Compose spec فعلی، با `docker compose config` تأیید شد) — مقادیر ضروری (`DATABASE_URL`, `REDIS_URL`) از قبل مستقیم در بخش `environment` تنظیم بودند، پس اجرا بدون `.env` هم کار می‌کند.
+  2. هیچ‌کدام از Dockerfile/compose، Migration دیتابیس (`alembic upgrade head`) را قبل از بالا آمدن API اجرا نمی‌کردند — یعنی روی یک دیتابیس تازه، `backend` بالا می‌آمد ولی هیچ جدولی وجود نداشت. رفع شد با `backend/docker-entrypoint.sh` (اجرای مشروط `alembic upgrade head` فقط وقتی `RUN_MIGRATIONS=true`) که در Dockerfile به‌عنوان `ENTRYPOINT` تنظیم شد؛ فقط سرویس `backend` این متغیر را دارد (نه `worker`/`beat`) تا سه پردازه هم‌زمان روی یک دیتابیس تازه race نکنند؛ `worker`/`beat` با `depends_on: backend: condition: service_started` به‌عنوان یک تدبیر ترتیب‌دهی نرم (نه تضمین کامل migration) اضافه شدند.
+- **تصمیم آگاهانه:** پرچم `--pool=solo` که برای Celery worker در طول توسعهٔ این جلسه به‌خاطر محدودیت fork در سندباکس لازم بود، **در `docker-compose.yml` اضافه نشد** — آن یک workaround مخصوص محیط توسعهٔ فعلی بود، نه یک نیاز واقعی؛ داخل یک کانتینر Docker معمولی pool پیش‌فرض `prefork` باید مشکلی نداشته باشد.
+- **تطبیق چک‌لیست «خروجی نهایی پروژه» (بخش ۱۵ RFB) با کد واقعی — همهٔ ۸ مورد ساخته و تست شده‌اند:**
+  1. پنل مدیریت سازمان → `api/routers/{users,audit}.py` + سرویس‌های مرتبط
+  2. پنل کاربران → `api/routers/users.py`, `features/users/**`
+  3. مدیریت پروژه‌ها → `api/routers/projects.py`, `features/projects/**`
+  4. مدیریت وظایف → `api/routers/tasks.py`, `features/tasks/**` (زیروظیفه + وابستگی + Kanban)
+  5. گزارش‌دهی کاری → `api/routers/worklogs.py`, `features/worklogs/**`
+  6. داشبورد تحلیلی → `api/routers/{dashboard,reports}.py`, `features/dashboard/**`
+  7. سیستم خروجی فایل → `api/routers/exports.py`, `workers/tasks.py`, `features/exports/**`
+  8. سیستم امنیتی → `core/{security,rate_limit}.py`, `api/routers/auth.py`, RBAC در `api/deps.py` + هر سرویس، `services/audit.py`
+- **فایل‌های ساخته‌شده:** `backend/docker-entrypoint.sh`
+- **فایل‌های تغییریافته:** `docker-compose.yml` (رفع دو باگ بالا)، `backend/Dockerfile` (ENTRYPOINT جدید)، `README.md` (بازنویسی کامل).
+- **کارهای باقی‌مانده (بک‌لاگ آیندهٔ اختیاری، نه بخشی از دامنهٔ اصلی RFB):** اعلان ایمیلی، 2FA، تست E2E خودکار با Playwright در CI، ارتقای Kanban به drag-and-drop، ذخیره‌سازی فایل خروجی روی storage خارجی (S3) برای مقیاس چند-instance. جزئیات کامل در بخش «در حال انجام / ناقص» بالای همین فایل.
+- **گام بعدی برای ادامه‌دهنده:** پروژه طبق دامنهٔ RFB کامل است. تنها تأیید واقعی باقی‌مانده که در این سندباکس ممکن نبود: یک بار `docker compose up` روی یک ماشین با دسترسی کامل به دیمان Docker، برای تأیید نهایی که تصویرها build می‌شوند و پنج سرویس با هم درست بالا می‌آیند.

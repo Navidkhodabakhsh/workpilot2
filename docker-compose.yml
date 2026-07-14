@@ -28,10 +28,15 @@ services:
   backend:
     build: ./backend
     env_file:
-      - ./backend/.env
+      - path: ./backend/.env
+        required: false
     environment:
       DATABASE_URL: postgresql+psycopg2://workpilot:workpilot@postgres:5432/workpilot
       REDIS_URL: redis://redis:6379/0
+      # Only the backend container runs `alembic upgrade head` on boot (see
+      # docker-entrypoint.sh) so worker/beat don't race it with concurrent
+      # migration attempts against a fresh database.
+      RUN_MIGRATIONS: "true"
     ports:
       - "8000:8000"
     volumes:
@@ -46,7 +51,8 @@ services:
     build: ./backend
     command: celery -A app.workers.celery_app worker --loglevel=info
     env_file:
-      - ./backend/.env
+      - path: ./backend/.env
+        required: false
     environment:
       DATABASE_URL: postgresql+psycopg2://workpilot:workpilot@postgres:5432/workpilot
       REDIS_URL: redis://redis:6379/0
@@ -57,12 +63,15 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      backend:
+        condition: service_started
 
   beat:
     build: ./backend
     command: celery -A app.workers.celery_app beat --loglevel=info
     env_file:
-      - ./backend/.env
+      - path: ./backend/.env
+        required: false
     environment:
       DATABASE_URL: postgresql+psycopg2://workpilot:workpilot@postgres:5432/workpilot
       REDIS_URL: redis://redis:6379/0
@@ -73,6 +82,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      backend:
+        condition: service_started
 
   frontend:
     build: ./frontend
