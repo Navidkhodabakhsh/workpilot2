@@ -9,6 +9,7 @@ from app.models.enums import UserRole
 from app.models.organization import Organization
 from app.models.user import User
 from app.schemas.auth import LoginRequest, SignupRequest
+from app.services.audit import log_event
 
 
 def _slugify(name: str) -> str:
@@ -43,6 +44,10 @@ def signup(db: Session, data: SignupRequest) -> User:
         role=UserRole.org_admin,
     )
     db.add(user)
+    db.flush()
+
+    log_event(db, organization.id, user.id, "user.signup", "organization", str(organization.id))
+
     db.commit()
     db.refresh(user)
     return user
@@ -54,6 +59,10 @@ def authenticate(db: Session, data: LoginRequest) -> User:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is disabled")
+
+    log_event(db, user.organization_id, user.id, "user.login", "user", str(user.id))
+    db.commit()
+
     return user
 
 

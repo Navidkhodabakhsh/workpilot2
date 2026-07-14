@@ -1,10 +1,11 @@
 import { useState } from "react"
-import { Outlet } from "react-router-dom"
-import { Menu, X, Search } from "lucide-react"
+import { Outlet, useNavigate } from "react-router-dom"
+import { LogOut, Menu, X, Search } from "lucide-react"
 
 import { SidebarNav } from "@/components/layout/sidebar-nav"
 import { Button } from "@/components/ui/button"
 import { NotificationBell } from "@/features/notifications/components/notification-bell"
+import { logoutRequest } from "@/features/auth/api"
 import { useAuthStore } from "@/features/auth/auth-store"
 
 /**
@@ -15,6 +16,17 @@ import { useAuthStore } from "@/features/auth/auth-store"
 export function AppShell() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const user = useAuthStore((s) => s.user)
+  const logout = useAuthStore((s) => s.logout)
+  const navigate = useNavigate()
+
+  async function handleLogout() {
+    try {
+      await logoutRequest()
+    } finally {
+      logout()
+      navigate("/login", { replace: true })
+    }
+  }
 
   return (
     <div className="flex min-h-svh flex-col lg:flex-row">
@@ -84,6 +96,9 @@ export function AppShell() {
                 <div className="text-xs text-muted-foreground">{user.role}</div>
               </div>
             )}
+            <Button variant="ghost" size="icon" aria-label="خروج" onClick={handleLogout}>
+              <LogOut className="size-5" />
+            </Button>
           </div>
         </header>
 

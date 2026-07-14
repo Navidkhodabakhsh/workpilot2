@@ -9,6 +9,7 @@ from app.models.task import Task
 from app.models.user import User
 from app.models.worklog import WorkLog
 from app.schemas.worklog import WorkLogCreate
+from app.services.audit import log_event
 from app.services.notifications import create_notification
 from app.services.projects import assert_can_manage_project, assert_can_view_project, get_project
 from app.services.tasks import get_task
@@ -110,6 +111,8 @@ def approve_worklog(db: Session, org_id: uuid.UUID, current_user: User, worklog_
     worklog.review_comment = None
     db.flush()
 
+    log_event(db, org_id, current_user.id, "worklog.approve", "worklog", str(worklog.id))
+
     if worklog.user_id != current_user.id:
         create_notification(
             db,
@@ -137,6 +140,10 @@ def reject_worklog(
     worklog.reviewed_by_id = current_user.id
     worklog.review_comment = review_comment
     db.flush()
+
+    log_event(
+        db, org_id, current_user.id, "worklog.reject", "worklog", str(worklog.id), {"review_comment": review_comment}
+    )
 
     if worklog.user_id != current_user.id:
         create_notification(

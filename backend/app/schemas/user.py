@@ -1,8 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.models.enums import UserRole
-
-_MAX_PASSWORD_BYTES = 72
+from app.schemas.validators import validate_password_strength
 
 
 class OrgUserCreate(BaseModel):
@@ -13,10 +12,8 @@ class OrgUserCreate(BaseModel):
 
     @field_validator("password")
     @classmethod
-    def _password_byte_length(cls, value: str) -> str:
-        if len(value.encode("utf-8")) > _MAX_PASSWORD_BYTES:
-            raise ValueError(f"Password must be at most {_MAX_PASSWORD_BYTES} bytes")
-        return value
+    def _password_strength(cls, value: str) -> str:
+        return validate_password_strength(value)
 
     @field_validator("role")
     @classmethod

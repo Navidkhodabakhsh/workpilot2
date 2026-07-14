@@ -8,6 +8,7 @@ from app.models.enums import NotificationType, UserRole
 from app.models.task import Task, TaskDependency
 from app.models.user import User
 from app.schemas.task import TaskCreate, TaskUpdate
+from app.services.audit import log_event
 from app.services.notifications import create_notification
 from app.services.projects import assert_can_manage_project, assert_can_view_project, get_project
 
@@ -121,6 +122,9 @@ def delete_task(db: Session, org_id: uuid.UUID, current_user: User, task_id: uui
     task = get_task(db, org_id, current_user, task_id)
     project = get_project(db, org_id, current_user, task.project_id)
     assert_can_manage_project(db, project, current_user)
+
+    log_event(db, org_id, current_user.id, "task.delete", "task", str(task.id), {"title": task.title})
+
     db.delete(task)
     db.commit()
 

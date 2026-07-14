@@ -26,3 +26,7 @@ export async function fetchMe() {
   const { data } = await apiClient.get<CurrentUser>("/api/v1/auth/me")
   return data
 }
+
+export async function logoutRequest() {
+  await apiClient.post("/api/v1/auth/logout")
+}

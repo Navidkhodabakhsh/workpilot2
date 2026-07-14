@@ -3,10 +3,7 @@ import uuid
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.models.enums import UserRole
-
-# bcrypt only uses the first 72 bytes of a password; cap length in bytes
-# (not chars) so multi-byte UTF-8 passwords can't silently exceed the limit.
-_MAX_PASSWORD_BYTES = 72
+from app.schemas.validators import validate_password_strength
 
 
 class SignupRequest(BaseModel):
@@ -17,10 +14,8 @@ class SignupRequest(BaseModel):
 
     @field_validator("password")
     @classmethod
-    def _password_byte_length(cls, value: str) -> str:
-        if len(value.encode("utf-8")) > _MAX_PASSWORD_BYTES:
-            raise ValueError(f"Password must be at most {_MAX_PASSWORD_BYTES} bytes")
-        return value
+    def _password_strength(cls, value: str) -> str:
+        return validate_password_strength(value)
 
 
 class LoginRequest(BaseModel):
