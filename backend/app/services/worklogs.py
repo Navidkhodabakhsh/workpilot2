@@ -4,11 +4,12 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.db.tenant_repository import TenantScopedRepository
-from app.models.enums import WorkLogStatus
+from app.models.enums import NotificationType, WorkLogStatus
 from app.models.task import Task
 from app.models.user import User
 from app.models.worklog import WorkLog
 from app.schemas.worklog import WorkLogCreate
+from app.services.notifications import create_notification
 from app.services.projects import assert_can_manage_project, assert_can_view_project, get_project
 from app.services.tasks import get_task
 
@@ -39,6 +40,20 @@ def create_worklog(db: Session, org_id: uuid.UUID, current_user: User, data: Wor
         log_date=data.log_date,
     )
     db.add(worklog)
+    db.flush()
+
+    # Notify whoever created the task (the closest thing we have to "the
+    # manager who assigned this work") rather than every project manager,
+    # to avoid notification spam on projects with several managers.
+    if task.created_by_id != current_user.id:
+        create_notification(
+            db,
+            org_id,
+            task.created_by_id,
+            NotificationType.report_submitted,
+            {"worklog_id": str(worklog.id), "task_id": str(task.id), "task_title": task.title},
+        )
+
     db.commit()
     db.refresh(worklog)
     return worklog
@@ -93,6 +108,17 @@ def approve_worklog(db: Session, org_id: uuid.UUID, current_user: User, worklog_
     worklog.status = WorkLogStatus.approved
     worklog.reviewed_by_id = current_user.id
     worklog.review_comment = None
+    db.flush()
+
+    if worklog.user_id != current_user.id:
+        create_notification(
+            db,
+            org_id,
+            worklog.user_id,
+            NotificationType.report_reviewed,
+            {"worklog_id": str(worklog.id), "task_id": str(worklog.task_id), "status": "approved"},
+        )
+
     db.commit()
     db.refresh(worklog)
     return worklog
@@ -110,6 +136,22 @@ def reject_worklog(
     worklog.status = WorkLogStatus.rejected
     worklog.reviewed_by_id = current_user.id
     worklog.review_comment = review_comment
+    db.flush()
+
+    if worklog.user_id != current_user.id:
+        create_notification(
+            db,
+            org_id,
+            worklog.user_id,
+            NotificationType.report_reviewed,
+            {
+                "worklog_id": str(worklog.id),
+                "task_id": str(worklog.task_id),
+                "status": "rejected",
+                "review_comment": review_comment,
+            },
+        )
+
     db.commit()
     db.refresh(worklog)
     return worklog

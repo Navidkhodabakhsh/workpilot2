@@ -14,6 +14,7 @@ from app.db.session import SessionLocal
 from app.models.enums import ExportFileType, ExportJobStatus, WorkLogStatus
 from app.models.export_job import ExportJob
 from app.models.user import User
+from app.services.notifications import check_deadlines_approaching
 from app.services.reports import query_worklog_report
 from app.workers.celery_app import celery_app
 
@@ -134,5 +135,16 @@ def generate_export(job_id: str) -> None:
             job.status = ExportJobStatus.failed
             job.error_message = str(exc)[:2000]
         db.commit()
+    finally:
+        db.close()
+
+
+@celery_app.task(name="check_deadlines")
+def check_deadlines() -> int:
+    """Scheduled (see celery_app.py beat_schedule) rather than triggered by a
+    request, so it runs across every organization in one pass."""
+    db = SessionLocal()
+    try:
+        return check_deadlines_approaching(db)
     finally:
         db.close()

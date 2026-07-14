@@ -4,10 +4,11 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.db.tenant_repository import TenantScopedRepository
-from app.models.enums import UserRole
+from app.models.enums import NotificationType, UserRole
 from app.models.task import Task, TaskDependency
 from app.models.user import User
 from app.schemas.task import TaskCreate, TaskUpdate
+from app.services.notifications import create_notification
 from app.services.projects import assert_can_manage_project, assert_can_view_project, get_project
 
 
@@ -43,6 +44,17 @@ def create_task(db: Session, org_id: uuid.UUID, current_user: User, data: TaskCr
         deadline=data.deadline,
     )
     db.add(task)
+    db.flush()
+
+    if task.assignee_id is not None and task.assignee_id != current_user.id:
+        create_notification(
+            db,
+            org_id,
+            task.assignee_id,
+            NotificationType.task_created,
+            {"task_id": str(task.id), "task_title": task.title, "project_id": str(task.project_id)},
+        )
+
     db.commit()
     db.refresh(task)
     return task

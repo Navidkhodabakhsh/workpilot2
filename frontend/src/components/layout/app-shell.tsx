@@ -1,9 +1,10 @@
 import { useState } from "react"
 import { Outlet } from "react-router-dom"
-import { Menu, X, Bell, Search } from "lucide-react"
+import { Menu, X, Search } from "lucide-react"
 
 import { SidebarNav } from "@/components/layout/sidebar-nav"
 import { Button } from "@/components/ui/button"
+import { NotificationBell } from "@/features/notifications/components/notification-bell"
 import { useAuthStore } from "@/features/auth/auth-store"
 
 /**
@@ -76,9 +77,7 @@ export function AppShell() {
           </div>
 
           <div className="flex flex-1 items-center justify-end gap-2 sm:flex-none">
-            <Button variant="ghost" size="icon" aria-label="اعلان‌ها">
-              <Bell className="size-5" />
-            </Button>
+            <NotificationBell />
             {user && (
               <div className="hidden text-end sm:block">
                 <div className="text-sm font-medium">{user.full_name}</div>
