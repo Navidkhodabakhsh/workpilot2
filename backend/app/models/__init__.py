@@ -3,6 +3,7 @@ autogenerate can discover them via a single entrypoint."""
 
 from app.models.audit_log import AuditLog
 from app.models.collaboration import Attachment, Comment
+from app.models.export_job import ExportJob
 from app.models.notification import Notification
 from app.models.organization import Organization
 from app.models.project import Project, ProjectMember
@@ -14,6 +15,7 @@ __all__ = [
     "AuditLog",
     "Attachment",
     "Comment",
+    "ExportJob",
     "Notification",
     "Organization",
     "Project",

@@ -40,3 +40,16 @@ class NotificationType(str, enum.Enum):
     deadline_approaching = "deadline_approaching"
     report_submitted = "report_submitted"
     report_reviewed = "report_reviewed"
+
+
+class ExportFileType(str, enum.Enum):
+    excel = "excel"
+    pdf = "pdf"
+    csv = "csv"
+
+
+class ExportJobStatus(str, enum.Enum):
+    pending = "pending"
+    processing = "processing"
+    done = "done"
+    failed = "failed"

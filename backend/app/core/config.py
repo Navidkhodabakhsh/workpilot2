@@ -17,5 +17,9 @@ class Settings(BaseSettings):
 
     cors_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
+    # Shared between the backend and worker containers via the same bind
+    # mount (see docker-compose.yml) so the API can serve files the worker wrote.
+    exports_dir: str = "exports"
+
 
 settings = Settings()

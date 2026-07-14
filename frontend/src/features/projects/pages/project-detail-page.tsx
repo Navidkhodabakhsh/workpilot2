@@ -23,6 +23,7 @@ import { createTask, listTasks } from "@/features/tasks/api"
 import { listOrgUsers } from "@/features/users/api"
 import { TaskCard } from "@/features/tasks/components/task-card"
 import { PendingApprovals } from "@/features/worklogs/components/pending-approvals"
+import { ExportDialog } from "@/features/exports/components/export-dialog"
 import { useAuthStore } from "@/features/auth/auth-store"
 import type { TaskStatus } from "@/lib/types"
 
@@ -86,7 +87,9 @@ export function ProjectDetailPage() {
           <h1 className="text-2xl font-bold">{project.name}</h1>
           <p className="text-muted-foreground">{project.description || "بدون توضیحات"}</p>
         </div>
-        {canManage && (
+        <div className="flex flex-wrap gap-2">
+          <ExportDialog projectId={projectId!} />
+          {canManage && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -127,7 +130,8 @@ export function ProjectDetailPage() {
               </form>
             </DialogContent>
           </Dialog>
-        )}
+          )}
+        </div>
       </div>
 
       {canManage && <PendingApprovals projectId={projectId!} tasks={tasks} users={users} />}

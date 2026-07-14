@@ -6,6 +6,7 @@ venv/
 *.egg-info/
 .pytest_cache/
 .coverage
+backend/exports/
 
 # Node / frontend
 node_modules/
