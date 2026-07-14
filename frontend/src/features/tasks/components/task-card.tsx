@@ -3,6 +3,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Card, CardContent } from "@/components/ui/card"
 import { Select } from "@/components/ui/select"
 import { updateTaskStatus } from "@/features/tasks/api"
+import { LogWorkDialog } from "@/features/worklogs/components/log-work-dialog"
+import { useAuthStore } from "@/features/auth/auth-store"
 import type { OrgUser, Task, TaskStatus } from "@/lib/types"
 
 const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
@@ -22,7 +24,9 @@ const PRIORITY_CLASS: Record<string, string> = {
 
 export function TaskCard({ task, users }: { task: Task; users: OrgUser[] }) {
   const queryClient = useQueryClient()
+  const currentUserId = useAuthStore((s) => s.user?.id)
   const assignee = users.find((u) => u.id === task.assignee_id)
+  const isOwnTask = task.assignee_id === currentUserId
 
   const mutation = useMutation({
     mutationFn: (status: TaskStatus) => updateTaskStatus(task.id, status),
@@ -50,6 +54,7 @@ export function TaskCard({ task, users }: { task: Task; users: OrgUser[] }) {
             </option>
           ))}
         </Select>
+        {isOwnTask && <LogWorkDialog taskId={task.id} projectId={task.project_id} />}
       </CardContent>
     </Card>
   )

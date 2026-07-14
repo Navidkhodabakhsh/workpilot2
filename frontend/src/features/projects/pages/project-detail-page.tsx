@@ -22,6 +22,7 @@ import { getProject } from "@/features/projects/api"
 import { createTask, listTasks } from "@/features/tasks/api"
 import { listOrgUsers } from "@/features/users/api"
 import { TaskCard } from "@/features/tasks/components/task-card"
+import { PendingApprovals } from "@/features/worklogs/components/pending-approvals"
 import { useAuthStore } from "@/features/auth/auth-store"
 import type { TaskStatus } from "@/lib/types"
 
@@ -128,6 +129,8 @@ export function ProjectDetailPage() {
           </Dialog>
         )}
       </div>
+
+      {canManage && <PendingApprovals projectId={projectId!} tasks={tasks} users={users} />}
 
       {/* Kanban board: horizontally scrollable on small screens by design —
           each column keeps a readable min-width instead of squeezing to fit. */}

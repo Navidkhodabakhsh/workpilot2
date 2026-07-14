@@ -44,3 +44,20 @@ export type ProjectMember = {
   project_id: string
   user_id: string
 }
+
+export type WorkLogStatus = "draft" | "submitted" | "approved" | "rejected"
+
+export type WorkLog = {
+  id: string
+  organization_id: string
+  task_id: string
+  user_id: string
+  activity_description: string
+  time_spent_minutes: number
+  progress_percent: number
+  log_date: string
+  status: WorkLogStatus
+  reviewed_by_id: string | null
+  review_comment: string | null
+  created_at: string
+}
