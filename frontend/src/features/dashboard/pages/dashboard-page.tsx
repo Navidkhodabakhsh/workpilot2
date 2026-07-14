@@ -1,17 +1,76 @@
 import { useQuery } from "@tanstack/react-query"
+import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
+import { CheckCircle2, ClipboardList, Clock, FolderKanban } from "lucide-react"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { apiClient } from "@/lib/api-client"
-import { useAuthStore } from "@/features/auth/auth-store"
+import { getDashboardSummary } from "@/features/dashboard/api"
+import type { StatusCount } from "@/features/dashboard/api"
 
-async function fetchHealth() {
-  const { data } = await apiClient.get<{ status: string }>("/health")
-  return data
+const STATUS_LABEL: Record<string, string> = {
+  todo: "برای انجام",
+  in_progress: "در حال انجام",
+  in_review: "در بازبینی",
+  done: "انجام‌شده",
+  blocked: "معطل",
+}
+const STATUS_COLOR: Record<string, string> = {
+  todo: "var(--color-muted-foreground)",
+  in_progress: "var(--color-info)",
+  in_review: "var(--color-warning)",
+  done: "var(--color-success)",
+  blocked: "var(--color-danger)",
+}
+const WORKLOG_STATUS_LABEL: Record<string, string> = {
+  draft: "پیش‌نویس",
+  submitted: "در انتظار تأیید",
+  approved: "تأییدشده",
+  rejected: "ردشده",
+}
+
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof FolderKanban
+  label: string
+  value: string | number
+}) {
+  return (
+    <Card>
+      <CardContent className="flex items-center gap-3 pt-6">
+        <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <Icon className="size-5" />
+        </div>
+        <div>
+          <p className="text-2xl font-bold">{value}</p>
+          <p className="text-sm text-muted-foreground">{label}</p>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function taskStatusChartData(tasksByStatus: StatusCount[]) {
+  return tasksByStatus.map((s) => ({
+    name: STATUS_LABEL[s.status] ?? s.status,
+    value: s.count,
+    color: STATUS_COLOR[s.status] ?? "var(--color-muted-foreground)",
+  }))
 }
 
 export function DashboardPage() {
-  const user = useAuthStore((s) => s.user)
-  const { data, isLoading, isError } = useQuery({ queryKey: ["health"], queryFn: fetchHealth })
+  const { data, isLoading, isError } = useQuery({ queryKey: ["dashboard-summary"], queryFn: getDashboardSummary })
+
+  if (isLoading) {
+    return <p className="text-muted-foreground">در حال بارگذاری داشبورد...</p>
+  }
+  if (isError || !data) {
+    return <p className="text-danger">اتصال به سرور برقرار نشد</p>
+  }
+
+  const doneCount = data.tasks_by_status.find((s) => s.status === "done")?.count ?? 0
+  const chartData = taskStatusChartData(data.tasks_by_status)
 
   return (
     <div className="flex flex-col gap-4">
@@ -20,35 +79,82 @@ export function DashboardPage() {
         <p className="text-muted-foreground">نمای کلی از فعالیت‌ها و پروژه‌ها</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard icon={FolderKanban} label="پروژه‌های فعال" value={data.project_count} />
+        <StatCard icon={ClipboardList} label="کل وظایف" value={data.task_count} />
+        <StatCard icon={Clock} label="ساعات کاری تأییدشده" value={data.total_approved_hours} />
+        <StatCard icon={CheckCircle2} label="وظایف انجام‌شده" value={doneCount} />
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">وضعیت سرور</CardTitle>
+            <CardTitle className="text-base">وضعیت وظایف</CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoading && <p className="text-muted-foreground">در حال بررسی...</p>}
-            {isError && <p className="text-danger">اتصال به سرور برقرار نشد</p>}
-            {data && <p className="text-success">سرور در دسترس است ({data.status})</p>}
+            {chartData.length === 0 ? (
+              <p className="text-muted-foreground">هنوز وظیفه‌ای ثبت نشده است.</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <PieChart>
+                  <Pie data={chartData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={80}>
+                    {chartData.map((entry) => (
+                      <Cell key={entry.name} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">کاربر جاری</CardTitle>
+            <CardTitle className="text-base">ساعات کاری اعضای تیم</CardTitle>
           </CardHeader>
           <CardContent>
-            <p>{user?.full_name}</p>
-            <p className="text-sm text-muted-foreground">{user?.role}</p>
+            {data.team_hours.length === 0 ? (
+              <p className="text-muted-foreground">هنوز گزارش کاری تأییدشده‌ای وجود ندارد.</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={data.team_hours}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="full_name" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip />
+                  <Bar dataKey="approved_hours" fill="var(--color-primary)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
       </div>
 
       <Card>
-        <CardContent className="pt-6">
-          <p className="text-muted-foreground">
-            محتوای کامل داشبورد (نمودارها، فهرست تسک‌های در انتظار تأیید، پروژه‌های فعال) در فاز E
-            پیاده‌سازی می‌شود — به `docs/UI-DESIGN.md` مراجعه کنید.
-          </p>
+        <CardHeader>
+          <CardTitle className="text-base">آخرین فعالیت‌ها</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          {data.recent_activity.length === 0 && (
+            <p className="text-muted-foreground">هنوز فعالیتی ثبت نشده است.</p>
+          )}
+          {data.recent_activity.map((item) => (
+            <div key={item.worklog_id} className="flex items-start justify-between gap-2 border-b border-border pb-2 last:border-0 last:pb-0">
+              <div>
+                <p className="text-sm">
+                  <span className="font-medium">{item.user_full_name}</span> روی{" "}
+                  <span className="font-medium">{item.task_title}</span> گزارش کار ثبت کرد
+                </p>
+                <span className="text-xs text-muted-foreground">
+                  {WORKLOG_STATUS_LABEL[item.status] ?? item.status}
+                </span>
+              </div>
+              <span className="shrink-0 text-xs text-muted-foreground">
+                {new Date(item.created_at).toLocaleDateString("fa-IR")}
+              </span>
+            </div>
+          ))}
         </CardContent>
       </Card>
     </div>
