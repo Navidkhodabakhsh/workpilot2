@@ -6,7 +6,7 @@
 
 پروژه در حال ساخت است. برای وضعیت دقیق و آخرین Handoff به [`docs/PROJECT_STATE.md`](docs/PROJECT_STATE.md) مراجعه کنید.
 
-**فاز فعلی:** اسکلت پروژه (Phase A) — کد اپلیکیشن هنوز در حال ایجاد است.
+**فاز فعلی:** فاز A (اسکلت پروژه) تکمیل شد؛ احراز هویت (signup/login/me) کار می‌کند و با مرورگر واقعی در دسکتاپ و موبایل تست شده. فازهای C تا J (مدیریت پروژه/وظایف، گزارش کاری، داشبورد، خروجی فایل، اعلان‌ها، امنیت، تست، Docker نهایی) باقی مانده‌اند.
 
 ## مستندات
 
@@ -37,11 +37,34 @@ skill/        → Skill های Claude نصب‌شده در این مخزن
 
 ## نحوهٔ اجرا (Local Development)
 
-> این بخش به‌محض تکمیل اسکلت backend/frontend در فاز A تکمیل می‌شود.
+### با Docker (روش پیشنهادی)
 
 ```bash
+cp backend/.env.example backend/.env
 docker compose up
 ```
+
+- Backend روی `http://localhost:8000` (مستندات API: `/docs`)
+- Frontend روی `http://localhost:5173`
+
+### بدون Docker (اجرای مستقیم)
+
+```bash
+# Backend
+cd backend
+python -m venv .venv && source .venv/bin/activate   # یا: uv venv .venv
+pip install -r requirements.txt                       # یا: uv pip install -r requirements.txt
+cp .env.example .env   # و DATABASE_URL/SECRET_KEY را متناسب با محیط خودتان تنظیم کنید
+alembic upgrade head
+uvicorn app.main:app --reload
+
+# Frontend (در ترمینال دیگر)
+cd frontend
+npm install
+npm run dev
+```
+
+> نکته: در محیط‌های sandboxed که دیمان Docker بالا نمی‌آید، از Postgres/Redis نصب‌شدهٔ سیستم‌عامل (`service postgresql start` و `service redis-server start`) استفاده کنید — همین روش برای تست فاز A استفاده شد (جزئیات در `docs/PROJECT_STATE.md`).
 
 ## مشارکت
 
