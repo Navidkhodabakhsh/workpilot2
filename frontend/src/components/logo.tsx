@@ -8,11 +8,11 @@ export function LogoMark({ className, notchColor = "#fff" }: { className?: strin
         d="M 20 52 L 42 74 L 82 26"
         fill="none"
         stroke="currentColor"
-        strokeWidth="16"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        strokeWidth="15"
+        strokeLinecap="square"
+        strokeLinejoin="miter"
       />
-      <circle cx="30" cy="63" r="4.2" fill={notchColor} />
+      <circle cx="31" cy="62" r="4.6" fill={notchColor} />
     </svg>
   )
 }

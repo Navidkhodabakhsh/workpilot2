@@ -37,8 +37,12 @@ export function LoginPage() {
       const user = await fetchMe()
       setSession(access_token, user)
       navigate("/", { replace: true })
-    } catch {
-      setServerError("ایمیل/شماره موبایل یا رمز عبور اشتباه است")
+    } catch (err: any) {
+      if (err?.response?.status === 429) {
+        setServerError("تعداد تلاش‌های ورود بیش از حد مجاز است؛ چند دقیقه دیگر دوباره امتحان کنید.")
+      } else {
+        setServerError("ایمیل/شماره موبایل یا رمز عبور اشتباه است")
+      }
     }
   }
 
