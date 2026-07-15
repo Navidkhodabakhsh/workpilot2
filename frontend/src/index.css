@@ -9,20 +9,20 @@
  * see docs/ARCHITECTURE.md and docs/UI-DESIGN.md. Never hardcode raw colors in
  * components; always reference a semantic Tailwind class (bg-primary, text-muted-foreground, ...).
  *
- * Palette: "Productivity Tool" recommendation from the ui-ux-pro-max skill
- * database (teal primary, orange accent). Accent is deliberately NOT wired
- * into any default component style -- it is reserved for a single primary
- * CTA per screen (e.g. auth submit buttons), per explicit product direction
- * to keep accent usage sparse.
+ * Palette: "B2B Service" recommendation from the ui-ux-pro-max skill database
+ * (professional navy/blue primary on a near-white surface). Accent is
+ * deliberately NOT wired into any default component style -- it is reserved
+ * for a single primary CTA per screen (e.g. auth submit buttons), per
+ * explicit product direction to keep accent usage sparse.
  */
 :root {
   --radius: 0.625rem;
 
   /* Primitive tokens */
-  --color-teal-600: 175 84% 32%; /* #0D9488 -- primary */
-  --color-teal-500: 173 80% 40%; /* #14B8A6 -- secondary */
-  --color-teal-200: 168 84% 78%; /* #99F6E4 */
-  --color-teal-50: 166 76% 97%; /* #F0FDFA -- tinted app background */
+  --color-blue-700: 224 76% 48%; /* #1D4ED8 -- primary */
+  --color-blue-500: 217 91% 60%; /* #3B82F6 -- secondary */
+  --color-blue-900: 224 64% 33%; /* #1E3A8A -- sidebar surface */
+  --color-blue-800: 226 71% 40%; /* sidebar border */
   --color-orange-600: 21 90% 48%; /* #EA580C -- accent, used sparingly */
   --color-slate-50: 210 40% 98%;
   --color-slate-100: 210 40% 96%;
@@ -34,22 +34,23 @@
   --color-blue-600: 221 83% 53%;
   --color-amber-600: 32 95% 44%;
   --color-red-600: 0 72% 51%;
+  --color-purple-600: 262 83% 58%; /* #7C3AED -- calendar "leave" event type */
 
   /* Semantic tokens — light mode */
-  --background: var(--color-teal-50);
+  --background: var(--color-slate-50);
   --foreground: var(--color-slate-900);
   --card: 0 0% 100%;
   --card-foreground: var(--color-slate-900);
   --border: var(--color-slate-200);
   --input: var(--color-slate-200);
-  --ring: var(--color-teal-600);
+  --ring: var(--color-blue-700);
   --muted: var(--color-slate-100);
   --muted-foreground: var(--color-slate-500);
 
-  --primary: var(--color-teal-600);
+  --primary: var(--color-blue-700);
   --primary-foreground: 0 0% 100%;
 
-  --secondary: var(--color-teal-500);
+  --secondary: var(--color-blue-500);
   --secondary-foreground: 0 0% 100%;
 
   /* Reserved for a single primary CTA per screen -- do not use as a general
@@ -57,17 +58,18 @@
   --accent: var(--color-orange-600);
   --accent-foreground: 0 0% 100%;
 
-  /* Sidebar is intentionally dark in both themes — see docs/UI-DESIGN.md reference */
-  --sidebar: 179 84% 10%;
+  /* Sidebar reads unambiguously as "blue", not near-black -- see docs/UI-DESIGN.md reference */
+  --sidebar: var(--color-blue-900);
   --sidebar-foreground: var(--color-slate-100);
-  --sidebar-accent: var(--color-teal-500);
+  --sidebar-accent: var(--color-blue-500);
   --sidebar-accent-foreground: 0 0% 100%;
-  --sidebar-border: 176 61% 19%;
+  --sidebar-border: var(--color-blue-800);
 
   --success: var(--color-green-600);
   --info: var(--color-blue-600);
   --warning: var(--color-amber-600);
   --danger: var(--color-red-600);
+  --leave: var(--color-purple-600);
 }
 
 .dark {
@@ -106,6 +108,7 @@
   --color-info: hsl(var(--info));
   --color-warning: hsl(var(--warning));
   --color-danger: hsl(var(--danger));
+  --color-leave: hsl(var(--leave));
 
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);

@@ -52,7 +52,7 @@ export function AppShell() {
         )}
       >
         <div
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_hsl(var(--color-teal-500)/0.35),_transparent_60%)]"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_hsl(var(--color-blue-500)/0.35),_transparent_60%)]"
           aria-hidden="true"
         />
         <div
@@ -61,7 +61,7 @@ export function AppShell() {
             collapsed && "px-0 text-center"
           )}
         >
-          {collapsed ? "WP" : "WorkPilot"}
+          {collapsed ? "T" : "Tadvin"}
         </div>
         <div className="relative flex-1 overflow-y-auto">
           <SidebarNav collapsed={collapsed} />
@@ -106,7 +106,7 @@ export function AppShell() {
           )}
         >
           <div className="flex items-center justify-between px-4 pb-4">
-            <span className="text-xl font-bold text-sidebar-foreground">WorkPilot</span>
+            <span className="text-xl font-bold text-sidebar-foreground">Tadvin</span>
             <Button
               variant="ghost"
               size="icon"
