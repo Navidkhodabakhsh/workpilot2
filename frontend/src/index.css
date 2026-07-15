@@ -115,6 +115,35 @@
   --radius-sm: calc(var(--radius) - 4px);
 }
 
+@layer utilities {
+  /* Slow, subtle drift for the auth brand-panel background shapes -- never
+     jarring, just enough motion to feel alive instead of a static image. */
+  @keyframes auth-float-a {
+    0%,
+    100% {
+      transform: translate(0, 0) scale(1);
+    }
+    50% {
+      transform: translate(28px, -34px) scale(1.06);
+    }
+  }
+  @keyframes auth-float-b {
+    0%,
+    100% {
+      transform: translate(0, 0) scale(1);
+    }
+    50% {
+      transform: translate(-32px, 28px) scale(1.08);
+    }
+  }
+  .animate-auth-float-a {
+    animation: auth-float-a 10s ease-in-out infinite;
+  }
+  .animate-auth-float-b {
+    animation: auth-float-b 12s ease-in-out infinite;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
