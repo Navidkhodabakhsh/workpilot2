@@ -26,7 +26,16 @@ const PRIORITY_VARIANT: Record<string, "default" | "warning" | "danger"> = {
   high: "danger",
 }
 
-export function TaskCard({ task, users }: { task: Task; users: OrgUser[] }) {
+export function TaskCard({
+  task,
+  users,
+  projectName,
+}: {
+  task: Task
+  users: OrgUser[]
+  /** Shown as a badge when the card appears in a cross-project context (Workflow board). */
+  projectName?: string
+}) {
   const queryClient = useQueryClient()
   const currentUserId = useAuthStore((s) => s.user?.id)
   const assignee = users.find((u) => u.id === task.assignee_id)
@@ -46,6 +55,11 @@ export function TaskCard({ task, users }: { task: Task; users: OrgUser[] }) {
             {PRIORITY_LABEL[task.priority]}
           </Badge>
         </div>
+        {projectName && (
+          <Badge variant="info" className="self-start">
+            {projectName}
+          </Badge>
+        )}
         {assignee && <p className="text-sm text-muted-foreground">{assignee.full_name}</p>}
         <Select
           value={task.status}

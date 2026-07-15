@@ -35,3 +35,13 @@ export async function getWorklogReport(filters: WorkLogReportFilters) {
   const { data } = await apiClient.get<WorkLogReport>("/api/v1/reports/worklogs", { params: filters })
   return data
 }
+
+export type WorklogTrendPoint = { period: string; approved_hours: number }
+export type WorklogTrendReport = { items: WorklogTrendPoint[] }
+
+export async function getWorklogTrend(groupBy: "week" | "month" = "week") {
+  const { data } = await apiClient.get<WorklogTrendReport>("/api/v1/reports/worklog-trend", {
+    params: { group_by: groupBy },
+  })
+  return data
+}

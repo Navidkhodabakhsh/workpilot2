@@ -1,6 +1,8 @@
 import uuid
 from datetime import date
+from typing import Literal
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.enums import WorkLogStatus
@@ -71,3 +73,50 @@ def query_worklog_report(
     total_minutes = sum(item["time_spent_minutes"] for item in items)
 
     return {"items": items, "total_minutes": total_minutes, "total_hours": round(total_minutes / 60, 2)}
+
+
+def query_worklog_trend(
+    db: Session,
+    org_id: uuid.UUID,
+    current_user: User,
+    project_id: uuid.UUID | None = None,
+    group_by: Literal["week", "month"] = "week",
+    date_from: date | None = None,
+    date_to: date | None = None,
+) -> dict:
+    """Approved hours bucketed by week/month, for the Analytics trend chart
+    -- a second view of the same WorkLog data the dashboard/reports already
+    expose, just aggregated over time instead of a snapshot."""
+    if project_id is not None:
+        project = get_project(db, org_id, current_user, project_id)
+        assert_can_view_project(db, project, current_user)
+        project_ids = [project_id]
+    else:
+        project_ids = get_visible_project_ids(db, org_id, current_user)
+
+    if not project_ids:
+        return {"items": []}
+
+    period = func.date_trunc(group_by, WorkLog.log_date).label("period")
+    query = (
+        db.query(period, func.coalesce(func.sum(WorkLog.time_spent_minutes), 0))
+        .join(Task, WorkLog.task_id == Task.id)
+        .filter(
+            WorkLog.organization_id == org_id,
+            Task.project_id.in_(project_ids),
+            WorkLog.status == WorkLogStatus.approved,
+        )
+    )
+    if date_from is not None:
+        query = query.filter(WorkLog.log_date >= date_from)
+    if date_to is not None:
+        query = query.filter(WorkLog.log_date <= date_to)
+
+    rows = query.group_by(period).order_by(period).all()
+
+    return {
+        "items": [
+            {"period": period_start.date(), "approved_hours": round(minutes / 60, 2)}
+            for period_start, minutes in rows
+        ]
+    }

@@ -26,3 +26,12 @@ class WorkLogReport(BaseModel):
     items: list[WorkLogReportRow]
     total_minutes: int
     total_hours: float
+
+
+class WorklogTrendPoint(BaseModel):
+    period: date
+    approved_hours: float
+
+
+class WorklogTrendReport(BaseModel):
+    items: list[WorklogTrendPoint]

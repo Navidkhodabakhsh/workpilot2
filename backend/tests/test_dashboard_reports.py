@@ -64,3 +64,23 @@ def test_report_filters(client, signup_org_admin, create_org_user):
 
     resp = client.get("/api/v1/reports/worklogs", params={"project_id": project_id, "date_from": "2026-07-15"}, headers=auth_headers(admin_token))
     assert len(resp.json()["items"]) == 0
+
+
+def test_worklog_trend_buckets_approved_hours_by_period(client, signup_org_admin, create_org_user):
+    admin_token, _ = signup_org_admin()
+    pm_token, _ = create_org_user(admin_token, "project_manager", "pm")
+    emp_token, emp = create_org_user(admin_token, "employee", "emp")
+    _project_with_approved_worklog(client, admin_token, pm_token, emp_token, emp)
+
+    resp = client.get("/api/v1/reports/worklog-trend", headers=auth_headers(admin_token))
+    assert resp.status_code == 200
+    items = resp.json()["items"]
+    assert len(items) == 1
+    assert items[0]["approved_hours"] == 2.0
+
+
+def test_worklog_trend_is_isolated_per_organization(client, signup_org_admin):
+    admin_b_token, _ = signup_org_admin("Org B Trend")
+    resp = client.get("/api/v1/reports/worklog-trend", headers=auth_headers(admin_b_token))
+    assert resp.status_code == 200
+    assert resp.json()["items"] == []

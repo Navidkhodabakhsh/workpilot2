@@ -13,15 +13,9 @@ import { UsersListPage } from "@/features/users/pages/users-list-page"
 import { MessagesPage } from "@/features/messages/pages/messages-page"
 import { FilesListPage } from "@/features/attachments/pages/files-list-page"
 import { SettingsPage } from "@/features/settings/pages/settings-page"
-
-function ComingSoon({ title }: { title: string }) {
-  return (
-    <div>
-      <h1 className="text-2xl font-bold">{title}</h1>
-      <p className="text-muted-foreground">این بخش در فازهای بعدی ساخته می‌شود.</p>
-    </div>
-  )
-}
+import { CalendarPage } from "@/features/calendar/pages/calendar-page"
+import { WorkflowPage } from "@/features/workflow/pages/workflow-page"
+import { AnalyticsPage } from "@/features/analytics/pages/analytics-page"
 
 export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
@@ -37,10 +31,10 @@ export const router = createBrowserRouter([
           { path: "/projects/:projectId", element: <ProjectDetailPage /> },
           { path: "/tasks", element: <TasksListPage /> },
           { path: "/reports", element: <ReportsPage /> },
-          { path: "/calendar", element: <ComingSoon title="تقویم" /> },
+          { path: "/calendar", element: <CalendarPage /> },
           { path: "/users", element: <UsersListPage /> },
-          { path: "/workflow", element: <ComingSoon title="گردش کار" /> },
-          { path: "/analytics", element: <ComingSoon title="تحلیل‌ها" /> },
+          { path: "/workflow", element: <WorkflowPage /> },
+          { path: "/analytics", element: <AnalyticsPage /> },
           { path: "/messages", element: <MessagesPage /> },
           { path: "/files", element: <FilesListPage /> },
           { path: "/settings", element: <SettingsPage /> },
