@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react"
 import { Outlet, useNavigate } from "react-router-dom"
-import { LogOut, Menu, PanelLeftClose, PanelLeftOpen, X, Search } from "lucide-react"
+import { LogOut, Menu, PanelLeftClose, PanelLeftOpen, X } from "lucide-react"
 
 import { SidebarNav } from "@/components/layout/sidebar-nav"
 import { useSidebarStore } from "@/components/layout/sidebar-store"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { GlobalSearch } from "@/features/search/components/global-search"
 import { NotificationBell } from "@/features/notifications/components/notification-bell"
 import { logoutRequest } from "@/features/auth/api"
 import { useAuthStore } from "@/features/auth/auth-store"
@@ -96,7 +97,11 @@ export function AppShell() {
         />
         <div
           className={cn(
-            "absolute inset-y-0 end-0 flex w-72 max-w-[85vw] flex-col bg-sidebar py-4 transition-transform duration-300 ease-in-out",
+            // `start-0` (not `end-0`) so the drawer opens on the same
+            // physical side as the desktop sidebar -- under this app's
+            // permanent RTL direction, inset-inline-start resolves to the
+            // right edge, matching the `<aside>` above.
+            "absolute inset-y-0 start-0 flex w-72 max-w-[85vw] flex-col bg-sidebar py-4 transition-transform duration-300 ease-in-out",
             mobileNavOpen ? "translate-x-0" : "translate-x-full"
           )}
         >
@@ -131,16 +136,9 @@ export function AppShell() {
             <Menu className="size-5" />
           </Button>
 
-          <div className="hidden flex-1 items-center gap-2 rounded-md border border-input bg-background px-3 py-2 sm:flex">
-            <Search className="size-4 text-muted-foreground" />
-            <input
-              type="search"
-              placeholder="جست‌وجو در پروژه‌ها، کارها، کاربران..."
-              className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-            />
-          </div>
+          <GlobalSearch />
 
-          <div className="flex flex-1 items-center justify-end gap-2 sm:flex-none">
+          <div className="flex shrink-0 items-center justify-end gap-2">
             <NotificationBell />
             {user && (
               <div className="hidden text-end sm:block">

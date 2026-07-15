@@ -10,6 +10,7 @@ from app.api.routers import (
     notifications,
     projects,
     reports,
+    search,
     tasks,
     users,
     worklogs,
@@ -37,3 +38,4 @@ app.include_router(reports.router, prefix=settings.api_v1_prefix)
 app.include_router(exports.router, prefix=settings.api_v1_prefix)
 app.include_router(notifications.router, prefix=settings.api_v1_prefix)
 app.include_router(audit.router, prefix=settings.api_v1_prefix)
+app.include_router(search.router, prefix=settings.api_v1_prefix)
