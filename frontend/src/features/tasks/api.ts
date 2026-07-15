@@ -6,6 +6,13 @@ export async function listTasks(projectId: string) {
   return data
 }
 
+export async function listAllTasks(filters?: { status?: TaskStatus }) {
+  const { data } = await apiClient.get<Task[]>("/api/v1/tasks", {
+    params: filters?.status ? { status: filters.status } : undefined,
+  })
+  return data
+}
+
 export async function createTask(payload: {
   project_id: string
   title: string

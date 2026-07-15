@@ -32,7 +32,7 @@ def create_task(
 
 @router.get("", response_model=list[TaskOut])
 def list_tasks(
-    project_id: uuid.UUID,
+    project_id: uuid.UUID | None = None,
     assignee_id: uuid.UUID | None = None,
     status_filter: TaskStatus | None = Query(default=None, alias="status"),
     db: Session = Depends(get_db),

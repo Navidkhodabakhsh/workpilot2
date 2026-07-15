@@ -65,6 +65,25 @@ def test_employee_can_only_change_status_of_their_own_task(client, signup_org_ad
     assert resp.status_code == 403
 
 
+def test_list_tasks_without_project_id_returns_all_visible_tasks(client, signup_org_admin, create_org_user):
+    admin_token, _ = signup_org_admin()
+    pm_token, _ = create_org_user(admin_token, "project_manager", "pm")
+    other_pm_token, _ = create_org_user(admin_token, "project_manager", "other")
+
+    p1 = client.post("/api/v1/projects", json={"name": "P1"}, headers=auth_headers(pm_token)).json()["id"]
+    p2 = client.post("/api/v1/projects", json={"name": "P2"}, headers=auth_headers(other_pm_token)).json()["id"]
+    client.post("/api/v1/tasks", json={"project_id": p1, "title": "Task in P1"}, headers=auth_headers(pm_token))
+    client.post("/api/v1/tasks", json={"project_id": p2, "title": "Task in P2"}, headers=auth_headers(other_pm_token))
+
+    resp = client.get("/api/v1/tasks", headers=auth_headers(pm_token))
+    assert resp.status_code == 200
+    titles = {t["title"] for t in resp.json()}
+    assert titles == {"Task in P1"}  # pm is only a member of P1, not P2
+
+    resp = client.get("/api/v1/tasks", headers=auth_headers(admin_token))
+    assert {t["title"] for t in resp.json()} == {"Task in P1", "Task in P2"}  # org_admin sees the whole org
+
+
 def test_task_dependency_cycle_is_rejected(client, signup_org_admin, create_org_user):
     admin_token, _ = signup_org_admin()
     pm_token, _ = create_org_user(admin_token, "project_manager", "pm")

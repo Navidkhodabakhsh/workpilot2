@@ -9,6 +9,7 @@ from app.models.task import Task, TaskDependency
 from app.models.user import User
 from app.schemas.task import TaskCreate, TaskUpdate
 from app.services.audit import log_event
+from app.services.dashboard import get_visible_project_ids
 from app.services.notifications import create_notification
 from app.services.projects import assert_can_manage_project, assert_can_view_project, get_project
 
@@ -65,14 +66,23 @@ def list_tasks(
     db: Session,
     org_id: uuid.UUID,
     current_user: User,
-    project_id: uuid.UUID,
+    project_id: uuid.UUID | None = None,
     assignee_id: uuid.UUID | None = None,
     status_filter: str | None = None,
 ) -> list[Task]:
-    project = get_project(db, org_id, current_user, project_id)
-    assert_can_view_project(db, project, current_user)
+    if project_id is not None:
+        project = get_project(db, org_id, current_user, project_id)
+        assert_can_view_project(db, project, current_user)
+        query = db.query(Task).filter(Task.organization_id == org_id, Task.project_id == project_id)
+    else:
+        # No project given -- list across every project the user can see
+        # (same visibility rule the dashboard/reports/search endpoints use),
+        # for the global Tasks/Workflow/Calendar views.
+        visible_project_ids = get_visible_project_ids(db, org_id, current_user)
+        if not visible_project_ids:
+            return []
+        query = db.query(Task).filter(Task.organization_id == org_id, Task.project_id.in_(visible_project_ids))
 
-    query = db.query(Task).filter(Task.organization_id == org_id, Task.project_id == project_id)
     if assignee_id is not None:
         query = query.filter(Task.assignee_id == assignee_id)
     if status_filter is not None:
