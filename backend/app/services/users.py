@@ -16,16 +16,17 @@ def create_org_user(db: Session, org_id: uuid.UUID, current_user: User, data: Or
     existing = db.query(User).filter(User.email == data.email).first()
     if existing is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
-    if data.phone_number is not None:
-        existing_phone = db.query(User).filter(User.phone_number == data.phone_number).first()
-        if existing_phone is not None:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Phone number already registered")
+    existing_phone = db.query(User).filter(User.phone_number == data.phone_number).first()
+    if existing_phone is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Phone number already registered")
 
+    # No password means "invited by phone" -- they complete OTP verification
+    # and set their own password on first login (see services/otp.py).
     user = User(
         organization_id=org_id,
         email=data.email,
         phone_number=data.phone_number,
-        hashed_password=hash_password(data.password),
+        hashed_password=hash_password(data.password) if data.password else None,
         full_name=data.full_name,
         role=data.role,
     )
@@ -51,6 +52,14 @@ def update_org_user(
 
     if target.id == current_user.id and data.is_active is False:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You cannot deactivate your own account")
+
+    if data.phone_number is not None:
+        existing_phone = (
+            db.query(User).filter(User.phone_number == data.phone_number, User.id != target.id).first()
+        )
+        if existing_phone is not None:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Phone number already registered")
+        target.phone_number = data.phone_number
 
     if data.role is not None:
         target.role = data.role

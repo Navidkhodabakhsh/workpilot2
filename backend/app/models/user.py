@@ -18,7 +18,10 @@ class User(UUIDPKMixin, TimestampMixin, Base):
 
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     phone_number: Mapped[str | None] = mapped_column(String(32), unique=True, index=True, nullable=True)
-    hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
+    # Nullable: a user invited by phone number only (no password set by the
+    # inviter) has no password until they complete OTP verification and set
+    # one themselves -- see services/otp.py.
+    hashed_password: Mapped[str | None] = mapped_column(String(255), nullable=True)
     full_name: Mapped[str] = mapped_column(String(200), nullable=False)
     role: Mapped[UserRole] = mapped_column(Enum(UserRole), nullable=False, default=UserRole.employee)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)

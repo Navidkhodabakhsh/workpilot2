@@ -56,6 +56,11 @@ class CalendarEventType(str, enum.Enum):
     reminder = "reminder"
 
 
+class OtpPurpose(str, enum.Enum):
+    login = "login"
+    password_reset = "password_reset"
+
+
 class ExportFileType(str, enum.Enum):
     excel = "excel"
     pdf = "pdf"

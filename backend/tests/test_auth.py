@@ -1,11 +1,17 @@
 from tests.conftest import PASSWORD, auth_headers
 
 
-def test_signup_creates_org_admin(client, unique_email):
+def test_signup_creates_org_admin(client, unique_email, unique_phone):
     email = unique_email("admin")
     resp = client.post(
         "/api/v1/auth/signup",
-        json={"organization_name": "Acme", "full_name": "Admin User", "email": email, "password": PASSWORD},
+        json={
+            "organization_name": "Acme",
+            "full_name": "Admin User",
+            "email": email,
+            "phone_number": unique_phone(),
+            "password": PASSWORD,
+        },
     )
     assert resp.status_code == 201
     body = resp.json()
@@ -13,25 +19,43 @@ def test_signup_creates_org_admin(client, unique_email):
     assert body["organization_id"] is not None
 
 
-def test_duplicate_signup_email_is_conflict(client, signup_org_admin, unique_email):
+def test_duplicate_signup_email_is_conflict(client, signup_org_admin, unique_email, unique_phone):
     email = unique_email("dupe")
     resp = client.post(
         "/api/v1/auth/signup",
-        json={"organization_name": "Org1", "full_name": "Admin A", "email": email, "password": PASSWORD},
+        json={
+            "organization_name": "Org1",
+            "full_name": "Admin A",
+            "email": email,
+            "phone_number": unique_phone(),
+            "password": PASSWORD,
+        },
     )
     assert resp.status_code == 201
     resp2 = client.post(
         "/api/v1/auth/signup",
-        json={"organization_name": "Org2", "full_name": "Admin B", "email": email, "password": PASSWORD},
+        json={
+            "organization_name": "Org2",
+            "full_name": "Admin B",
+            "email": email,
+            "phone_number": unique_phone(),
+            "password": PASSWORD,
+        },
     )
     assert resp2.status_code == 409
 
 
-def test_wrong_password_is_unauthorized(client, unique_email):
+def test_wrong_password_is_unauthorized(client, unique_email, unique_phone):
     email = unique_email("wrongpass")
     client.post(
         "/api/v1/auth/signup",
-        json={"organization_name": "Org", "full_name": "Admin A", "email": email, "password": PASSWORD},
+        json={
+            "organization_name": "Org",
+            "full_name": "Admin A",
+            "email": email,
+            "phone_number": unique_phone(),
+            "password": PASSWORD,
+        },
     )
     resp = client.post("/api/v1/auth/login", json={"identifier": email, "password": "wrong"})
     assert resp.status_code == 401
@@ -49,27 +73,45 @@ def test_me_returns_current_user(client, signup_org_admin):
     assert resp.json()["role"] == "org_admin"
 
 
-def test_password_without_digit_is_rejected(client, unique_email):
+def test_password_without_digit_is_rejected(client, unique_email, unique_phone):
     resp = client.post(
         "/api/v1/auth/signup",
-        json={"organization_name": "Org", "full_name": "Admin A", "email": unique_email(), "password": "alllowercase"},
+        json={
+            "organization_name": "Org",
+            "full_name": "Admin A",
+            "email": unique_email(),
+            "phone_number": unique_phone(),
+            "password": "alllowercase",
+        },
     )
     assert resp.status_code == 422
 
 
-def test_password_without_letter_is_rejected(client, unique_email):
+def test_password_without_letter_is_rejected(client, unique_email, unique_phone):
     resp = client.post(
         "/api/v1/auth/signup",
-        json={"organization_name": "Org", "full_name": "Admin A", "email": unique_email(), "password": "12345678"},
+        json={
+            "organization_name": "Org",
+            "full_name": "Admin A",
+            "email": unique_email(),
+            "phone_number": unique_phone(),
+            "password": "12345678",
+        },
     )
     assert resp.status_code == 422
 
 
-def test_refresh_flow_issues_a_new_access_token(client, unique_email):
+def test_refresh_flow_issues_a_new_access_token(client, unique_email, unique_phone):
     email = unique_email("refresh")
     client.post(
         "/api/v1/auth/signup",
-        json={"organization_name": "Org", "full_name": "Admin A", "email": email, "password": PASSWORD},
+        json={
+            "organization_name": "Org",
+            "full_name": "Admin A",
+            "email": email,
+            "phone_number": unique_phone(),
+            "password": PASSWORD,
+        },
     )
     login_resp = client.post("/api/v1/auth/login", json={"identifier": email, "password": PASSWORD})
     assert "refresh_token" in login_resp.cookies
@@ -92,11 +134,17 @@ def test_access_token_cannot_be_used_as_a_refresh_token(client, signup_org_admin
     assert resp.status_code == 401
 
 
-def test_login_rate_limiting_blocks_after_five_attempts(client, unique_email):
+def test_login_rate_limiting_blocks_after_five_attempts(client, unique_email, unique_phone):
     email = unique_email("ratelimit")
     client.post(
         "/api/v1/auth/signup",
-        json={"organization_name": "Org", "full_name": "Admin A", "email": email, "password": PASSWORD},
+        json={
+            "organization_name": "Org",
+            "full_name": "Admin A",
+            "email": email,
+            "phone_number": unique_phone(),
+            "password": PASSWORD,
+        },
     )
 
     statuses = [

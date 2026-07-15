@@ -10,7 +10,16 @@ from app.core.rate_limit import check_and_increment, reset as reset_rate_limit
 from app.core.security import create_access_token, create_refresh_token, decode_token, hash_password, verify_password
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.auth import LoginRequest, SignupRequest, TokenResponse, UserOut
+from app.schemas.auth import (
+    LoginRequest,
+    OtpLoginIn,
+    OtpRequestIn,
+    OtpRequestOut,
+    OtpResetPasswordIn,
+    SignupRequest,
+    TokenResponse,
+    UserOut,
+)
 from app.schemas.settings import PasswordChange, ProfileUpdate
 from app.services import auth as auth_service
 
@@ -54,6 +63,42 @@ def login(data: LoginRequest, response: Response, db: Session = Depends(get_db))
 
     user = auth_service.authenticate(db, data)
     reset_rate_limit(rate_key)
+
+    token = auth_service.issue_access_token(user)
+    _set_refresh_cookie(response, user.id)
+    return TokenResponse(access_token=token)
+
+
+@router.post("/otp/request", response_model=OtpRequestOut)
+def request_otp(
+    data: OtpRequestIn, db: Session = Depends(get_db)
+) -> OtpRequestOut:
+    code = auth_service.request_otp_for_phone(db, data.phone_number, data.purpose)
+    return OtpRequestOut(message="کد ارسال شد", debug_code=code)
+
+
+@router.post("/otp/login", response_model=TokenResponse)
+def otp_login(data: OtpLoginIn, response: Response, db: Session = Depends(get_db)) -> TokenResponse:
+    rate_key = f"login_attempts:{data.phone_number.lower()}"
+    if not check_and_increment(
+        rate_key, settings.login_rate_limit_attempts, settings.login_rate_limit_window_seconds
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many login attempts. Please try again later.",
+        )
+
+    user = auth_service.otp_login(db, data.phone_number, data.code, data.new_password)
+    reset_rate_limit(rate_key)
+
+    token = auth_service.issue_access_token(user)
+    _set_refresh_cookie(response, user.id)
+    return TokenResponse(access_token=token)
+
+
+@router.post("/otp/reset-password", response_model=TokenResponse)
+def otp_reset_password(data: OtpResetPasswordIn, response: Response, db: Session = Depends(get_db)) -> TokenResponse:
+    user = auth_service.otp_reset_password(db, data.phone_number, data.code, data.new_password)
 
     token = auth_service.issue_access_token(user)
     _set_refresh_cookie(response, user.id)
@@ -113,7 +158,9 @@ def update_me(
 def change_password(
     data: PasswordChange, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ) -> dict[str, str]:
-    if not verify_password(data.current_password, current_user.hashed_password):
+    if current_user.hashed_password is None or not verify_password(
+        data.current_password, current_user.hashed_password
+    ):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect")
     current_user.hashed_password = hash_password(data.new_password)
     db.commit()

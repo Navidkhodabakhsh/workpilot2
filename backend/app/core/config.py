@@ -31,5 +31,16 @@ class Settings(BaseSettings):
     login_rate_limit_attempts: int = 5
     login_rate_limit_window_seconds: int = 300
 
+    # No real SMS gateway is wired up yet (see docs/PROJECT_STATE.md). While
+    # this is false, otp endpoints return the generated code directly in the
+    # API response instead of silently doing nothing -- this MUST become
+    # true (and an actual provider call added to services/otp.py) before
+    # this app is used with real phone numbers in production.
+    sms_provider_configured: bool = False
+    otp_expire_minutes: int = 5
+    otp_request_rate_limit_attempts: int = 3
+    otp_request_rate_limit_window_seconds: int = 600
+    otp_verify_max_attempts: int = 5
+
 
 settings = Settings()
