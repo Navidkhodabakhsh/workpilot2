@@ -6,6 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
 import { getDashboardSummary } from "@/features/dashboard/api"
 import type { StatusCount } from "@/features/dashboard/api"
+import { listProjects } from "@/features/projects/api"
+import { listAllTasks } from "@/features/tasks/api"
+import type { Project, Task } from "@/lib/types"
 
 const TEAM_MEMBER_COLORS = [
   "var(--color-primary)",
@@ -79,8 +82,39 @@ function taskStatusChartData(tasksByStatus: StatusCount[]) {
     .sort((a, b) => b.value - a.value)
 }
 
+function progressColor(percent: number) {
+  if (percent >= 75) return "var(--color-success)"
+  if (percent >= 40) return "var(--color-info)"
+  return "var(--color-warning)"
+}
+
+function projectProgressData(tasks: Task[], projects: Project[]) {
+  const byProject = new Map<string, { total: number; done: number }>()
+  for (const task of tasks) {
+    const entry = byProject.get(task.project_id) ?? { total: 0, done: 0 }
+    entry.total += 1
+    if (task.status === "done") entry.done += 1
+    byProject.set(task.project_id, entry)
+  }
+  return projects
+    .filter((p) => byProject.has(p.id))
+    .map((p) => {
+      const { total, done } = byProject.get(p.id)!
+      const value = Math.round((done / total) * 100)
+      return { name: p.name, value, color: progressColor(value) }
+    })
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 8)
+}
+
+function SectionLabel({ children }: { children: string }) {
+  return <h2 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{children}</h2>
+}
+
 export function DashboardPage() {
   const { data, isLoading, isError } = useQuery({ queryKey: ["dashboard-summary"], queryFn: getDashboardSummary })
+  const { data: projects } = useQuery({ queryKey: ["projects"], queryFn: listProjects })
+  const { data: allTasks } = useQuery({ queryKey: ["tasks", "all"], queryFn: () => listAllTasks() })
 
   if (isLoading) {
     return <p className="text-muted-foreground">در حال بارگذاری داشبورد...</p>
@@ -91,47 +125,88 @@ export function DashboardPage() {
 
   const doneCount = data.tasks_by_status.find((s) => s.status === "done")?.count ?? 0
   const chartData = taskStatusChartData(data.tasks_by_status)
+  const progressData = projects && allTasks ? projectProgressData(allTasks, projects) : []
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-2xl font-bold">داشبورد</h1>
         <p className="text-muted-foreground">نمای کلی از فعالیت‌ها و پروژه‌ها</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={FolderKanban} label="پروژه‌های فعال" value={data.project_count} tone="primary" />
-        <StatCard icon={ClipboardList} label="کل وظایف" value={data.task_count} tone="secondary" />
-        <StatCard icon={Clock} label="ساعات کاری تأییدشده" value={data.total_approved_hours} tone="info" />
-        <StatCard icon={CheckCircle2} label="وظایف انجام‌شده" value={doneCount} tone="success" />
+      <div className="flex flex-col gap-4">
+        <SectionLabel>آمار کلی</SectionLabel>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard icon={FolderKanban} label="پروژه‌های فعال" value={data.project_count} tone="primary" />
+          <StatCard icon={ClipboardList} label="کل وظایف" value={data.task_count} tone="secondary" />
+          <StatCard icon={Clock} label="ساعات کاری تأییدشده" value={data.total_approved_hours} tone="info" />
+          <StatCard icon={CheckCircle2} label="وظایف انجام‌شده" value={doneCount} tone="success" />
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">وضعیت وظایف</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {chartData.length === 0 ? (
-              <EmptyState className="h-[220px]" message="هنوز وظیفه‌ای ثبت نشده است." />
-            ) : (
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-                  <Tooltip />
-                  <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                    <LabelList dataKey="value" position="top" style={{ fontSize: 12 }} />
-                    {chartData.map((entry) => (
-                      <Cell key={entry.name} fill={entry.color} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
+      <div className="border-t border-border" />
+
+      <div className="flex flex-col gap-4">
+        <SectionLabel>نمودارها</SectionLabel>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">وضعیت وظایف</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {chartData.length === 0 ? (
+                <EmptyState className="h-[220px]" message="هنوز وظیفه‌ای ثبت نشده است." />
+              ) : (
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                    <Tooltip />
+                    <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                      <LabelList dataKey="value" position="top" style={{ fontSize: 12 }} />
+                      {chartData.map((entry) => (
+                        <Cell key={entry.name} fill={entry.color} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">درصد پیشرفت پروژه‌ها</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {progressData.length === 0 ? (
+                <EmptyState className="h-[220px]" message="هنوز وظیفه‌ای برای پروژه‌ای ثبت نشده است." />
+              ) : (
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={progressData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                    <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 12 }} />
+                    <Tooltip formatter={(value) => [`${value}%`, "پیشرفت"]} />
+                    <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                      <LabelList
+                        dataKey="value"
+                        position="top"
+                        formatter={(v) => `${v}%`}
+                        style={{ fontSize: 12 }}
+                      />
+                      {progressData.map((entry) => (
+                        <Cell key={entry.name} fill={entry.color} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
         <Card>
           <CardHeader>
@@ -139,15 +214,15 @@ export function DashboardPage() {
           </CardHeader>
           <CardContent>
             {data.team_hours.length === 0 ? (
-              <EmptyState className="h-[220px]" message="هنوز گزارش کاری تأییدشده‌ای وجود ندارد." />
+              <EmptyState className="h-[240px]" message="هنوز گزارش کاری تأییدشده‌ای وجود ندارد." />
             ) : (
-              <ResponsiveContainer width="100%" height={220}>
+              <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={[...data.team_hours].sort((a, b) => b.approved_hours - a.approved_hours)}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="full_name" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip />
-                  <Bar dataKey="approved_hours" radius={[4, 4, 0, 0]}>
+                  <Bar dataKey="approved_hours" radius={[4, 4, 0, 0]} maxBarSize={64}>
                     <LabelList dataKey="approved_hours" position="top" style={{ fontSize: 12 }} />
                     {data.team_hours.map((entry, index) => (
                       <Cell key={entry.user_id} fill={TEAM_MEMBER_COLORS[index % TEAM_MEMBER_COLORS.length]} />
@@ -159,6 +234,8 @@ export function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <div className="border-t border-border" />
 
       <Card>
         <CardHeader>

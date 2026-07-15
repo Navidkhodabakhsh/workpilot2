@@ -43,8 +43,8 @@ export function GlobalSearch() {
   const hasResults = !!data && (data.projects.length > 0 || data.tasks.length > 0 || data.users.length > 0)
 
   return (
-    <div ref={containerRef} className="relative min-w-0 flex-1">
-      <div className="flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2">
+    <div ref={containerRef} className="relative min-w-0 max-w-md flex-1">
+      <div className="flex items-center gap-2 rounded-full border border-transparent bg-muted px-4 py-2 transition-colors focus-within:border-ring focus-within:bg-background">
         <Search className="size-4 shrink-0 text-muted-foreground" />
         <input
           type="search"
