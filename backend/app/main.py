@@ -5,6 +5,7 @@ from app.api.routers import (
     attachments,
     audit,
     auth,
+    calendar_events,
     comments,
     dashboard,
     exports,
@@ -46,3 +47,4 @@ app.include_router(organizations.router, prefix=settings.api_v1_prefix)
 app.include_router(comments.router, prefix=settings.api_v1_prefix)
 app.include_router(attachments.task_attachments_router, prefix=settings.api_v1_prefix)
 app.include_router(attachments.attachments_router, prefix=settings.api_v1_prefix)
+app.include_router(calendar_events.router, prefix=settings.api_v1_prefix)

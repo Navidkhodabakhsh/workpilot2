@@ -68,8 +68,21 @@ function ActivityDescription({ action, metadata }: { action: string; metadata: R
   return <span>{label}</span>
 }
 
-export function TaskDetailDialog({ task, trigger }: { task: Task; trigger: React.ReactNode }) {
-  const [open, setOpen] = useState(false)
+export function TaskDetailDialog({
+  task,
+  trigger,
+  open: controlledOpen,
+  onOpenChange: setControlledOpen,
+}: {
+  task: Task
+  /** Omit when using controlled mode (open/onOpenChange). */
+  trigger?: React.ReactNode
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+}) {
+  const [internalOpen, setInternalOpen] = useState(false)
+  const open = controlledOpen ?? internalOpen
+  const setOpen = setControlledOpen ?? setInternalOpen
   const [commentBody, setCommentBody] = useState("")
   const [rejecting, setRejecting] = useState(false)
   const [rejectComment, setRejectComment] = useState("")
@@ -137,7 +150,7 @@ export function TaskDetailDialog({ task, trigger }: { task: Task; trigger: React
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{task.title}</DialogTitle>

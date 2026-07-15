@@ -46,6 +46,14 @@ class NotificationType(str, enum.Enum):
     report_submitted = "report_submitted"
     report_reviewed = "report_reviewed"
     comment_added = "comment_added"
+    event_reminder = "event_reminder"
+
+
+class CalendarEventType(str, enum.Enum):
+    meeting = "meeting"
+    leave = "leave"
+    holiday = "holiday"
+    reminder = "reminder"
 
 
 class ExportFileType(str, enum.Enum):
