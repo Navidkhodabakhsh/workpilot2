@@ -1,6 +1,11 @@
 import { apiClient } from "@/lib/api-client"
 
-export type NotificationType = "task_created" | "deadline_approaching" | "report_submitted" | "report_reviewed"
+export type NotificationType =
+  | "task_created"
+  | "deadline_approaching"
+  | "report_submitted"
+  | "report_reviewed"
+  | "comment_added"
 
 export type Notification = {
   id: string

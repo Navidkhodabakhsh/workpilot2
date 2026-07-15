@@ -7,10 +7,11 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user
 from app.core.config import settings
 from app.core.rate_limit import check_and_increment, reset as reset_rate_limit
-from app.core.security import create_access_token, create_refresh_token, decode_token
+from app.core.security import create_access_token, create_refresh_token, decode_token, hash_password, verify_password
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.auth import LoginRequest, SignupRequest, TokenResponse, UserOut
+from app.schemas.settings import PasswordChange, ProfileUpdate
 from app.services import auth as auth_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -96,3 +97,24 @@ def logout(response: Response) -> dict[str, str]:
 @router.get("/me", response_model=UserOut)
 def me(current_user=Depends(get_current_user)) -> UserOut:
     return UserOut.model_validate(current_user)
+
+
+@router.patch("/me", response_model=UserOut)
+def update_me(
+    data: ProfileUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+) -> UserOut:
+    current_user.full_name = data.full_name
+    db.commit()
+    db.refresh(current_user)
+    return UserOut.model_validate(current_user)
+
+
+@router.post("/me/change-password")
+def change_password(
+    data: PasswordChange, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+) -> dict[str, str]:
+    if not verify_password(data.current_password, current_user.hashed_password):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect")
+    current_user.hashed_password = hash_password(data.new_password)
+    db.commit()
+    return {"detail": "password changed"}

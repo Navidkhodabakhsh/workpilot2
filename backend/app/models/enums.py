@@ -40,6 +40,7 @@ class NotificationType(str, enum.Enum):
     deadline_approaching = "deadline_approaching"
     report_submitted = "report_submitted"
     report_reviewed = "report_reviewed"
+    comment_added = "comment_added"
 
 
 class ExportFileType(str, enum.Enum):

@@ -51,6 +51,17 @@ describe("notificationMessage", () => {
     expect(message).toContain("جزئیات بیشتری اضافه کنید")
   })
 
+  it("formats a comment notification with the author and task title", () => {
+    const message = notificationMessage(
+      makeNotification({
+        type: "comment_added",
+        payload: { author_full_name: "سارا احمدی", task_title: "بازطراحی صفحه اصلی" },
+      }),
+    )
+    expect(message).toContain("سارا احمدی")
+    expect(message).toContain("بازطراحی صفحه اصلی")
+  })
+
   it("falls back to a generic message for an unknown notification type", () => {
     const message = notificationMessage(
       makeNotification({ type: "something_new" as Notification["type"], payload: {} }),

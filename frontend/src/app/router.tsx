@@ -10,6 +10,9 @@ import { ProjectDetailPage } from "@/features/projects/pages/project-detail-page
 import { TasksListPage } from "@/features/tasks/pages/tasks-list-page"
 import { ReportsPage } from "@/features/reports/pages/reports-page"
 import { UsersListPage } from "@/features/users/pages/users-list-page"
+import { MessagesPage } from "@/features/messages/pages/messages-page"
+import { FilesListPage } from "@/features/attachments/pages/files-list-page"
+import { SettingsPage } from "@/features/settings/pages/settings-page"
 
 function ComingSoon({ title }: { title: string }) {
   return (
@@ -38,9 +41,9 @@ export const router = createBrowserRouter([
           { path: "/users", element: <UsersListPage /> },
           { path: "/workflow", element: <ComingSoon title="گردش کار" /> },
           { path: "/analytics", element: <ComingSoon title="تحلیل‌ها" /> },
-          { path: "/messages", element: <ComingSoon title="پیام‌ها" /> },
-          { path: "/files", element: <ComingSoon title="فایل‌ها" /> },
-          { path: "/settings", element: <ComingSoon title="تنظیمات" /> },
+          { path: "/messages", element: <MessagesPage /> },
+          { path: "/files", element: <FilesListPage /> },
+          { path: "/settings", element: <SettingsPage /> },
         ],
       },
     ],

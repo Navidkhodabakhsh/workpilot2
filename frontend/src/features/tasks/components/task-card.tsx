@@ -1,9 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { MessageSquare } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Select } from "@/components/ui/select"
 import { updateTaskStatus } from "@/features/tasks/api"
+import { TaskDetailDialog } from "@/features/tasks/components/task-detail-dialog"
 import { LogWorkDialog } from "@/features/worklogs/components/log-work-dialog"
 import { useAuthStore } from "@/features/auth/auth-store"
 import type { OrgUser, Task, TaskStatus } from "@/lib/types"
@@ -55,6 +58,17 @@ export function TaskCard({ task, users }: { task: Task; users: OrgUser[] }) {
             </option>
           ))}
         </Select>
+        <div className="flex items-center gap-2">
+          <TaskDetailDialog
+            task={task}
+            trigger={
+              <Button variant="outline" size="sm">
+                <MessageSquare className="size-4" />
+                نظرات و فایل‌ها
+              </Button>
+            }
+          />
+        </div>
         {isOwnTask && <LogWorkDialog taskId={task.id} projectId={task.project_id} />}
       </CardContent>
     </Card>

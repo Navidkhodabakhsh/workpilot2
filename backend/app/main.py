@@ -2,12 +2,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routers import (
+    attachments,
     audit,
     auth,
+    comments,
     dashboard,
     exports,
     health,
     notifications,
+    organizations,
     projects,
     reports,
     search,
@@ -39,3 +42,7 @@ app.include_router(exports.router, prefix=settings.api_v1_prefix)
 app.include_router(notifications.router, prefix=settings.api_v1_prefix)
 app.include_router(audit.router, prefix=settings.api_v1_prefix)
 app.include_router(search.router, prefix=settings.api_v1_prefix)
+app.include_router(organizations.router, prefix=settings.api_v1_prefix)
+app.include_router(comments.router, prefix=settings.api_v1_prefix)
+app.include_router(attachments.task_attachments_router, prefix=settings.api_v1_prefix)
+app.include_router(attachments.attachments_router, prefix=settings.api_v1_prefix)

@@ -13,6 +13,8 @@ export function notificationMessage(notification: Notification): string {
       return payload.status === "approved"
         ? "گزارش کاری شما تأیید شد"
         : `گزارش کاری شما رد شد: ${payload.review_comment ?? ""}`
+    case "comment_added":
+      return `${payload.author_full_name} روی «${payload.task_title}» نظر جدیدی ثبت کرد`
     default:
       return "اعلان جدید"
   }
