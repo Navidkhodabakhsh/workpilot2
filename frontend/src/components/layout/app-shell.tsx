@@ -57,16 +57,45 @@ export function AppShell() {
         />
         <div
           className={cn(
-            "relative px-4 pb-4 text-xl font-bold text-sidebar-foreground",
-            collapsed && "px-0 text-center"
+            "relative flex items-center gap-3 overflow-hidden px-4 pb-4 transition-all duration-300 ease-in-out",
+            collapsed && "justify-center px-0"
           )}
         >
-          {collapsed ? "T" : "Tadvin"}
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-sm font-bold text-secondary-foreground">
+            T
+          </div>
+          <span
+            className={cn(
+              "overflow-hidden whitespace-nowrap text-xl font-bold text-sidebar-foreground transition-all duration-300 ease-in-out",
+              collapsed ? "max-w-0 opacity-0" : "max-w-[10rem] opacity-100"
+            )}
+          >
+            Tadvin
+          </span>
         </div>
         <div className="relative flex-1 overflow-y-auto">
           <SidebarNav collapsed={collapsed} />
         </div>
-        <div className="relative px-3 pt-2">
+        <div className="relative flex flex-col gap-1 border-t border-sidebar-border/60 px-3 pt-3 pb-1">
+          <Button
+            variant="ghost"
+            className={cn(
+              "flex h-11 items-center gap-3 overflow-hidden text-sidebar-foreground/80 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground",
+              collapsed ? "justify-center px-0" : "justify-start px-3"
+            )}
+            onClick={handleLogout}
+            aria-label="خروج از حساب"
+          >
+            <LogOut className="size-5 shrink-0" aria-hidden="true" />
+            <span
+              className={cn(
+                "overflow-hidden whitespace-nowrap transition-all duration-300 ease-in-out",
+                collapsed ? "max-w-0 opacity-0" : "max-w-[10rem] opacity-100"
+              )}
+            >
+              خروج از حساب
+            </span>
+          </Button>
           <Button
             variant="ghost"
             size="icon"
@@ -106,7 +135,12 @@ export function AppShell() {
           )}
         >
           <div className="flex items-center justify-between px-4 pb-4">
-            <span className="text-xl font-bold text-sidebar-foreground">Tadvin</span>
+            <div className="flex items-center gap-3">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-sm font-bold text-secondary-foreground">
+                T
+              </div>
+              <span className="text-xl font-bold text-sidebar-foreground">Tadvin</span>
+            </div>
             <Button
               variant="ghost"
               size="icon"
@@ -119,6 +153,17 @@ export function AppShell() {
           </div>
           <div className="flex-1 overflow-y-auto">
             <SidebarNav onNavigate={() => setMobileNavOpen(false)} />
+          </div>
+          <div className="border-t border-sidebar-border/60 px-3 pt-3">
+            <Button
+              variant="ghost"
+              className="flex h-11 w-full items-center justify-start gap-3 text-sidebar-foreground/80 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground"
+              onClick={handleLogout}
+              aria-label="خروج از حساب"
+            >
+              <LogOut className="size-5 shrink-0" aria-hidden="true" />
+              <span>خروج از حساب</span>
+            </Button>
           </div>
         </div>
       </div>
@@ -138,17 +183,19 @@ export function AppShell() {
 
           <GlobalSearch />
 
-          <div className="flex shrink-0 items-center justify-end gap-2">
+          <div className="flex shrink-0 items-center justify-end gap-3">
             <NotificationBell />
             {user && (
-              <div className="hidden text-end sm:block">
-                <div className="text-sm font-medium">{user.full_name}</div>
-                <div className="text-xs text-muted-foreground">{user.role}</div>
+              <div className="hidden items-center gap-2 sm:flex">
+                <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+                  {user.full_name.trim().charAt(0)}
+                </div>
+                <div className="text-end">
+                  <div className="text-sm font-medium">{user.full_name}</div>
+                  <div className="text-xs text-muted-foreground">{user.role}</div>
+                </div>
               </div>
             )}
-            <Button variant="ghost" size="icon" aria-label="خروج" onClick={handleLogout}>
-              <LogOut className="size-5" />
-            </Button>
           </div>
         </header>
 

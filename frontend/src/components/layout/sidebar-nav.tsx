@@ -48,36 +48,50 @@ export function SidebarNav({
     <nav className="flex flex-col gap-1 px-3">
       {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => {
         const link = (
+          // `className` must be a plain string, not react-router's function
+          // form: `TooltipTrigger asChild` merges child props through Radix
+          // Slot, which stringifies a function className instead of calling
+          // it. Active-state styling is driven by the `aria-current="page"`
+          // attribute NavLink already sets, via Tailwind's aria-* variant.
           <NavLink
-            key={to}
             to={to}
             end={end}
             onClick={onNavigate}
             aria-label={label}
-            className={({ isActive }) =>
-              cn(
-                "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                collapsed && "justify-center px-0",
-                isActive
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                  : "text-sidebar-foreground/80 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground"
-              )
-            }
+            className={cn(
+              "flex min-h-11 items-center gap-3 overflow-hidden rounded-lg px-3 py-2 text-sm font-medium transition-[background-color,color,padding] duration-300 ease-in-out",
+              "text-sidebar-foreground/80 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground",
+              "aria-[current=page]:bg-sidebar-accent aria-[current=page]:text-sidebar-accent-foreground aria-[current=page]:hover:bg-sidebar-accent",
+              collapsed && "justify-center px-0"
+            )}
           >
             <Icon className="size-5 shrink-0" aria-hidden="true" />
-            {!collapsed && <span>{label}</span>}
+            {/* Always mounted (never conditionally rendered) so the label can
+                crossfade/collapse smoothly instead of popping in and out. */}
+            <span
+              className={cn(
+                "overflow-hidden whitespace-nowrap transition-all duration-300 ease-in-out",
+                collapsed ? "max-w-0 opacity-0" : "max-w-[10rem] opacity-100"
+              )}
+            >
+              {label}
+            </span>
           </NavLink>
         )
 
-        if (!collapsed) return link
-
         return (
+          // The Tooltip wrapper stays structurally constant across the
+          // collapsed/expanded toggle (only its content is conditional) so
+          // the NavLink itself never remounts and the label transition above
+          // can actually animate instead of jumping.
           <Tooltip key={to}>
             <TooltipTrigger asChild>{link}</TooltipTrigger>
-            {/* Radix `side` is physical, not logical -- the sidebar sits on
-                the RTL-start (visual right) edge, so tooltips point left
-                into the content area. */}
-            <TooltipContent side="left">{label}</TooltipContent>
+            {collapsed && (
+              // Radix `side` is physical, not logical -- the sidebar sits on
+              // the RTL-start (visual right) edge, so tooltips point left
+              // into the content area.
+              <TooltipContent side="left">{label}</TooltipContent>
+            )}
           </Tooltip>
         )
       })}
