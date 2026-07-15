@@ -1,5 +1,7 @@
 import type { ReactNode } from "react"
 
+import { LogoMark } from "@/components/logo"
+
 /**
  * Split-screen layout: form panel sits on the RTL-start (visual right) edge
  * to match every other "start"-anchored surface in the app (sidebar, drawer);
@@ -37,8 +39,8 @@ export function AuthLayout({ children }: { children: ReactNode }) {
         />
 
         <div className="relative z-10 flex flex-col items-center gap-5 px-10 text-center">
-          <div className="flex size-16 items-center justify-center rounded-2xl bg-white/15 text-2xl font-bold text-primary-foreground backdrop-blur-sm">
-            T
+          <div className="flex size-16 items-center justify-center rounded-2xl bg-white/15 text-primary-foreground backdrop-blur-sm">
+            <LogoMark className="size-8" notchColor="#1D4ED8" />
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-primary-foreground">Tadvin Hesab</h1>
           <p className="max-w-xs text-primary-foreground/80">

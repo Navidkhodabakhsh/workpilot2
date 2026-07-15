@@ -1,11 +1,12 @@
 import { apiClient } from "@/lib/api-client"
 import type { CurrentUser } from "@/features/auth/auth-store"
 
-export type LoginPayload = { email: string; password: string }
+export type LoginPayload = { identifier: string; password: string }
 export type SignupPayload = {
   organization_name: string
   full_name: string
   email: string
+  phone_number?: string
   password: string
 }
 

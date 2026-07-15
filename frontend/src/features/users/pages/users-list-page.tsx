@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { Plus } from "lucide-react"
+import { Pencil, Plus } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -19,9 +19,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { createOrgUser, listOrgUsers } from "@/features/users/api"
+import { createOrgUser, listOrgUsers, updateOrgUser } from "@/features/users/api"
 import { useAuthStore } from "@/features/auth/auth-store"
-import type { UserRole } from "@/lib/types"
+import type { OrgUser, UserRole } from "@/lib/types"
 
 const ROLE_LABEL: Record<string, string> = {
   org_admin: "مدیر سازمان",
@@ -41,6 +41,12 @@ const schema = z.object({
   role: z.enum(["project_manager", "employee"]),
 })
 type FormValues = z.infer<typeof schema>
+
+const editSchema = z.object({
+  role: z.enum(["org_admin", "project_manager", "employee"]),
+  is_active: z.enum(["true", "false"]),
+})
+type EditFormValues = z.infer<typeof editSchema>
 
 export function UsersListPage() {
   const role = useAuthStore((s) => s.user?.role)
@@ -67,6 +73,33 @@ export function UsersListPage() {
       setServerError(err?.response?.status === 409 ? "این ایمیل قبلاً ثبت شده است" : "خطایی رخ داد؛ دوباره تلاش کنید")
     },
   })
+
+  const [editingUser, setEditingUser] = useState<OrgUser | null>(null)
+  const [editError, setEditError] = useState<string | null>(null)
+  const editForm = useForm<EditFormValues>({ resolver: zodResolver(editSchema) })
+
+  const updateMutation = useMutation({
+    mutationFn: (values: EditFormValues) =>
+      updateOrgUser(editingUser!.id, { role: values.role, is_active: values.is_active === "true" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["org-users"] })
+      setEditingUser(null)
+    },
+    onError: (err: any) => {
+      setEditError(err?.response?.data?.detail ?? "خطایی رخ داد؛ دوباره تلاش کنید")
+    },
+  })
+
+  function openEdit(u: OrgUser) {
+    setEditError(null)
+    setEditingUser(u)
+    // Org-scoped users are never platform_admin (that role has no organization),
+    // so this narrowing always holds in practice.
+    editForm.reset({
+      role: u.role as "org_admin" | "project_manager" | "employee",
+      is_active: u.is_active ? "true" : "false",
+    })
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -146,6 +179,7 @@ export function UsersListPage() {
               <TableHead>ایمیل</TableHead>
               <TableHead>نقش</TableHead>
               <TableHead>وضعیت</TableHead>
+              {isOrgAdmin && <TableHead className="w-0" />}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -161,11 +195,51 @@ export function UsersListPage() {
                     {u.is_active ? "فعال" : "غیرفعال"}
                   </Badge>
                 </TableCell>
+                {isOrgAdmin && (
+                  <TableCell>
+                    <Button variant="ghost" size="icon" aria-label="ویرایش کاربر" onClick={() => openEdit(u)}>
+                      <Pencil className="size-4" />
+                    </Button>
+                  </TableCell>
+                )}
               </TableRow>
             ))}
           </TableBody>
         </Table>
       )}
+
+      <Dialog open={editingUser !== null} onOpenChange={(v) => !v && setEditingUser(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>ویرایش کاربر</DialogTitle>
+            <DialogDescription>{editingUser?.full_name}</DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={editForm.handleSubmit((values) => updateMutation.mutate(values))}
+            className="flex flex-col gap-4"
+          >
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="edit-role">نقش</Label>
+              <Select id="edit-role" {...editForm.register("role")}>
+                <option value="employee">کارمند</option>
+                <option value="project_manager">مدیر پروژه</option>
+                <option value="org_admin">مدیر سازمان</option>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="edit-active">وضعیت</Label>
+              <Select id="edit-active" {...editForm.register("is_active")}>
+                <option value="true">فعال</option>
+                <option value="false">غیرفعال</option>
+              </Select>
+            </div>
+            {editError && <p className="text-sm text-danger">{editError}</p>}
+            <Button type="submit" disabled={updateMutation.isPending}>
+              {updateMutation.isPending ? "در حال ذخیره..." : "ذخیرهٔ تغییرات"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

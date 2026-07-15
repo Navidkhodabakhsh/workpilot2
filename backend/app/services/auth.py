@@ -24,6 +24,10 @@ def signup(db: Session, data: SignupRequest) -> User:
     existing = db.query(User).filter(User.email == data.email).first()
     if existing is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
+    if data.phone_number is not None:
+        existing_phone = db.query(User).filter(User.phone_number == data.phone_number).first()
+        if existing_phone is not None:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Phone number already registered")
 
     base_slug = _slugify(data.organization_name)
     slug = base_slug
@@ -39,6 +43,7 @@ def signup(db: Session, data: SignupRequest) -> User:
     user = User(
         organization_id=organization.id,
         email=data.email,
+        phone_number=data.phone_number,
         hashed_password=hash_password(data.password),
         full_name=data.full_name,
         role=UserRole.org_admin,
@@ -54,9 +59,13 @@ def signup(db: Session, data: SignupRequest) -> User:
 
 
 def authenticate(db: Session, data: LoginRequest) -> User:
-    user = db.query(User).filter(User.email == data.email).first()
+    # Accept either an email or a phone number in the same field, user's choice.
+    if "@" in data.identifier:
+        user = db.query(User).filter(User.email == data.identifier).first()
+    else:
+        user = db.query(User).filter(User.phone_number == data.identifier).first()
     if user is None or not verify_password(data.password, user.hashed_password):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is disabled")
 

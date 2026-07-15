@@ -13,7 +13,7 @@ import { login, fetchMe } from "@/features/auth/api"
 import { useAuthStore } from "@/features/auth/auth-store"
 
 const schema = z.object({
-  email: z.string().email("ایمیل معتبر وارد کنید"),
+  identifier: z.string().min(3, "ایمیل یا شماره موبایل را وارد کنید"),
   password: z.string().min(8, "رمز عبور باید حداقل ۸ کاراکتر باشد"),
 })
 
@@ -26,7 +26,7 @@ export function LoginPage() {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { email: "", password: "" },
+    defaultValues: { identifier: "", password: "" },
   })
 
   async function onSubmit(values: FormValues) {
@@ -38,7 +38,7 @@ export function LoginPage() {
       setSession(access_token, user)
       navigate("/", { replace: true })
     } catch {
-      setServerError("ایمیل یا رمز عبور اشتباه است")
+      setServerError("ایمیل/شماره موبایل یا رمز عبور اشتباه است")
     }
   }
 
@@ -47,21 +47,20 @@ export function LoginPage() {
       <Card className="w-full shadow-lg">
         <CardHeader>
           <CardTitle className="text-2xl">ورود به Tadvin</CardTitle>
-          <CardDescription>برای ادامه، ایمیل و رمز عبور خود را وارد کنید</CardDescription>
+          <CardDescription>برای ادامه، ایمیل یا شماره موبایل و رمز عبور خود را وارد کنید</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="email">ایمیل</Label>
+              <Label htmlFor="identifier">ایمیل یا شماره موبایل</Label>
               <Input
-                id="email"
-                type="email"
-                autoComplete="email"
-                aria-invalid={!!form.formState.errors.email}
-                {...form.register("email")}
+                id="identifier"
+                autoComplete="username"
+                aria-invalid={!!form.formState.errors.identifier}
+                {...form.register("identifier")}
               />
-              {form.formState.errors.email && (
-                <p className="text-sm text-danger">{form.formState.errors.email.message}</p>
+              {form.formState.errors.identifier && (
+                <p className="text-sm text-danger">{form.formState.errors.identifier.message}</p>
               )}
             </div>
             <div className="flex flex-col gap-2">

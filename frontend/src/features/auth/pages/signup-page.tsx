@@ -35,7 +35,7 @@ export function SignupPage() {
     setServerError(null)
     try {
       await signup(values)
-      const { access_token } = await login({ email: values.email, password: values.password })
+      const { access_token } = await login({ identifier: values.email, password: values.password })
       useAuthStore.setState({ accessToken: access_token })
       const user = await fetchMe()
       setSession(access_token, user)

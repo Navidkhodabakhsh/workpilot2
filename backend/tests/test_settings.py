@@ -27,7 +27,9 @@ def test_change_password_succeeds_and_new_password_works(client, signup_org_admi
     )
     assert resp.status_code == 200
 
-    login_resp = client.post("/api/v1/auth/login", json={"email": user["email"], "password": "BrandNewPass123"})
+    login_resp = client.post(
+        "/api/v1/auth/login", json={"identifier": user["email"], "password": "BrandNewPass123"}
+    )
     assert login_resp.status_code == 200
 
 

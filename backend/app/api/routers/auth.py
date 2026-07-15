@@ -40,10 +40,10 @@ def signup(data: SignupRequest, db: Session = Depends(get_db)) -> UserOut:
 
 @router.post("/login", response_model=TokenResponse)
 def login(data: LoginRequest, response: Response, db: Session = Depends(get_db)) -> TokenResponse:
-    # Keyed by email (not IP): in this deployment all traffic can share an
-    # IP behind a proxy, and the goal is to slow down guessing against one
+    # Keyed by identifier (not IP): in this deployment all traffic can share
+    # an IP behind a proxy, and the goal is to slow down guessing against one
     # account regardless of where the requests originate.
-    rate_key = f"login_attempts:{data.email.lower()}"
+    rate_key = f"login_attempts:{data.identifier.lower()}"
     if not check_and_increment(
         rate_key, settings.login_rate_limit_attempts, settings.login_rate_limit_window_seconds
     ):

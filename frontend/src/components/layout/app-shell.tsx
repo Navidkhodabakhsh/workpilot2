@@ -4,6 +4,7 @@ import { LogOut, Menu, PanelLeftClose, PanelLeftOpen, X } from "lucide-react"
 
 import { SidebarNav } from "@/components/layout/sidebar-nav"
 import { useSidebarStore } from "@/components/layout/sidebar-store"
+import { LogoMark } from "@/components/logo"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { GlobalSearch } from "@/features/search/components/global-search"
@@ -61,8 +62,8 @@ export function AppShell() {
             collapsed && "justify-center px-0"
           )}
         >
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-sm font-bold text-secondary-foreground">
-            T
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
+            <LogoMark className="size-5" />
           </div>
           <span
             className={cn(
@@ -136,8 +137,8 @@ export function AppShell() {
         >
           <div className="flex items-center justify-between px-4 pb-4">
             <div className="flex items-center gap-3">
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-sm font-bold text-secondary-foreground">
-                T
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
+                <LogoMark className="size-5" />
               </div>
               <span className="text-xl font-bold text-sidebar-foreground">Tadvin</span>
             </div>

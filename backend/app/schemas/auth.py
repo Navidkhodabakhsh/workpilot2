@@ -10,6 +10,7 @@ class SignupRequest(BaseModel):
     organization_name: str = Field(min_length=2, max_length=200)
     full_name: str = Field(min_length=2, max_length=200)
     email: EmailStr
+    phone_number: str | None = Field(default=None, max_length=32)
     password: str = Field(min_length=8, max_length=128)
 
     @field_validator("password")
@@ -19,7 +20,9 @@ class SignupRequest(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    # Deliberately a plain string, not EmailStr: login accepts either an
+    # email or a phone number, whichever the user prefers.
+    identifier: str = Field(min_length=3, max_length=255)
     password: str
 
 
@@ -32,6 +35,7 @@ class UserOut(BaseModel):
     id: uuid.UUID
     organization_id: uuid.UUID | None
     email: EmailStr
+    phone_number: str | None
     full_name: str
     role: UserRole
     is_active: bool

@@ -101,7 +101,7 @@ def signup_org_admin(client, unique_email):
             json={"organization_name": org_name, "full_name": "Admin User", "email": email, "password": PASSWORD},
         )
         assert resp.status_code == 201, resp.text
-        login_resp = client.post("/api/v1/auth/login", json={"email": email, "password": PASSWORD})
+        login_resp = client.post("/api/v1/auth/login", json={"identifier": email, "password": PASSWORD})
         assert login_resp.status_code == 200, login_resp.text
         token = login_resp.json()["access_token"]
         return token, resp.json()
@@ -121,7 +121,7 @@ def create_org_user(client, unique_email):
             headers={"Authorization": f"Bearer {admin_token}"},
         )
         assert resp.status_code == 201, resp.text
-        login_resp = client.post("/api/v1/auth/login", json={"email": email, "password": PASSWORD})
+        login_resp = client.post("/api/v1/auth/login", json={"identifier": email, "password": PASSWORD})
         token = login_resp.json()["access_token"]
         return token, resp.json()
 

@@ -34,6 +34,7 @@ export type OrgUser = {
   id: string
   organization_id: string | null
   email: string
+  phone_number: string | null
   full_name: string
   role: UserRole
   is_active: boolean

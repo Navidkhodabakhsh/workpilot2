@@ -33,7 +33,7 @@ def test_wrong_password_is_unauthorized(client, unique_email):
         "/api/v1/auth/signup",
         json={"organization_name": "Org", "full_name": "Admin A", "email": email, "password": PASSWORD},
     )
-    resp = client.post("/api/v1/auth/login", json={"email": email, "password": "wrong"})
+    resp = client.post("/api/v1/auth/login", json={"identifier": email, "password": "wrong"})
     assert resp.status_code == 401
 
 
@@ -71,7 +71,7 @@ def test_refresh_flow_issues_a_new_access_token(client, unique_email):
         "/api/v1/auth/signup",
         json={"organization_name": "Org", "full_name": "Admin A", "email": email, "password": PASSWORD},
     )
-    login_resp = client.post("/api/v1/auth/login", json={"email": email, "password": PASSWORD})
+    login_resp = client.post("/api/v1/auth/login", json={"identifier": email, "password": PASSWORD})
     assert "refresh_token" in login_resp.cookies
 
     refresh_resp = client.post("/api/v1/auth/refresh")
@@ -100,12 +100,35 @@ def test_login_rate_limiting_blocks_after_five_attempts(client, unique_email):
     )
 
     statuses = [
-        client.post("/api/v1/auth/login", json={"email": email, "password": "WrongPassword123"}).status_code
+        client.post("/api/v1/auth/login", json={"identifier": email, "password": "WrongPassword123"}).status_code
         for _ in range(7)
     ]
     assert statuses[:5] == [401] * 5
     assert all(s == 429 for s in statuses[5:])
 
     # even the right password is blocked once the window is exceeded
-    resp = client.post("/api/v1/auth/login", json={"email": email, "password": PASSWORD})
+    resp = client.post("/api/v1/auth/login", json={"identifier": email, "password": PASSWORD})
     assert resp.status_code == 429
+
+
+def test_login_with_phone_number(client, unique_email):
+    email = unique_email("phonelogin")
+    phone = f"0912{abs(hash(email)) % 10_000_000:07d}"
+    client.post(
+        "/api/v1/auth/signup",
+        json={
+            "organization_name": "Org",
+            "full_name": "Admin A",
+            "email": email,
+            "phone_number": phone,
+            "password": PASSWORD,
+        },
+    )
+    resp = client.post("/api/v1/auth/login", json={"identifier": phone, "password": PASSWORD})
+    assert resp.status_code == 200
+    assert "access_token" in resp.json()
+
+
+def test_login_with_unknown_phone_is_unauthorized(client):
+    resp = client.post("/api/v1/auth/login", json={"identifier": "09120000000", "password": "whatever123"})
+    assert resp.status_code == 401

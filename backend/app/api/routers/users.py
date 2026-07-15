@@ -7,7 +7,7 @@ from app.api.deps import get_current_org_id, get_current_user
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.auth import UserOut
-from app.schemas.user import OrgUserCreate
+from app.schemas.user import OrgUserCreate, UserUpdate
 from app.services import users as users_service
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -32,3 +32,15 @@ def list_users(
 ) -> list[UserOut]:
     users = users_service.list_org_users(db, org_id)
     return [UserOut.model_validate(u) for u in users]
+
+
+@router.patch("/{user_id}", response_model=UserOut)
+def update_user(
+    user_id: uuid.UUID,
+    data: UserUpdate,
+    db: Session = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_current_org_id),
+    current_user: User = Depends(get_current_user),
+) -> UserOut:
+    user = users_service.update_org_user(db, org_id, current_user, user_id, data)
+    return UserOut.model_validate(user)
