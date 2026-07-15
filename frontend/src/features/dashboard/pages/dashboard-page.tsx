@@ -21,16 +21,14 @@ const TEAM_MEMBER_COLORS = [
 const STATUS_LABEL: Record<string, string> = {
   todo: "برای انجام",
   in_progress: "در حال انجام",
-  in_review: "در بازبینی",
-  done: "انجام‌شده",
-  blocked: "معطل",
+  completed: "تکمیل‌شده",
+  archived: "بایگانی‌شده",
 }
 const STATUS_COLOR: Record<string, string> = {
   todo: "var(--color-muted-foreground)",
   in_progress: "var(--color-info)",
-  in_review: "var(--color-warning)",
-  done: "var(--color-success)",
-  blocked: "var(--color-danger)",
+  completed: "var(--color-success)",
+  archived: "var(--color-danger)",
 }
 const WORKLOG_STATUS_LABEL: Record<string, string> = {
   draft: "پیش‌نویس",
@@ -91,9 +89,10 @@ function progressColor(percent: number) {
 function projectProgressData(tasks: Task[], projects: Project[]) {
   const byProject = new Map<string, { total: number; done: number }>()
   for (const task of tasks) {
+    if (task.project_id === null) continue // personal tasks have no project to attribute progress to
     const entry = byProject.get(task.project_id) ?? { total: 0, done: 0 }
     entry.total += 1
-    if (task.status === "done") entry.done += 1
+    if (task.status === "completed") entry.done += 1
     byProject.set(task.project_id, entry)
   }
   return projects
@@ -123,7 +122,7 @@ export function DashboardPage() {
     return <p className="text-danger">اتصال به سرور برقرار نشد</p>
   }
 
-  const doneCount = data.tasks_by_status.find((s) => s.status === "done")?.count ?? 0
+  const doneCount = data.tasks_by_status.find((s) => s.status === "completed")?.count ?? 0
   const chartData = taskStatusChartData(data.tasks_by_status)
   const progressData = projects && allTasks ? projectProgressData(allTasks, projects) : []
 

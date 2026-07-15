@@ -1,18 +1,10 @@
 import { useQuery } from "@tanstack/react-query"
 
 import { listAllTasks } from "@/features/tasks/api"
+import { STATUS_COLUMNS } from "@/features/tasks/constants"
 import { listProjects } from "@/features/projects/api"
 import { listOrgUsers } from "@/features/users/api"
 import { TaskCard } from "@/features/tasks/components/task-card"
-import type { TaskStatus } from "@/lib/types"
-
-const COLUMNS: { value: TaskStatus; label: string }[] = [
-  { value: "todo", label: "برای انجام" },
-  { value: "in_progress", label: "در حال انجام" },
-  { value: "in_review", label: "در بازبینی" },
-  { value: "done", label: "انجام‌شده" },
-  { value: "blocked", label: "معطل" },
-]
 
 export function WorkflowPage() {
   const { data: tasks } = useQuery({ queryKey: ["all-tasks"], queryFn: () => listAllTasks() })
@@ -23,7 +15,10 @@ export function WorkflowPage() {
     return <p className="text-muted-foreground">در حال بارگذاری...</p>
   }
 
-  const projectName = (id: string) => projects.find((p) => p.id === id)?.name ?? "—"
+  const projectName = (id: string | null) => projects.find((p) => p.id === id)?.name ?? "—"
+  // Personal tasks (no project) have no place on a cross-project ops board --
+  // they belong on the "My Personal Tasks" tab of the Tasks page instead.
+  const projectTasks = tasks.filter((t) => t.project_id !== null)
 
   return (
     <div className="flex flex-col gap-4">
@@ -36,8 +31,8 @@ export function WorkflowPage() {
           per-project board (project-detail-page.tsx), horizontally
           scrollable on small screens by design. */}
       <div className="flex gap-4 overflow-x-auto pb-2">
-        {COLUMNS.map((col) => {
-          const columnTasks = tasks.filter((t) => t.status === col.value)
+        {STATUS_COLUMNS.map((col) => {
+          const columnTasks = projectTasks.filter((t) => t.status === col.value)
           return (
             <div key={col.value} className="w-72 shrink-0">
               <div className="mb-2 flex items-center gap-2">

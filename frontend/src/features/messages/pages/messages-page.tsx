@@ -12,7 +12,7 @@ export function MessagesPage() {
   const { data: tasks, isLoading } = useQuery({ queryKey: ["all-tasks"], queryFn: () => listAllTasks() })
   const { data: projects } = useQuery({ queryKey: ["projects"], queryFn: listProjects })
 
-  const projectName = (id: string) => projects?.find((p) => p.id === id)?.name ?? "—"
+  const projectName = (id: string | null) => (id ? (projects?.find((p) => p.id === id)?.name ?? "—") : "شخصی")
 
   return (
     <div className="flex flex-col gap-4">

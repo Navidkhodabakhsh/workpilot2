@@ -13,10 +13,16 @@ export type ExportJob = {
   download_available: boolean
 }
 
-export async function createExportJob(projectId: string, exportType: ExportFileType) {
+export async function createExportJob(
+  projectId: string,
+  exportType: ExportFileType,
+  dateRange?: { from: string; to: string }
+) {
   const { data } = await apiClient.post<ExportJob>("/api/v1/exports", {
     export_type: exportType,
     project_id: projectId,
+    date_from: dateRange?.from,
+    date_to: dateRange?.to,
   })
   return data
 }

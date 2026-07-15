@@ -20,20 +20,12 @@ import {
 } from "@/components/ui/dialog"
 import { getProject } from "@/features/projects/api"
 import { createTask, listTasks } from "@/features/tasks/api"
+import { STATUS_COLUMNS } from "@/features/tasks/constants"
 import { listOrgUsers } from "@/features/users/api"
 import { TaskCard } from "@/features/tasks/components/task-card"
 import { PendingApprovals } from "@/features/worklogs/components/pending-approvals"
 import { ExportDialog } from "@/features/exports/components/export-dialog"
 import { useAuthStore } from "@/features/auth/auth-store"
-import type { TaskStatus } from "@/lib/types"
-
-const COLUMNS: { value: TaskStatus; label: string }[] = [
-  { value: "todo", label: "برای انجام" },
-  { value: "in_progress", label: "در حال انجام" },
-  { value: "in_review", label: "در بازبینی" },
-  { value: "done", label: "انجام‌شده" },
-  { value: "blocked", label: "معطل" },
-]
 
 const schema = z.object({
   title: z.string().min(2, "عنوان وظیفه را وارد کنید"),
@@ -139,7 +131,7 @@ export function ProjectDetailPage() {
       {/* Kanban board: horizontally scrollable on small screens by design —
           each column keeps a readable min-width instead of squeezing to fit. */}
       <div className="flex gap-4 overflow-x-auto pb-2">
-        {COLUMNS.map((col) => {
+        {STATUS_COLUMNS.map((col) => {
           const columnTasks = tasks.filter((t) => t.status === col.value)
           return (
             <div key={col.value} className="w-72 shrink-0">

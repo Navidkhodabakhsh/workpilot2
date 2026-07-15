@@ -6,25 +6,11 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Select } from "@/components/ui/select"
 import { updateTaskStatus } from "@/features/tasks/api"
+import { APPROVAL_LABEL, APPROVAL_VARIANT, PRIORITY_LABEL, PRIORITY_VARIANT, STATUS_COLUMNS } from "@/features/tasks/constants"
 import { TaskDetailDialog } from "@/features/tasks/components/task-detail-dialog"
 import { LogWorkDialog } from "@/features/worklogs/components/log-work-dialog"
 import { useAuthStore } from "@/features/auth/auth-store"
 import type { OrgUser, Task, TaskStatus } from "@/lib/types"
-
-const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
-  { value: "todo", label: "برای انجام" },
-  { value: "in_progress", label: "در حال انجام" },
-  { value: "in_review", label: "در بازبینی" },
-  { value: "done", label: "انجام‌شده" },
-  { value: "blocked", label: "معطل" },
-]
-
-const PRIORITY_LABEL: Record<string, string> = { low: "کم", medium: "متوسط", high: "بالا" }
-const PRIORITY_VARIANT: Record<string, "default" | "warning" | "danger"> = {
-  low: "default",
-  medium: "warning",
-  high: "danger",
-}
 
 export function TaskCard({
   task,
@@ -55,18 +41,33 @@ export function TaskCard({
             {PRIORITY_LABEL[task.priority]}
           </Badge>
         </div>
-        {projectName && (
-          <Badge variant="info" className="self-start">
-            {projectName}
-          </Badge>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {projectName && <Badge variant="info">{projectName}</Badge>}
+          {!task.project_id && <Badge variant="secondary">شخصی</Badge>}
+          {task.approval_status && (
+            <Badge variant={APPROVAL_VARIANT[task.approval_status]}>{APPROVAL_LABEL[task.approval_status]}</Badge>
+          )}
+        </div>
         {assignee && <p className="text-sm text-muted-foreground">{assignee.full_name}</p>}
+
+        {task.progress_percent > 0 && (
+          <div className="flex flex-col gap-1">
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-primary transition-[width]"
+                style={{ width: `${task.progress_percent}%` }}
+              />
+            </div>
+            <span className="text-xs text-muted-foreground">{task.progress_percent}% پیشرفت</span>
+          </div>
+        )}
+
         <Select
           value={task.status}
           onChange={(e) => mutation.mutate(e.target.value as TaskStatus)}
           disabled={mutation.isPending}
         >
-          {STATUS_OPTIONS.map((opt) => (
+          {STATUS_COLUMNS.map((opt) => (
             <option key={opt.value} value={opt.value}>
               {opt.label}
             </option>
@@ -83,7 +84,7 @@ export function TaskCard({
             }
           />
         </div>
-        {isOwnTask && <LogWorkDialog taskId={task.id} projectId={task.project_id} />}
+        {isOwnTask && task.project_id && <LogWorkDialog taskId={task.id} projectId={task.project_id} />}
       </CardContent>
     </Card>
   )

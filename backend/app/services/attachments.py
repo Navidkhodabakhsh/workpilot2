@@ -11,6 +11,7 @@ from app.models.task import Task
 from app.models.user import User
 from app.services.dashboard import get_visible_project_ids
 from app.services.projects import assert_can_manage_project, get_project
+from app.services.task_activity import log_task_activity
 from app.services.tasks import get_task
 
 
@@ -61,6 +62,12 @@ def upload_attachment(
         size_bytes=len(contents),
     )
     db.add(attachment)
+    db.flush()
+
+    log_task_activity(
+        db, org_id, task_id, current_user.id, "task.attachment", {"filename": filename, "attachment_id": str(attachment.id)}
+    )
+
     db.commit()
     db.refresh(attachment)
     return _to_dict(attachment, current_user.full_name)

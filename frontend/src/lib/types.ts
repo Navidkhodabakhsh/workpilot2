@@ -1,7 +1,8 @@
 export type UserRole = "platform_admin" | "org_admin" | "project_manager" | "employee"
 export type ProjectStatus = "active" | "completed" | "archived"
 export type TaskPriority = "low" | "medium" | "high"
-export type TaskStatus = "todo" | "in_progress" | "in_review" | "done" | "blocked"
+export type TaskStatus = "todo" | "in_progress" | "completed" | "archived"
+export type ApprovalStatus = "pending" | "approved" | "rejected"
 
 export type Project = {
   id: string
@@ -18,7 +19,7 @@ export type Project = {
 export type Task = {
   id: string
   organization_id: string
-  project_id: string
+  project_id: string | null
   parent_task_id: string | null
   assignee_id: string | null
   created_by_id: string
@@ -26,7 +27,21 @@ export type Task = {
   description: string | null
   priority: TaskPriority
   status: TaskStatus
+  approval_status: ApprovalStatus | null
+  progress_percent: number
+  estimated_hours: number | null
+  actual_hours: number
   deadline: string | null
+  created_at: string
+}
+
+export type TaskActivity = {
+  id: string
+  task_id: string
+  actor_user_id: string | null
+  actor_full_name: string | null
+  action: string
+  extra_metadata: Record<string, unknown>
   created_at: string
 }
 

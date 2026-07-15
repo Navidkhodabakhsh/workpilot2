@@ -6,6 +6,7 @@ from app.models.enums import NotificationType
 from app.models.collaboration import Comment
 from app.models.user import User
 from app.services.notifications import create_notification
+from app.services.task_activity import log_task_activity
 from app.services.tasks import get_task
 
 
@@ -26,6 +27,8 @@ def create_comment(db: Session, org_id: uuid.UUID, current_user: User, task_id: 
     comment = Comment(organization_id=org_id, task_id=task_id, author_id=current_user.id, body=body)
     db.add(comment)
     db.flush()
+
+    log_task_activity(db, org_id, task_id, current_user.id, "task.comment", {"comment_id": str(comment.id)})
 
     if task.assignee_id is not None and task.assignee_id != current_user.id:
         create_notification(

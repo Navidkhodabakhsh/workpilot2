@@ -94,7 +94,7 @@ def check_deadlines_approaching(db: Session) -> int:
             Task.deadline.isnot(None),
             Task.deadline <= horizon,
             Task.deadline >= date.today(),
-            Task.status != TaskStatus.done,
+            Task.status.notin_([TaskStatus.completed, TaskStatus.archived]),
             Task.assignee_id.isnot(None),
         )
         .all()

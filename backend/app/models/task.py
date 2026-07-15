@@ -1,12 +1,12 @@
 import uuid
 from datetime import date
 
-from sqlalchemy import Date, Enum, ForeignKey, String, Text
+from sqlalchemy import Date, Enum, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base_class import Base, TimestampMixin, UUIDPKMixin
-from app.models.enums import TaskPriority, TaskStatus
+from app.models.enums import ApprovalStatus, TaskPriority, TaskStatus
 
 
 class Task(UUIDPKMixin, TimestampMixin, Base):
@@ -18,8 +18,11 @@ class Task(UUIDPKMixin, TimestampMixin, Base):
     organization_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False, index=True
     )
-    project_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False, index=True
+    # Nullable: a task with no project is a "personal task" (see
+    # docs/ARCHITECTURE.md) -- it must have assignee_id == created_by_id,
+    # enforced in the service layer.
+    project_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("projects.id"), nullable=True, index=True
     )
     parent_task_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tasks.id"), nullable=True, index=True
@@ -35,6 +38,11 @@ class Task(UUIDPKMixin, TimestampMixin, Base):
         Enum(TaskPriority), nullable=False, default=TaskPriority.medium
     )
     status: Mapped[TaskStatus] = mapped_column(Enum(TaskStatus), nullable=False, default=TaskStatus.todo)
+    # Independent of `status` on purpose -- a task can be Completed but still
+    # Pending approval (see docs/ARCHITECTURE.md). Null until first submitted.
+    approval_status: Mapped[ApprovalStatus | None] = mapped_column(Enum(ApprovalStatus), nullable=True)
+    progress_percent: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    estimated_hours: Mapped[float | None] = mapped_column(Numeric(6, 2), nullable=True)
     deadline: Mapped[date | None] = mapped_column(Date, nullable=True)
 
     project: Mapped["Project"] = relationship(back_populates="tasks")

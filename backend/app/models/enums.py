@@ -23,9 +23,14 @@ class TaskPriority(str, enum.Enum):
 class TaskStatus(str, enum.Enum):
     todo = "todo"
     in_progress = "in_progress"
-    in_review = "in_review"
-    done = "done"
-    blocked = "blocked"
+    completed = "completed"
+    archived = "archived"
+
+
+class ApprovalStatus(str, enum.Enum):
+    pending = "pending"
+    approved = "approved"
+    rejected = "rejected"
 
 
 class WorkLogStatus(str, enum.Enum):
