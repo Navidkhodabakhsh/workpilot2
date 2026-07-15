@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query"
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
-import { CheckCircle2, ClipboardList, Clock, FolderKanban, Inbox } from "lucide-react"
+import { CheckCircle2, ClipboardList, Clock, FolderKanban } from "lucide-react"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { EmptyState } from "@/components/ui/empty-state"
 import { getDashboardSummary } from "@/features/dashboard/api"
 import type { StatusCount } from "@/features/dashboard/api"
 
@@ -68,15 +69,6 @@ function StatCard({
   )
 }
 
-function ChartEmptyState({ message }: { message: string }) {
-  return (
-    <div className="flex h-[220px] flex-col items-center justify-center gap-2 text-muted-foreground">
-      <Inbox className="size-8" />
-      <p className="text-sm">{message}</p>
-    </div>
-  )
-}
-
 function taskStatusChartData(tasksByStatus: StatusCount[]) {
   return tasksByStatus
     .map((s) => ({
@@ -121,7 +113,7 @@ export function DashboardPage() {
           </CardHeader>
           <CardContent>
             {chartData.length === 0 ? (
-              <ChartEmptyState message="هنوز وظیفه‌ای ثبت نشده است." />
+              <EmptyState className="h-[220px]" message="هنوز وظیفه‌ای ثبت نشده است." />
             ) : (
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={chartData}>
@@ -147,7 +139,7 @@ export function DashboardPage() {
           </CardHeader>
           <CardContent>
             {data.team_hours.length === 0 ? (
-              <ChartEmptyState message="هنوز گزارش کاری تأییدشده‌ای وجود ندارد." />
+              <EmptyState className="h-[220px]" message="هنوز گزارش کاری تأییدشده‌ای وجود ندارد." />
             ) : (
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={[...data.team_hours].sort((a, b) => b.approved_hours - a.approved_hours)}>

@@ -6,6 +6,7 @@ import { z } from "zod"
 import { Link } from "react-router-dom"
 import { Plus } from "lucide-react"
 
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -31,6 +32,11 @@ const STATUS_LABEL: Record<string, string> = {
   active: "فعال",
   completed: "تکمیل‌شده",
   archived: "بایگانی‌شده",
+}
+const STATUS_VARIANT: Record<string, "success" | "info" | "default"> = {
+  active: "info",
+  completed: "success",
+  archived: "default",
 }
 
 export function ProjectsListPage() {
@@ -109,9 +115,9 @@ export function ProjectsListPage() {
                 <p className="line-clamp-2 text-sm text-muted-foreground">
                   {project.description || "بدون توضیحات"}
                 </p>
-                <span className="mt-3 inline-block rounded-full bg-muted px-2 py-1 text-xs">
+                <Badge variant={STATUS_VARIANT[project.status] ?? "default"} className="mt-3">
                   {STATUS_LABEL[project.status] ?? project.status}
-                </span>
+                </Badge>
               </CardContent>
             </Card>
           </Link>

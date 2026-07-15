@@ -5,6 +5,7 @@ import { RouterProvider } from "react-router-dom"
 
 import { router } from "@/app/router"
 import { AuthBootstrap } from "@/app/auth-bootstrap"
+import { TooltipProvider } from "@/components/ui/tooltip"
 import "@/index.css"
 
 const queryClient = new QueryClient()
@@ -12,9 +13,11 @@ const queryClient = new QueryClient()
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <AuthBootstrap>
-        <RouterProvider router={router} />
-      </AuthBootstrap>
+      <TooltipProvider delayDuration={300}>
+        <AuthBootstrap>
+          <RouterProvider router={router} />
+        </AuthBootstrap>
+      </TooltipProvider>
     </QueryClientProvider>
   </StrictMode>
 )

@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 
+import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Select } from "@/components/ui/select"
 import { updateTaskStatus } from "@/features/tasks/api"
@@ -16,10 +17,10 @@ const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
 ]
 
 const PRIORITY_LABEL: Record<string, string> = { low: "کم", medium: "متوسط", high: "بالا" }
-const PRIORITY_CLASS: Record<string, string> = {
-  low: "bg-muted text-muted-foreground",
-  medium: "bg-warning/15 text-warning",
-  high: "bg-danger/15 text-danger",
+const PRIORITY_VARIANT: Record<string, "default" | "warning" | "danger"> = {
+  low: "default",
+  medium: "warning",
+  high: "danger",
 }
 
 export function TaskCard({ task, users }: { task: Task; users: OrgUser[] }) {
@@ -30,7 +31,7 @@ export function TaskCard({ task, users }: { task: Task; users: OrgUser[] }) {
 
   const mutation = useMutation({
     mutationFn: (status: TaskStatus) => updateTaskStatus(task.id, status),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tasks", task.project_id] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tasks"], exact: false }),
   })
 
   return (
@@ -38,9 +39,9 @@ export function TaskCard({ task, users }: { task: Task; users: OrgUser[] }) {
       <CardContent className="flex flex-col gap-3 pt-6">
         <div className="flex items-start justify-between gap-2">
           <p className="font-medium">{task.title}</p>
-          <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${PRIORITY_CLASS[task.priority]}`}>
+          <Badge variant={PRIORITY_VARIANT[task.priority]} className="shrink-0">
             {PRIORITY_LABEL[task.priority]}
-          </span>
+          </Badge>
         </div>
         {assignee && <p className="text-sm text-muted-foreground">{assignee.full_name}</p>}
         <Select
