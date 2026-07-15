@@ -11,12 +11,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { AuthLayout } from "@/features/auth/components/auth-layout"
 import { signup, login, fetchMe } from "@/features/auth/api"
 import { useAuthStore } from "@/features/auth/auth-store"
+import { PASSWORD_HINT, PHONE_HINT, passwordSchema, phoneSchema } from "@/features/auth/validation"
 
 const schema = z.object({
   organization_name: z.string().min(2, "نام سازمان را وارد کنید"),
   full_name: z.string().min(2, "نام و نام خانوادگی را وارد کنید"),
   email: z.string().email("ایمیل معتبر وارد کنید"),
-  password: z.string().min(8, "رمز عبور باید حداقل ۸ کاراکتر باشد"),
+  phone_number: phoneSchema,
+  password: passwordSchema,
 })
 
 type FormValues = z.infer<typeof schema>
@@ -28,7 +30,7 @@ export function SignupPage() {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { organization_name: "", full_name: "", email: "", password: "" },
+    defaultValues: { organization_name: "", full_name: "", email: "", phone_number: "", password: "" },
   })
 
   async function onSubmit(values: FormValues) {
@@ -42,7 +44,9 @@ export function SignupPage() {
       navigate("/", { replace: true })
     } catch (err: any) {
       if (err?.response?.status === 409) {
-        setServerError("این ایمیل قبلاً ثبت شده است")
+        setServerError(
+          err?.response?.data?.detail?.includes("Phone") ? "این شماره موبایل قبلاً ثبت شده است" : "این ایمیل قبلاً ثبت شده است"
+        )
       } else {
         setServerError("خطایی رخ داد؛ دوباره تلاش کنید")
       }
@@ -80,10 +84,28 @@ export function SignupPage() {
               )}
             </div>
             <div className="flex flex-col gap-2">
+              <Label htmlFor="phone_number">شماره موبایل</Label>
+              <Input
+                id="phone_number"
+                type="tel"
+                inputMode="numeric"
+                dir="ltr"
+                autoComplete="tel"
+                {...form.register("phone_number")}
+              />
+              {form.formState.errors.phone_number ? (
+                <p className="text-sm text-danger">{form.formState.errors.phone_number.message}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">{PHONE_HINT}</p>
+              )}
+            </div>
+            <div className="flex flex-col gap-2">
               <Label htmlFor="password">رمز عبور</Label>
               <Input id="password" type="password" autoComplete="new-password" {...form.register("password")} />
-              {form.formState.errors.password && (
+              {form.formState.errors.password ? (
                 <p className="text-sm text-danger">{form.formState.errors.password.message}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">{PASSWORD_HINT}</p>
               )}
             </div>
             {serverError && <p className="text-sm text-danger">{serverError}</p>}

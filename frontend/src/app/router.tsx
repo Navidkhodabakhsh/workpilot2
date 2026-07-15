@@ -4,6 +4,7 @@ import { AppShell } from "@/components/layout/app-shell"
 import { ProtectedRoute } from "@/app/protected-route"
 import { LoginPage } from "@/features/auth/pages/login-page"
 import { SignupPage } from "@/features/auth/pages/signup-page"
+import { ForgotPasswordPage } from "@/features/auth/pages/forgot-password-page"
 import { DashboardPage } from "@/features/dashboard/pages/dashboard-page"
 import { ProjectsListPage } from "@/features/projects/pages/projects-list-page"
 import { ProjectDetailPage } from "@/features/projects/pages/project-detail-page"
@@ -20,6 +21,7 @@ import { AnalyticsPage } from "@/features/analytics/pages/analytics-page"
 export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
   { path: "/signup", element: <SignupPage /> },
+  { path: "/forgot-password", element: <ForgotPasswordPage /> },
   {
     element: <ProtectedRoute />,
     children: [

@@ -9,14 +9,18 @@ export async function listOrgUsers() {
 export async function createOrgUser(payload: {
   full_name: string
   email: string
-  password: string
+  phone_number: string
+  password?: string
   role: UserRole
 }) {
   const { data } = await apiClient.post<OrgUser>("/api/v1/users", payload)
   return data
 }
 
-export async function updateOrgUser(userId: string, payload: { role?: UserRole; is_active?: boolean }) {
+export async function updateOrgUser(
+  userId: string,
+  payload: { role?: UserRole; is_active?: boolean; phone_number?: string }
+) {
   const { data } = await apiClient.patch<OrgUser>(`/api/v1/users/${userId}`, payload)
   return data
 }

@@ -1,7 +1,4 @@
-import { useState } from "react"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { z } from "zod"
+import { useState, type FormEvent } from "react"
 import { Link, useNavigate } from "react-router-dom"
 
 import { Button } from "@/components/ui/button"
@@ -9,90 +6,315 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { AuthLayout } from "@/features/auth/components/auth-layout"
-import { login, fetchMe } from "@/features/auth/api"
+import { login, fetchMe, requestOtp, otpLogin } from "@/features/auth/api"
 import { useAuthStore } from "@/features/auth/auth-store"
+import { PASSWORD_HINT, PHONE_HINT, passwordSchema, phoneSchema, otpCodeSchema } from "@/features/auth/validation"
 
-const schema = z.object({
-  identifier: z.string().min(3, "ایمیل یا شماره موبایل را وارد کنید"),
-  password: z.string().min(8, "رمز عبور باید حداقل ۸ کاراکتر باشد"),
-})
+type Mode = "password" | "otp"
+type OtpStep = "phone" | "code"
 
-type FormValues = z.infer<typeof schema>
+const RATE_LIMIT_MESSAGE = "تعداد تلاش‌های ورود بیش از حد مجاز است؛ چند دقیقه دیگر دوباره امتحان کنید."
 
 export function LoginPage() {
   const navigate = useNavigate()
   const setSession = useAuthStore((s) => s.setSession)
-  const [serverError, setServerError] = useState<string | null>(null)
-
-  const form = useForm<FormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: { identifier: "", password: "" },
-  })
-
-  async function onSubmit(values: FormValues) {
-    setServerError(null)
-    try {
-      const { access_token } = await login(values)
-      useAuthStore.setState({ accessToken: access_token })
-      const user = await fetchMe()
-      setSession(access_token, user)
-      navigate("/", { replace: true })
-    } catch (err: any) {
-      if (err?.response?.status === 429) {
-        setServerError("تعداد تلاش‌های ورود بیش از حد مجاز است؛ چند دقیقه دیگر دوباره امتحان کنید.")
-      } else {
-        setServerError("ایمیل/شماره موبایل یا رمز عبور اشتباه است")
-      }
-    }
-  }
+  const [mode, setMode] = useState<Mode>("password")
 
   return (
     <AuthLayout>
       <Card className="w-full shadow-lg">
         <CardHeader>
           <CardTitle className="text-2xl">ورود به Tadvin</CardTitle>
-          <CardDescription>برای ادامه، ایمیل یا شماره موبایل و رمز عبور خود را وارد کنید</CardDescription>
+          <CardDescription>
+            {mode === "password"
+              ? "شماره موبایل و رمز عبور خود را وارد کنید"
+              : "شماره موبایل خود را وارد کنید تا کد ورود برایتان ارسال شود"}
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="identifier">ایمیل یا شماره موبایل</Label>
-              <Input
-                id="identifier"
-                autoComplete="username"
-                aria-invalid={!!form.formState.errors.identifier}
-                {...form.register("identifier")}
-              />
-              {form.formState.errors.identifier && (
-                <p className="text-sm text-danger">{form.formState.errors.identifier.message}</p>
-              )}
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="password">رمز عبور</Label>
-              <Input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                aria-invalid={!!form.formState.errors.password}
-                {...form.register("password")}
-              />
-              {form.formState.errors.password && (
-                <p className="text-sm text-danger">{form.formState.errors.password.message}</p>
-              )}
-            </div>
-            {serverError && <p className="text-sm text-danger">{serverError}</p>}
-            <Button type="submit" variant="accent" className="mt-2 w-full" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? "در حال ورود..." : "ورود"}
-            </Button>
-            <p className="text-center text-sm text-muted-foreground">
-              سازمان جدید دارید؟{" "}
-              <Link to="/signup" className="font-medium text-primary underline-offset-4 hover:underline">
-                ثبت‌نام
-              </Link>
-            </p>
-          </form>
+        <CardContent className="flex flex-col gap-4">
+          <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
+            <button
+              type="button"
+              onClick={() => setMode("password")}
+              className={`rounded-md py-1.5 text-sm font-medium transition-colors ${
+                mode === "password" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+              }`}
+            >
+              ورود با رمز عبور
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("otp")}
+              className={`rounded-md py-1.5 text-sm font-medium transition-colors ${
+                mode === "otp" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+              }`}
+            >
+              ورود با کد یکبار مصرف
+            </button>
+          </div>
+
+          {mode === "password" ? (
+            <PasswordLoginForm
+              onSuccess={async (accessToken) => {
+                useAuthStore.setState({ accessToken })
+                const user = await fetchMe()
+                setSession(accessToken, user)
+                navigate("/", { replace: true })
+              }}
+            />
+          ) : (
+            <OtpLoginForm
+              onSuccess={async (accessToken) => {
+                useAuthStore.setState({ accessToken })
+                const user = await fetchMe()
+                setSession(accessToken, user)
+                navigate("/", { replace: true })
+              }}
+            />
+          )}
+
+          <p className="text-center text-sm text-muted-foreground">
+            <Link to="/forgot-password" className="font-medium text-primary underline-offset-4 hover:underline">
+              رمز عبور خود را فراموش کرده‌اید؟
+            </Link>
+          </p>
+          <p className="text-center text-sm text-muted-foreground">
+            سازمان جدید دارید؟{" "}
+            <Link to="/signup" className="font-medium text-primary underline-offset-4 hover:underline">
+              ثبت‌نام
+            </Link>
+          </p>
         </CardContent>
       </Card>
     </AuthLayout>
+  )
+}
+
+function PasswordLoginForm({ onSuccess }: { onSuccess: (accessToken: string) => Promise<void> }) {
+  const [phone, setPhone] = useState("")
+  const [password, setPassword] = useState("")
+  const [fieldError, setFieldError] = useState<string | null>(null)
+  const [serverError, setServerError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault()
+    setServerError(null)
+    const phoneResult = phoneSchema.safeParse(phone)
+    if (!phoneResult.success) {
+      setFieldError(phoneResult.error.issues[0].message)
+      return
+    }
+    if (password.length < 8) {
+      setFieldError("رمز عبور باید حداقل ۸ کاراکتر باشد")
+      return
+    }
+    setFieldError(null)
+    setSubmitting(true)
+    try {
+      const { access_token } = await login({ identifier: phone, password })
+      await onSuccess(access_token)
+    } catch (err: any) {
+      if (err?.response?.status === 429) {
+        setServerError(RATE_LIMIT_MESSAGE)
+      } else {
+        setServerError("شماره موبایل یا رمز عبور اشتباه است")
+      }
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <form onSubmit={onSubmit} className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="phone">شماره موبایل</Label>
+        <Input
+          id="phone"
+          type="tel"
+          inputMode="numeric"
+          autoComplete="username"
+          dir="ltr"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+        />
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="password">رمز عبور</Label>
+        <Input
+          id="password"
+          type="password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+      </div>
+      {fieldError && <p className="text-sm text-danger">{fieldError}</p>}
+      {serverError && <p className="text-sm text-danger">{serverError}</p>}
+      <Button type="submit" variant="accent" className="mt-1 w-full" disabled={submitting}>
+        {submitting ? "در حال ورود..." : "ورود"}
+      </Button>
+    </form>
+  )
+}
+
+function OtpLoginForm({ onSuccess }: { onSuccess: (accessToken: string) => Promise<void> }) {
+  const [step, setStep] = useState<OtpStep>("phone")
+  const [phone, setPhone] = useState("")
+  const [code, setCode] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [debugCode, setDebugCode] = useState<string | null>(null)
+  const [fieldError, setFieldError] = useState<string | null>(null)
+  const [serverError, setServerError] = useState<string | null>(null)
+  const [infoMessage, setInfoMessage] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+
+  async function requestCode() {
+    setServerError(null)
+    const phoneResult = phoneSchema.safeParse(phone)
+    if (!phoneResult.success) {
+      setFieldError(phoneResult.error.issues[0].message)
+      return
+    }
+    setFieldError(null)
+    setSubmitting(true)
+    try {
+      const { debug_code } = await requestOtp({ phone_number: phone, purpose: "login" })
+      setDebugCode(debug_code)
+      setStep("code")
+      setInfoMessage("کد ورود برای شما ارسال شد")
+    } catch (err: any) {
+      if (err?.response?.status === 404) {
+        setServerError("حسابی با این شماره موبایل ثبت نشده است")
+      } else if (err?.response?.status === 429) {
+        setServerError("تعداد درخواست‌های کد بیش از حد مجاز است؛ کمی بعد دوباره تلاش کنید.")
+      } else {
+        setServerError("خطایی رخ داد؛ دوباره تلاش کنید")
+      }
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function onSubmitCode(e: FormEvent) {
+    e.preventDefault()
+    setServerError(null)
+    const codeResult = otpCodeSchema.safeParse(code)
+    if (!codeResult.success) {
+      setFieldError(codeResult.error.issues[0].message)
+      return
+    }
+    if (newPassword && !passwordSchema.safeParse(newPassword).success) {
+      setFieldError(passwordSchema.safeParse(newPassword).error!.issues[0].message)
+      return
+    }
+    setFieldError(null)
+    setSubmitting(true)
+    try {
+      const { access_token } = await otpLogin({
+        phone_number: phone,
+        code,
+        new_password: newPassword || undefined,
+      })
+      await onSuccess(access_token)
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail
+      if (detail === "password_setup_required") {
+        setServerError(
+          "برای اولین ورود باید رمز عبور تعیین کنید. چون این کد مصرف شد، لطفاً کد جدیدی درخواست کنید و همراه رمز عبور جدید ارسال کنید."
+        )
+        setStep("phone")
+        setCode("")
+      } else if (err?.response?.status === 401) {
+        setServerError("کد وارد شده اشتباه یا منقضی شده است")
+      } else if (err?.response?.status === 429) {
+        setServerError(RATE_LIMIT_MESSAGE)
+      } else {
+        setServerError("خطایی رخ داد؛ دوباره تلاش کنید")
+      }
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (step === "phone") {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="otp-phone">شماره موبایل</Label>
+          <Input
+            id="otp-phone"
+            type="tel"
+            inputMode="numeric"
+            autoComplete="username"
+            dir="ltr"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">{PHONE_HINT}</p>
+        </div>
+        {fieldError && <p className="text-sm text-danger">{fieldError}</p>}
+        {serverError && <p className="text-sm text-danger">{serverError}</p>}
+        <Button type="button" variant="accent" className="mt-1 w-full" disabled={submitting} onClick={requestCode}>
+          {submitting ? "در حال ارسال..." : "دریافت کد ورود"}
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <form onSubmit={onSubmitCode} className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground" dir="ltr">
+          {phone}
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            setStep("phone")
+            setCode("")
+            setServerError(null)
+          }}
+          className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+        >
+          ویرایش شماره
+        </button>
+      </div>
+      {infoMessage && <p className="text-sm text-success">{infoMessage}</p>}
+      {debugCode && (
+        <p className="rounded-md bg-muted p-2 text-xs text-muted-foreground">
+          سرویس پیامک هنوز متصل نشده — کد آزمایشی شما: <span className="font-mono font-semibold" dir="ltr">{debugCode}</span>
+        </p>
+      )}
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="otp-code">کد ۶ رقمی</Label>
+        <Input
+          id="otp-code"
+          inputMode="numeric"
+          dir="ltr"
+          maxLength={6}
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+        />
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="otp-new-password">رمز عبور جدید (در صورت اولین ورود)</Label>
+        <Input
+          id="otp-new-password"
+          type="password"
+          autoComplete="new-password"
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+        />
+        <p className="text-xs text-muted-foreground">
+          اگر برای اولین‌بار وارد می‌شوید، رمز عبور دلخواه خود را اینجا وارد کنید. {PASSWORD_HINT}
+        </p>
+      </div>
+      {fieldError && <p className="text-sm text-danger">{fieldError}</p>}
+      {serverError && <p className="text-sm text-danger">{serverError}</p>}
+      <Button type="submit" variant="accent" className="mt-1 w-full" disabled={submitting}>
+        {submitting ? "در حال ورود..." : "ورود"}
+      </Button>
+    </form>
   )
 }

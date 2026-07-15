@@ -21,6 +21,7 @@ import { Select } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { createOrgUser, listOrgUsers, updateOrgUser } from "@/features/users/api"
 import { useAuthStore } from "@/features/auth/auth-store"
+import { PASSWORD_HINT, PHONE_HINT, passwordSchema, phoneSchema } from "@/features/auth/validation"
 import type { OrgUser, UserRole } from "@/lib/types"
 
 const ROLE_LABEL: Record<string, string> = {
@@ -37,7 +38,8 @@ const ROLE_VARIANT: Record<string, "primary" | "info" | "default"> = {
 const schema = z.object({
   full_name: z.string().min(2, "نام و نام خانوادگی را وارد کنید"),
   email: z.string().email("ایمیل معتبر وارد کنید"),
-  password: z.string().min(8, "رمز عبور باید حداقل ۸ کاراکتر باشد"),
+  phone_number: phoneSchema,
+  password: z.union([z.literal(""), passwordSchema]),
   role: z.enum(["project_manager", "employee"]),
 })
 type FormValues = z.infer<typeof schema>
@@ -45,6 +47,7 @@ type FormValues = z.infer<typeof schema>
 const editSchema = z.object({
   role: z.enum(["org_admin", "project_manager", "employee"]),
   is_active: z.enum(["true", "false"]),
+  phone_number: z.union([z.literal(""), phoneSchema]),
 })
 type EditFormValues = z.infer<typeof editSchema>
 
@@ -59,18 +62,30 @@ export function UsersListPage() {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { full_name: "", email: "", password: "", role: "employee" },
+    defaultValues: { full_name: "", email: "", phone_number: "", password: "", role: "employee" },
   })
 
   const createMutation = useMutation({
-    mutationFn: (values: FormValues) => createOrgUser(values as FormValues & { role: UserRole }),
+    mutationFn: (values: FormValues) =>
+      createOrgUser({
+        full_name: values.full_name,
+        email: values.email,
+        phone_number: values.phone_number,
+        password: values.password || undefined,
+        role: values.role as UserRole,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["org-users"] })
       setOpen(false)
       form.reset()
     },
     onError: (err: any) => {
-      setServerError(err?.response?.status === 409 ? "این ایمیل قبلاً ثبت شده است" : "خطایی رخ داد؛ دوباره تلاش کنید")
+      const detail = err?.response?.data?.detail
+      if (err?.response?.status === 409) {
+        setServerError(detail?.includes("Phone") ? "این شماره موبایل قبلاً ثبت شده است" : "این ایمیل قبلاً ثبت شده است")
+      } else {
+        setServerError("خطایی رخ داد؛ دوباره تلاش کنید")
+      }
     },
   })
 
@@ -80,13 +95,22 @@ export function UsersListPage() {
 
   const updateMutation = useMutation({
     mutationFn: (values: EditFormValues) =>
-      updateOrgUser(editingUser!.id, { role: values.role, is_active: values.is_active === "true" }),
+      updateOrgUser(editingUser!.id, {
+        role: values.role,
+        is_active: values.is_active === "true",
+        ...(values.phone_number ? { phone_number: values.phone_number } : {}),
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["org-users"] })
       setEditingUser(null)
     },
     onError: (err: any) => {
-      setEditError(err?.response?.data?.detail ?? "خطایی رخ داد؛ دوباره تلاش کنید")
+      const detail = err?.response?.data?.detail
+      setEditError(
+        err?.response?.status === 409 && typeof detail === "string" && detail.includes("Phone")
+          ? "این شماره موبایل قبلاً ثبت شده است"
+          : (detail ?? "خطایی رخ داد؛ دوباره تلاش کنید")
+      )
     },
   })
 
@@ -98,6 +122,7 @@ export function UsersListPage() {
     editForm.reset({
       role: u.role as "org_admin" | "project_manager" | "employee",
       is_active: u.is_active ? "true" : "false",
+      phone_number: u.phone_number ?? "",
     })
   }
 
@@ -146,10 +171,23 @@ export function UsersListPage() {
                   )}
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="password">رمز عبور</Label>
+                  <Label htmlFor="phone_number">شماره موبایل</Label>
+                  <Input id="phone_number" type="tel" dir="ltr" {...form.register("phone_number")} />
+                  {form.formState.errors.phone_number ? (
+                    <p className="text-sm text-danger">{form.formState.errors.phone_number.message}</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">{PHONE_HINT}</p>
+                  )}
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="password">رمز عبور (اختیاری)</Label>
                   <Input id="password" type="password" {...form.register("password")} />
-                  {form.formState.errors.password && (
+                  {form.formState.errors.password ? (
                     <p className="text-sm text-danger">{form.formState.errors.password.message}</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      اگر خالی بگذارید، کاربر با کد یکبار مصرف پیامکی وارد شده و در اولین ورود رمز خود را تعیین می‌کند. {PASSWORD_HINT}
+                    </p>
                   )}
                 </div>
                 <div className="flex flex-col gap-2">
@@ -177,6 +215,7 @@ export function UsersListPage() {
             <TableRow>
               <TableHead>نام</TableHead>
               <TableHead>ایمیل</TableHead>
+              <TableHead>شماره موبایل</TableHead>
               <TableHead>نقش</TableHead>
               <TableHead>وضعیت</TableHead>
               {isOrgAdmin && <TableHead className="w-0" />}
@@ -187,6 +226,9 @@ export function UsersListPage() {
               <TableRow key={u.id}>
                 <TableCell className="font-medium">{u.full_name}</TableCell>
                 <TableCell>{u.email}</TableCell>
+                <TableCell dir="ltr" className="text-start">
+                  {u.phone_number ?? "—"}
+                </TableCell>
                 <TableCell>
                   <Badge variant={ROLE_VARIANT[u.role] ?? "default"}>{ROLE_LABEL[u.role] ?? u.role}</Badge>
                 </TableCell>
@@ -232,6 +274,17 @@ export function UsersListPage() {
                 <option value="true">فعال</option>
                 <option value="false">غیرفعال</option>
               </Select>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="edit-phone">شماره موبایل</Label>
+              <Input id="edit-phone" type="tel" dir="ltr" {...editForm.register("phone_number")} />
+              {editForm.formState.errors.phone_number ? (
+                <p className="text-sm text-danger">{editForm.formState.errors.phone_number.message}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  {editingUser?.has_password ? "این کاربر رمز عبور تعیین کرده است" : "این کاربر هنوز رمز عبوری تعیین نکرده و با کد یکبار مصرف وارد می‌شود"}
+                </p>
+              )}
             </div>
             {editError && <p className="text-sm text-danger">{editError}</p>}
             <Button type="submit" disabled={updateMutation.isPending}>

@@ -6,20 +6,40 @@ export type SignupPayload = {
   organization_name: string
   full_name: string
   email: string
-  phone_number?: string
+  phone_number: string
   password: string
 }
 
+export type OtpPurpose = "login" | "password_reset"
+export type OtpRequestPayload = { phone_number: string; purpose: OtpPurpose }
+export type OtpRequestResponse = { message: string; debug_code: string | null }
+export type OtpLoginPayload = { phone_number: string; code: string; new_password?: string }
+export type OtpResetPasswordPayload = { phone_number: string; code: string; new_password: string }
+
+type TokenResponse = { access_token: string; token_type: string }
+
 export async function login(payload: LoginPayload) {
-  const { data } = await apiClient.post<{ access_token: string; token_type: string }>(
-    "/api/v1/auth/login",
-    payload
-  )
+  const { data } = await apiClient.post<TokenResponse>("/api/v1/auth/login", payload)
   return data
 }
 
 export async function signup(payload: SignupPayload) {
   const { data } = await apiClient.post<CurrentUser>("/api/v1/auth/signup", payload)
+  return data
+}
+
+export async function requestOtp(payload: OtpRequestPayload) {
+  const { data } = await apiClient.post<OtpRequestResponse>("/api/v1/auth/otp/request", payload)
+  return data
+}
+
+export async function otpLogin(payload: OtpLoginPayload) {
+  const { data } = await apiClient.post<TokenResponse>("/api/v1/auth/otp/login", payload)
+  return data
+}
+
+export async function otpResetPassword(payload: OtpResetPasswordPayload) {
+  const { data } = await apiClient.post<TokenResponse>("/api/v1/auth/otp/reset-password", payload)
   return data
 }
 

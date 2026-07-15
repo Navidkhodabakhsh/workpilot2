@@ -53,6 +53,7 @@ export type OrgUser = {
   full_name: string
   role: UserRole
   is_active: boolean
+  has_password: boolean
 }
 
 export type ProjectMember = {
