@@ -1,9 +1,11 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Outlet, useNavigate } from "react-router-dom"
-import { LogOut, Menu, X, Search } from "lucide-react"
+import { LogOut, Menu, PanelLeftClose, PanelLeftOpen, X, Search } from "lucide-react"
 
 import { SidebarNav } from "@/components/layout/sidebar-nav"
+import { useSidebarStore } from "@/components/layout/sidebar-store"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import { NotificationBell } from "@/features/notifications/components/notification-bell"
 import { logoutRequest } from "@/features/auth/api"
 import { useAuthStore } from "@/features/auth/auth-store"
@@ -15,9 +17,20 @@ import { useAuthStore } from "@/features/auth/auth-store"
  */
 export function AppShell() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const collapsed = useSidebarStore((s) => s.collapsed)
+  const toggleCollapsed = useSidebarStore((s) => s.toggle)
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (!mobileNavOpen) return
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setMobileNavOpen(false)
+    }
+    document.addEventListener("keydown", handleEscape)
+    return () => document.removeEventListener("keydown", handleEscape)
+  }, [mobileNavOpen])
 
   async function handleLogout() {
     try {
@@ -31,44 +44,79 @@ export function AppShell() {
   return (
     <div className="flex min-h-svh flex-col lg:flex-row">
       {/* Desktop sidebar */}
-      <aside className="relative hidden w-64 shrink-0 flex-col overflow-hidden border-e border-sidebar-border bg-sidebar py-4 lg:flex">
+      <aside
+        className={cn(
+          "relative hidden shrink-0 flex-col overflow-hidden border-e border-sidebar-border bg-sidebar py-4 transition-[width] duration-300 ease-in-out lg:flex",
+          collapsed ? "w-20" : "w-64"
+        )}
+      >
         <div
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_hsl(var(--color-teal-500)/0.35),_transparent_60%)]"
           aria-hidden="true"
         />
-        <div className="relative px-4 pb-4 text-xl font-bold text-sidebar-foreground">WorkPilot</div>
+        <div
+          className={cn(
+            "relative px-4 pb-4 text-xl font-bold text-sidebar-foreground",
+            collapsed && "px-0 text-center"
+          )}
+        >
+          {collapsed ? "WP" : "WorkPilot"}
+        </div>
         <div className="relative flex-1 overflow-y-auto">
-          <SidebarNav />
+          <SidebarNav collapsed={collapsed} />
+        </div>
+        <div className="relative px-3 pt-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="w-full text-sidebar-foreground hover:bg-sidebar-accent/10"
+            onClick={toggleCollapsed}
+            aria-label={collapsed ? "باز کردن منو" : "جمع کردن منو"}
+          >
+            {collapsed ? <PanelLeftOpen className="size-5" /> : <PanelLeftClose className="size-5" />}
+          </Button>
         </div>
       </aside>
 
-      {/* Mobile drawer */}
-      {mobileNavOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div
-            className="absolute inset-0 bg-black/40"
-            onClick={() => setMobileNavOpen(false)}
-            aria-hidden="true"
-          />
-          <div className="absolute inset-y-0 end-0 flex w-72 max-w-[85vw] flex-col bg-sidebar py-4">
-            <div className="flex items-center justify-between px-4 pb-4">
-              <span className="text-xl font-bold text-sidebar-foreground">WorkPilot</span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-sidebar-foreground hover:bg-sidebar-accent/10"
-                onClick={() => setMobileNavOpen(false)}
-                aria-label="بستن منو"
-              >
-                <X className="size-5" />
-              </Button>
-            </div>
-            <div className="flex-1 overflow-y-auto">
-              <SidebarNav onNavigate={() => setMobileNavOpen(false)} />
-            </div>
+      {/* Mobile drawer -- stays mounted (off-screen via transform) instead of
+          conditionally rendered so open/close can actually animate. */}
+      <div
+        className={cn(
+          "fixed inset-0 z-50 lg:hidden",
+          mobileNavOpen ? "pointer-events-auto" : "pointer-events-none"
+        )}
+      >
+        <div
+          className={cn(
+            "absolute inset-0 bg-black/40 transition-opacity duration-300",
+            mobileNavOpen ? "opacity-100" : "opacity-0"
+          )}
+          onClick={() => setMobileNavOpen(false)}
+          aria-hidden="true"
+        />
+        <div
+          className={cn(
+            "absolute inset-y-0 end-0 flex w-72 max-w-[85vw] flex-col bg-sidebar py-4 transition-transform duration-300 ease-in-out",
+            mobileNavOpen ? "translate-x-0" : "translate-x-full"
+          )}
+        >
+          <div className="flex items-center justify-between px-4 pb-4">
+            <span className="text-xl font-bold text-sidebar-foreground">WorkPilot</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-sidebar-foreground hover:bg-sidebar-accent/10"
+              onClick={() => setMobileNavOpen(false)}
+              aria-label="بستن منو"
+            >
+              <X className="size-5" />
+            </Button>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            <SidebarNav onNavigate={() => setMobileNavOpen(false)} />
           </div>
         </div>
-      )}
+      </div>
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Topbar */}
