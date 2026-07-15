@@ -15,6 +15,9 @@ const buttonVariants = cva(
         secondary: "bg-muted text-foreground shadow-xs hover:bg-muted/80",
         ghost: "hover:bg-muted",
         link: "text-primary underline-offset-4 hover:underline",
+        // Reserved for the single primary CTA on a screen (e.g. auth submit
+        // buttons) -- not a general-purpose alternative to `default`.
+        accent: "bg-accent text-accent-foreground shadow-xs hover:bg-accent/90",
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",

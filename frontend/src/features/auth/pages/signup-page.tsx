@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { AuthLayout } from "@/features/auth/components/auth-layout"
 import { signup, login, fetchMe } from "@/features/auth/api"
 import { useAuthStore } from "@/features/auth/auth-store"
 
@@ -49,62 +50,87 @@ export function SignupPage() {
   }
 
   return (
-    <div className="flex min-h-svh items-center justify-center bg-muted/40 p-4">
-      <Card className="w-full max-w-sm">
+    <AuthLayout>
+      <Card className="w-full border-white/20 bg-white/15 shadow-2xl backdrop-blur-xl">
         <CardHeader>
-          <CardTitle className="text-2xl">ساخت سازمان جدید در WorkPilot</CardTitle>
-          <CardDescription>یک فضای کاری جدید برای سازمان خود بسازید</CardDescription>
+          <CardTitle className="text-2xl text-white">ساخت سازمان جدید در WorkPilot</CardTitle>
+          <CardDescription className="text-white/70">
+            یک فضای کاری جدید برای سازمان خود بسازید
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="organization_name">نام سازمان</Label>
-              <Input id="organization_name" {...form.register("organization_name")} />
+              <Label htmlFor="organization_name" className="text-white">
+                نام سازمان
+              </Label>
+              <Input
+                id="organization_name"
+                className="border-white/30 bg-white/10 text-white placeholder:text-white/50"
+                {...form.register("organization_name")}
+              />
               {form.formState.errors.organization_name && (
-                <p className="text-sm text-danger">
+                <p className="text-sm text-amber-200">
                   {form.formState.errors.organization_name.message}
                 </p>
               )}
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="full_name">نام و نام خانوادگی</Label>
-              <Input id="full_name" {...form.register("full_name")} />
+              <Label htmlFor="full_name" className="text-white">
+                نام و نام خانوادگی
+              </Label>
+              <Input
+                id="full_name"
+                className="border-white/30 bg-white/10 text-white placeholder:text-white/50"
+                {...form.register("full_name")}
+              />
               {form.formState.errors.full_name && (
-                <p className="text-sm text-danger">{form.formState.errors.full_name.message}</p>
+                <p className="text-sm text-amber-200">{form.formState.errors.full_name.message}</p>
               )}
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="email">ایمیل</Label>
-              <Input id="email" type="email" autoComplete="email" {...form.register("email")} />
+              <Label htmlFor="email" className="text-white">
+                ایمیل
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                className="border-white/30 bg-white/10 text-white placeholder:text-white/50"
+                {...form.register("email")}
+              />
               {form.formState.errors.email && (
-                <p className="text-sm text-danger">{form.formState.errors.email.message}</p>
+                <p className="text-sm text-amber-200">{form.formState.errors.email.message}</p>
               )}
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="password">رمز عبور</Label>
+              <Label htmlFor="password" className="text-white">
+                رمز عبور
+              </Label>
               <Input
                 id="password"
                 type="password"
                 autoComplete="new-password"
+                className="border-white/30 bg-white/10 text-white placeholder:text-white/50"
                 {...form.register("password")}
               />
               {form.formState.errors.password && (
-                <p className="text-sm text-danger">{form.formState.errors.password.message}</p>
+                <p className="text-sm text-amber-200">{form.formState.errors.password.message}</p>
               )}
             </div>
-            {serverError && <p className="text-sm text-danger">{serverError}</p>}
-            <Button type="submit" className="mt-2 w-full" disabled={form.formState.isSubmitting}>
+            {serverError && <p className="text-sm text-amber-200">{serverError}</p>}
+            <Button type="submit" variant="accent" className="mt-2 w-full" disabled={form.formState.isSubmitting}>
               {form.formState.isSubmitting ? "در حال ساخت..." : "ساخت سازمان و ورود"}
             </Button>
-            <p className="text-center text-sm text-muted-foreground">
+            <p className="text-center text-sm text-white/70">
               حساب دارید؟{" "}
-              <Link to="/login" className="text-primary hover:underline">
+              <Link to="/login" className="text-white underline hover:text-white/80">
                 ورود
               </Link>
             </p>
           </form>
         </CardContent>
       </Card>
-    </div>
+    </AuthLayout>
   )
 }

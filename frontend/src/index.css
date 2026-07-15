@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "@fontsource-variable/vazirmatn";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -7,47 +8,65 @@
  * Design tokens — three-layer architecture (Primitive -> Semantic -> Component),
  * see docs/ARCHITECTURE.md and docs/UI-DESIGN.md. Never hardcode raw colors in
  * components; always reference a semantic Tailwind class (bg-primary, text-muted-foreground, ...).
+ *
+ * Palette: "Productivity Tool" recommendation from the ui-ux-pro-max skill
+ * database (teal primary, orange accent). Accent is deliberately NOT wired
+ * into any default component style -- it is reserved for a single primary
+ * CTA per screen (e.g. auth submit buttons), per explicit product direction
+ * to keep accent usage sparse.
  */
 :root {
   --radius: 0.625rem;
 
   /* Primitive tokens */
-  --color-indigo-600: 243 75% 59%;
+  --color-teal-600: 175 84% 32%; /* #0D9488 -- primary */
+  --color-teal-500: 173 80% 40%; /* #14B8A6 -- secondary */
+  --color-teal-200: 168 84% 78%; /* #99F6E4 */
+  --color-teal-50: 166 76% 97%; /* #F0FDFA -- tinted app background */
+  --color-orange-600: 21 90% 48%; /* #EA580C -- accent, used sparingly */
   --color-slate-50: 210 40% 98%;
   --color-slate-100: 210 40% 96%;
   --color-slate-200: 214 32% 91%;
   --color-slate-500: 215 16% 47%;
   --color-slate-900: 222 47% 11%;
   --color-slate-950: 222 47% 6%;
-  --color-green-600: 142 71% 45%;
-  --color-blue-600: 217 91% 60%;
-  --color-amber-500: 38 92% 50%;
+  --color-green-600: 142 76% 36%;
+  --color-blue-600: 221 83% 53%;
+  --color-amber-600: 32 95% 44%;
   --color-red-600: 0 72% 51%;
 
   /* Semantic tokens — light mode */
-  --background: 0 0% 100%;
+  --background: var(--color-teal-50);
   --foreground: var(--color-slate-900);
   --card: 0 0% 100%;
   --card-foreground: var(--color-slate-900);
   --border: var(--color-slate-200);
   --input: var(--color-slate-200);
-  --ring: var(--color-indigo-600);
+  --ring: var(--color-teal-600);
   --muted: var(--color-slate-100);
   --muted-foreground: var(--color-slate-500);
 
-  --primary: var(--color-indigo-600);
+  --primary: var(--color-teal-600);
   --primary-foreground: 0 0% 100%;
 
+  --secondary: var(--color-teal-500);
+  --secondary-foreground: 0 0% 100%;
+
+  /* Reserved for a single primary CTA per screen -- do not use as a general
+     "brand" color, only for the one action that matters most on a page. */
+  --accent: var(--color-orange-600);
+  --accent-foreground: 0 0% 100%;
+
   /* Sidebar is intentionally dark in both themes — see docs/UI-DESIGN.md reference */
-  --sidebar: var(--color-slate-950);
+  --sidebar: 179 84% 10%;
   --sidebar-foreground: var(--color-slate-100);
-  --sidebar-accent: var(--color-indigo-600);
+  --sidebar-accent: var(--color-teal-500);
   --sidebar-accent-foreground: 0 0% 100%;
-  --sidebar-border: 222 30% 18%;
+  --sidebar-border: 176 61% 19%;
 
   --success: var(--color-green-600);
   --info: var(--color-blue-600);
-  --warning: var(--color-amber-500);
+  --warning: var(--color-amber-600);
   --danger: var(--color-red-600);
 }
 
@@ -74,6 +93,10 @@
   --color-muted-foreground: hsl(var(--muted-foreground));
   --color-primary: hsl(var(--primary));
   --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
   --color-sidebar: hsl(var(--sidebar));
   --color-sidebar-foreground: hsl(var(--sidebar-foreground));
   --color-sidebar-accent: hsl(var(--sidebar-accent));
@@ -100,7 +123,10 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: "Vazirmatn", Tahoma, "Segoe UI", system-ui, sans-serif;
+    /* Weight hierarchy convention used across the app: 700 (font-bold) for
+       page titles, 600 (font-semibold, CardTitle default) for card/section
+       titles, 500 (font-medium) for labels/emphasis, 400 (default) for body. */
+    font-family: "Vazirmatn Variable", Tahoma, "Segoe UI", system-ui, sans-serif;
     min-height: 100svh;
   }
 }

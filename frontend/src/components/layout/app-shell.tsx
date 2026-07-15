@@ -31,9 +31,13 @@ export function AppShell() {
   return (
     <div className="flex min-h-svh flex-col lg:flex-row">
       {/* Desktop sidebar */}
-      <aside className="hidden w-64 shrink-0 flex-col border-e border-sidebar-border bg-sidebar py-4 lg:flex">
-        <div className="px-4 pb-4 text-xl font-bold text-sidebar-foreground">WorkPilot</div>
-        <div className="flex-1 overflow-y-auto">
+      <aside className="relative hidden w-64 shrink-0 flex-col overflow-hidden border-e border-sidebar-border bg-sidebar py-4 lg:flex">
+        <div
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_hsl(var(--color-teal-500)/0.35),_transparent_60%)]"
+          aria-hidden="true"
+        />
+        <div className="relative px-4 pb-4 text-xl font-bold text-sidebar-foreground">WorkPilot</div>
+        <div className="relative flex-1 overflow-y-auto">
           <SidebarNav />
         </div>
       </aside>

@@ -1,10 +1,18 @@
 import { useQuery } from "@tanstack/react-query"
-import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
-import { CheckCircle2, ClipboardList, Clock, FolderKanban } from "lucide-react"
+import { Bar, BarChart, CartesianGrid, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
+import { CheckCircle2, ClipboardList, Clock, FolderKanban, Inbox } from "lucide-react"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { getDashboardSummary } from "@/features/dashboard/api"
 import type { StatusCount } from "@/features/dashboard/api"
+
+const TEAM_MEMBER_COLORS = [
+  "var(--color-primary)",
+  "var(--color-secondary)",
+  "var(--color-info)",
+  "var(--color-warning)",
+  "var(--color-success)",
+]
 
 const STATUS_LABEL: Record<string, string> = {
   todo: "برای انجام",
@@ -27,19 +35,28 @@ const WORKLOG_STATUS_LABEL: Record<string, string> = {
   rejected: "ردشده",
 }
 
+const STAT_TONE_CLASS: Record<string, string> = {
+  primary: "bg-primary/10 text-primary",
+  secondary: "bg-secondary/10 text-secondary",
+  info: "bg-info/10 text-info",
+  success: "bg-success/10 text-success",
+}
+
 function StatCard({
   icon: Icon,
   label,
   value,
+  tone,
 }: {
   icon: typeof FolderKanban
   label: string
   value: string | number
+  tone: "primary" | "secondary" | "info" | "success"
 }) {
   return (
     <Card>
       <CardContent className="flex items-center gap-3 pt-6">
-        <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+        <div className={`flex size-11 shrink-0 items-center justify-center rounded-full ${STAT_TONE_CLASS[tone]}`}>
           <Icon className="size-5" />
         </div>
         <div>
@@ -51,12 +68,23 @@ function StatCard({
   )
 }
 
+function ChartEmptyState({ message }: { message: string }) {
+  return (
+    <div className="flex h-[220px] flex-col items-center justify-center gap-2 text-muted-foreground">
+      <Inbox className="size-8" />
+      <p className="text-sm">{message}</p>
+    </div>
+  )
+}
+
 function taskStatusChartData(tasksByStatus: StatusCount[]) {
-  return tasksByStatus.map((s) => ({
-    name: STATUS_LABEL[s.status] ?? s.status,
-    value: s.count,
-    color: STATUS_COLOR[s.status] ?? "var(--color-muted-foreground)",
-  }))
+  return tasksByStatus
+    .map((s) => ({
+      name: STATUS_LABEL[s.status] ?? s.status,
+      value: s.count,
+      color: STATUS_COLOR[s.status] ?? "var(--color-muted-foreground)",
+    }))
+    .sort((a, b) => b.value - a.value)
 }
 
 export function DashboardPage() {
@@ -80,10 +108,10 @@ export function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={FolderKanban} label="پروژه‌های فعال" value={data.project_count} />
-        <StatCard icon={ClipboardList} label="کل وظایف" value={data.task_count} />
-        <StatCard icon={Clock} label="ساعات کاری تأییدشده" value={data.total_approved_hours} />
-        <StatCard icon={CheckCircle2} label="وظایف انجام‌شده" value={doneCount} />
+        <StatCard icon={FolderKanban} label="پروژه‌های فعال" value={data.project_count} tone="primary" />
+        <StatCard icon={ClipboardList} label="کل وظایف" value={data.task_count} tone="secondary" />
+        <StatCard icon={Clock} label="ساعات کاری تأییدشده" value={data.total_approved_hours} tone="info" />
+        <StatCard icon={CheckCircle2} label="وظایف انجام‌شده" value={doneCount} tone="success" />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -93,17 +121,21 @@ export function DashboardPage() {
           </CardHeader>
           <CardContent>
             {chartData.length === 0 ? (
-              <p className="text-muted-foreground">هنوز وظیفه‌ای ثبت نشده است.</p>
+              <ChartEmptyState message="هنوز وظیفه‌ای ثبت نشده است." />
             ) : (
               <ResponsiveContainer width="100%" height={220}>
-                <PieChart>
-                  <Pie data={chartData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={80}>
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                  <Tooltip />
+                  <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                    <LabelList dataKey="value" position="top" style={{ fontSize: 12 }} />
                     {chartData.map((entry) => (
                       <Cell key={entry.name} fill={entry.color} />
                     ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
+                  </Bar>
+                </BarChart>
               </ResponsiveContainer>
             )}
           </CardContent>
@@ -115,15 +147,20 @@ export function DashboardPage() {
           </CardHeader>
           <CardContent>
             {data.team_hours.length === 0 ? (
-              <p className="text-muted-foreground">هنوز گزارش کاری تأییدشده‌ای وجود ندارد.</p>
+              <ChartEmptyState message="هنوز گزارش کاری تأییدشده‌ای وجود ندارد." />
             ) : (
               <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={data.team_hours}>
+                <BarChart data={[...data.team_hours].sort((a, b) => b.approved_hours - a.approved_hours)}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="full_name" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip />
-                  <Bar dataKey="approved_hours" fill="var(--color-primary)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="approved_hours" radius={[4, 4, 0, 0]}>
+                    <LabelList dataKey="approved_hours" position="top" style={{ fontSize: 12 }} />
+                    {data.team_hours.map((entry, index) => (
+                      <Cell key={entry.user_id} fill={TEAM_MEMBER_COLORS[index % TEAM_MEMBER_COLORS.length]} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             )}
