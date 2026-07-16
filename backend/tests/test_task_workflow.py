@@ -97,6 +97,57 @@ def test_personal_task_has_no_approval_workflow(client, signup_org_admin):
     assert resp.status_code == 400
 
 
+def test_only_the_assignee_can_change_status_not_even_the_manager(client, signup_org_admin, create_org_user):
+    admin_token, _ = signup_org_admin()
+    pm_token, _ = create_org_user(admin_token, "project_manager", "pm")
+    emp_token, emp = create_org_user(admin_token, "employee", "emp")
+    _, task_id = _setup_task_for_employee(client, pm_token, emp)
+
+    # the project_manager can manage everything else about the task...
+    resp = client.patch(f"/api/v1/tasks/{task_id}", json={"priority": "high"}, headers=auth_headers(pm_token))
+    assert resp.status_code == 200
+
+    # ...but not its status, even though they can otherwise manage the project
+    resp = client.patch(f"/api/v1/tasks/{task_id}", json={"status": "in_progress"}, headers=auth_headers(pm_token))
+    assert resp.status_code == 403
+
+    # the assignee themself still can
+    resp = client.patch(f"/api/v1/tasks/{task_id}", json={"status": "in_progress"}, headers=auth_headers(emp_token))
+    assert resp.status_code == 200
+
+
+def test_org_admin_completing_own_task_is_auto_approved(client, signup_org_admin, create_org_user):
+    admin_token, admin = signup_org_admin()
+    pm_token, _ = create_org_user(admin_token, "project_manager", "pm")
+    project_id = client.post("/api/v1/projects", json={"name": "Project"}, headers=auth_headers(pm_token)).json()["id"]
+    client.post(f"/api/v1/projects/{project_id}/members", json={"user_id": admin["id"]}, headers=auth_headers(pm_token))
+    task_id = client.post(
+        "/api/v1/tasks",
+        json={"project_id": project_id, "title": "Task", "assignee_id": admin["id"]},
+        headers=auth_headers(pm_token),
+    ).json()["id"]
+
+    resp = client.patch(f"/api/v1/tasks/{task_id}", json={"status": "completed"}, headers=auth_headers(admin_token))
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "completed"
+    assert resp.json()["approval_status"] == "approved"
+
+
+def test_task_start_date_and_creator_name(client, signup_org_admin):
+    admin_token, admin = signup_org_admin()
+    project_id = client.post("/api/v1/projects", json={"name": "Project"}, headers=auth_headers(admin_token)).json()["id"]
+    resp = client.post(
+        "/api/v1/tasks",
+        json={"project_id": project_id, "title": "Task", "start_date": "2026-07-01", "deadline": "2026-08-01"},
+        headers=auth_headers(admin_token),
+    )
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["start_date"] == "2026-07-01"
+    assert body["created_by_id"] == admin["id"]
+    assert body["created_by_full_name"] == admin["full_name"]
+
+
 def test_personal_tasks_filter(client, signup_org_admin, create_org_user):
     admin_token, admin = signup_org_admin()
     pm_token, _ = create_org_user(admin_token, "project_manager", "pm")

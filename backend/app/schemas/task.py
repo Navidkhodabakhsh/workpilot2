@@ -15,6 +15,7 @@ class TaskCreate(BaseModel):
     description: str | None = None
     assignee_id: uuid.UUID | None = None
     priority: TaskPriority = TaskPriority.medium
+    start_date: date | None = None
     deadline: date | None = None
     estimated_hours: float | None = Field(default=None, ge=0, le=9999)
 
@@ -31,6 +32,7 @@ class TaskUpdate(BaseModel):
     status: TaskStatus | None = None
     progress_percent: int | None = Field(default=None, ge=0, le=100)
     estimated_hours: float | None = Field(default=None, ge=0, le=9999)
+    start_date: date | None = None
     deadline: date | None = None
 
 
@@ -45,6 +47,7 @@ class TaskOut(BaseModel):
     parent_task_id: uuid.UUID | None
     assignee_id: uuid.UUID | None
     created_by_id: uuid.UUID
+    created_by_full_name: str | None = None
     title: str
     description: str | None
     priority: TaskPriority
@@ -53,6 +56,7 @@ class TaskOut(BaseModel):
     progress_percent: int
     estimated_hours: float | None
     actual_hours: float = 0
+    start_date: date | None
     deadline: date | None
     created_at: datetime
 

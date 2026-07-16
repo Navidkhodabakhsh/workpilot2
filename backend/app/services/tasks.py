@@ -27,9 +27,12 @@ def _can_manage_project_tasks(db: Session, org_id: uuid.UUID, current_user: User
     assert_can_manage_project(db, project, current_user)
 
 
-def _attach_actual_hours(db: Session, org_id: uuid.UUID, tasks: list[Task]) -> list[Task]:
-    """actual_hours is never stored -- it's the sum of approved WorkLog
-    minutes for each task, same aggregation style as dashboard.py/reports.py."""
+def _attach_computed_fields(db: Session, org_id: uuid.UUID, tasks: list[Task]) -> list[Task]:
+    """Attaches fields that are never stored on the row itself, as plain
+    instance attributes picked up by TaskOut's from_attributes (same pattern
+    as UserOut.has_password): actual_hours (summed from approved WorkLog
+    minutes) and created_by_full_name (batch-looked-up so the UI can show
+    who defined each task without a separate users round-trip)."""
     if not tasks:
         return tasks
     task_ids = [t.id for t in tasks]
@@ -44,8 +47,13 @@ def _attach_actual_hours(db: Session, org_id: uuid.UUID, tasks: list[Task]) -> l
         .all()
     )
     minutes_by_task = dict(rows)
+
+    creator_ids = {t.created_by_id for t in tasks}
+    name_by_creator = dict(db.query(User.id, User.full_name).filter(User.id.in_(creator_ids)).all())
+
     for task in tasks:
         task.actual_hours = round((minutes_by_task.get(task.id) or 0) / 60, 2)
+        task.created_by_full_name = name_by_creator.get(task.created_by_id)
     return tasks
 
 
@@ -79,6 +87,7 @@ def create_task(db: Session, org_id: uuid.UUID, current_user: User, data: TaskCr
         title=data.title,
         description=data.description,
         priority=data.priority,
+        start_date=data.start_date,
         deadline=data.deadline,
         estimated_hours=data.estimated_hours,
     )
@@ -98,7 +107,7 @@ def create_task(db: Session, org_id: uuid.UUID, current_user: User, data: TaskCr
 
     db.commit()
     db.refresh(task)
-    return _attach_actual_hours(db, org_id, [task])[0]
+    return _attach_computed_fields(db, org_id, [task])[0]
 
 
 def list_tasks(
@@ -151,7 +160,7 @@ def list_tasks(
         )
 
     tasks = query.all()
-    return _attach_actual_hours(db, org_id, tasks)
+    return _attach_computed_fields(db, org_id, tasks)
 
 
 def get_task(db: Session, org_id: uuid.UUID, current_user: User, task_id: uuid.UUID) -> Task:
@@ -166,7 +175,7 @@ def get_task(db: Session, org_id: uuid.UUID, current_user: User, task_id: uuid.U
         # formal project membership (see list_tasks for the matching rule).
         project = get_project(db, org_id, current_user, task.project_id)
         assert_can_view_project(db, project, current_user)
-    return _attach_actual_hours(db, org_id, [task])[0]
+    return _attach_computed_fields(db, org_id, [task])[0]
 
 
 # Fields an `employee` is allowed to change on a task assigned to them.
@@ -178,6 +187,13 @@ _ACTIVITY_TRACKED_FIELDS = {"status", "assignee_id", "priority"}
 def update_task(db: Session, org_id: uuid.UUID, current_user: User, task_id: uuid.UUID, data: TaskUpdate) -> Task:
     task = get_task(db, org_id, current_user, task_id)
     changes = data.model_dump(exclude_unset=True)
+
+    # Changing status is reserved for the task's own assignee, full stop --
+    # not even the org_admin/project_manager who can otherwise manage every
+    # other field on the task. This is stricter than (and checked ahead of)
+    # the role-based rules below, which still govern every other field.
+    if "status" in changes and task.assignee_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only the task's assignee can change its status")
 
     if current_user.role == UserRole.employee:
         if task.assignee_id != current_user.id:
@@ -214,16 +230,22 @@ def update_task(db: Session, org_id: uuid.UUID, current_user: User, task_id: uui
     # moving away from `completed` clears any prior approval decision so a
     # stale "approved"/"rejected" badge can't linger on a re-opened task.
     # Guarded on an actual transition so re-sending the same status doesn't
-    # wipe out an already-approved/rejected decision.
+    # wipe out an already-approved/rejected decision. Exception: the
+    # org_admin completing a task assigned to themself skips review
+    # entirely (only the assignee can reach this branch at all, per the
+    # status-change check above, so this is necessarily their own task).
     if status_changed:
         if changes["status"] == TaskStatus.completed:
-            task.approval_status = ApprovalStatus.pending
+            if current_user.role == UserRole.org_admin:
+                task.approval_status = ApprovalStatus.approved
+            else:
+                task.approval_status = ApprovalStatus.pending
         else:
             task.approval_status = None
 
     db.commit()
     db.refresh(task)
-    return _attach_actual_hours(db, org_id, [task])[0]
+    return _attach_computed_fields(db, org_id, [task])[0]
 
 
 def _assert_can_approve(db: Session, org_id: uuid.UUID, current_user: User, task: Task) -> None:
@@ -256,7 +278,7 @@ def approve_task(db: Session, org_id: uuid.UUID, current_user: User, task_id: uu
 
     db.commit()
     db.refresh(task)
-    return _attach_actual_hours(db, org_id, [task])[0]
+    return _attach_computed_fields(db, org_id, [task])[0]
 
 
 def reject_task(db: Session, org_id: uuid.UUID, current_user: User, task_id: uuid.UUID, review_comment: str) -> Task:
@@ -283,7 +305,7 @@ def reject_task(db: Session, org_id: uuid.UUID, current_user: User, task_id: uui
 
     db.commit()
     db.refresh(task)
-    return _attach_actual_hours(db, org_id, [task])[0]
+    return _attach_computed_fields(db, org_id, [task])[0]
 
 
 def delete_task(db: Session, org_id: uuid.UUID, current_user: User, task_id: uuid.UUID) -> None:

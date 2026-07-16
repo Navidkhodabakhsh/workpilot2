@@ -43,6 +43,7 @@ class Task(UUIDPKMixin, TimestampMixin, Base):
     approval_status: Mapped[ApprovalStatus | None] = mapped_column(Enum(ApprovalStatus), nullable=True)
     progress_percent: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     estimated_hours: Mapped[float | None] = mapped_column(Numeric(6, 2), nullable=True)
+    start_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     deadline: Mapped[date | None] = mapped_column(Date, nullable=True)
 
     project: Mapped["Project"] = relationship(back_populates="tasks")
