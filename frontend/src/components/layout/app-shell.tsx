@@ -4,6 +4,7 @@ import { LogOut, Menu, PanelLeftClose, PanelLeftOpen, X } from "lucide-react"
 
 import { SidebarNav } from "@/components/layout/sidebar-nav"
 import { useSidebarStore } from "@/components/layout/sidebar-store"
+import { AccountMenu } from "@/components/layout/account-menu"
 import { LogoMark } from "@/components/logo"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -21,7 +22,6 @@ export function AppShell() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const collapsed = useSidebarStore((s) => s.collapsed)
   const toggleCollapsed = useSidebarStore((s) => s.toggle)
-  const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
   const navigate = useNavigate()
 
@@ -44,7 +44,7 @@ export function AppShell() {
   }
 
   return (
-    <div className="flex min-h-svh flex-col lg:flex-row">
+    <div className="flex h-svh flex-col overflow-hidden lg:flex-row">
       {/* Desktop sidebar */}
       <aside
         className={cn(
@@ -169,9 +169,9 @@ export function AppShell() {
         </div>
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* Topbar */}
-        <header className="flex h-16 items-center gap-3 border-b border-border bg-card px-4">
+        <header className="flex h-16 shrink-0 items-center gap-3 border-b border-border bg-card px-4">
           <Button
             variant="ghost"
             size="icon"
@@ -186,17 +186,7 @@ export function AppShell() {
 
           <div className="flex shrink-0 items-center justify-end gap-3">
             <NotificationBell />
-            {user && (
-              <div className="hidden items-center gap-2 sm:flex">
-                <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
-                  {user.full_name.trim().charAt(0)}
-                </div>
-                <div className="text-end">
-                  <div className="text-sm font-medium">{user.full_name}</div>
-                  <div className="text-xs text-muted-foreground">{user.role}</div>
-                </div>
-              </div>
-            )}
+            <AccountMenu onLogout={handleLogout} />
           </div>
         </header>
 

@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
+import { Link } from "react-router-dom"
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
-import { CheckCircle2, ClipboardList, Clock, FolderKanban } from "lucide-react"
+import { CheckCircle2, ClipboardList, Clock, FolderKanban, Users } from "lucide-react"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
@@ -8,6 +9,8 @@ import { getDashboardSummary } from "@/features/dashboard/api"
 import type { StatusCount } from "@/features/dashboard/api"
 import { listProjects } from "@/features/projects/api"
 import { listAllTasks } from "@/features/tasks/api"
+import { listOrgUsers } from "@/features/users/api"
+import { useAuthStore } from "@/features/auth/auth-store"
 import type { Project, Task } from "@/lib/types"
 
 const TEAM_MEMBER_COLORS = [
@@ -49,25 +52,34 @@ function StatCard({
   label,
   value,
   tone,
+  to,
 }: {
   icon: typeof FolderKanban
   label: string
   value: string | number
   tone: "primary" | "secondary" | "info" | "success"
+  to?: string
 }) {
-  return (
-    <Card>
-      <CardContent className="flex items-center gap-3 pt-6">
-        <div className={`flex size-11 shrink-0 items-center justify-center rounded-full ${STAT_TONE_CLASS[tone]}`}>
-          <Icon className="size-5" />
-        </div>
-        <div>
-          <p className="text-2xl font-bold">{value}</p>
-          <p className="text-sm text-muted-foreground">{label}</p>
-        </div>
-      </CardContent>
-    </Card>
+  const content = (
+    <CardContent className="flex items-center gap-3 pt-6">
+      <div className={`flex size-11 shrink-0 items-center justify-center rounded-full ${STAT_TONE_CLASS[tone]}`}>
+        <Icon className="size-5" />
+      </div>
+      <div>
+        <p className="text-2xl font-bold">{value}</p>
+        <p className="text-sm text-muted-foreground">{label}</p>
+      </div>
+    </CardContent>
   )
+
+  if (to) {
+    return (
+      <Link to={to}>
+        <Card className="transition-shadow hover:shadow-md">{content}</Card>
+      </Link>
+    )
+  }
+  return <Card>{content}</Card>
 }
 
 function taskStatusChartData(tasksByStatus: StatusCount[]) {
@@ -111,9 +123,11 @@ function SectionLabel({ children }: { children: string }) {
 }
 
 export function DashboardPage() {
+  const isOrgAdmin = useAuthStore((s) => s.user?.role === "org_admin")
   const { data, isLoading, isError } = useQuery({ queryKey: ["dashboard-summary"], queryFn: getDashboardSummary })
   const { data: projects } = useQuery({ queryKey: ["projects"], queryFn: listProjects })
   const { data: allTasks } = useQuery({ queryKey: ["tasks", "all"], queryFn: () => listAllTasks() })
+  const { data: orgUsers } = useQuery({ queryKey: ["org-users"], queryFn: listOrgUsers, enabled: isOrgAdmin })
 
   if (isLoading) {
     return <p className="text-muted-foreground">در حال بارگذاری داشبورد...</p>
@@ -136,10 +150,14 @@ export function DashboardPage() {
       <div className="flex flex-col gap-4">
         <SectionLabel>آمار کلی</SectionLabel>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard icon={FolderKanban} label="پروژه‌های فعال" value={data.project_count} tone="primary" />
-          <StatCard icon={ClipboardList} label="کل وظایف" value={data.task_count} tone="secondary" />
-          <StatCard icon={Clock} label="ساعات کاری تأییدشده" value={data.total_approved_hours} tone="info" />
-          <StatCard icon={CheckCircle2} label="وظایف انجام‌شده" value={doneCount} tone="success" />
+          <StatCard icon={FolderKanban} label="پروژه‌های فعال" value={data.project_count} tone="primary" to="/projects" />
+          <StatCard icon={ClipboardList} label="کل وظایف" value={data.task_count} tone="secondary" to="/tasks" />
+          <StatCard icon={Clock} label="ساعات کاری تأییدشده" value={data.total_approved_hours} tone="info" to="/reports" />
+          {isOrgAdmin ? (
+            <StatCard icon={Users} label="کاربران سازمان" value={orgUsers?.length ?? "…"} tone="success" to="/users" />
+          ) : (
+            <StatCard icon={CheckCircle2} label="وظایف انجام‌شده" value={doneCount} tone="success" to="/tasks" />
+          )}
         </div>
       </div>
 

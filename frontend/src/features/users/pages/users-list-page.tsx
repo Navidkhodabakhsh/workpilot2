@@ -22,13 +22,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { createOrgUser, listOrgUsers, updateOrgUser } from "@/features/users/api"
 import { useAuthStore } from "@/features/auth/auth-store"
 import { PASSWORD_HINT, PHONE_HINT, passwordSchema, phoneSchema } from "@/features/auth/validation"
+import { ROLE_LABEL } from "@/lib/role-labels"
 import type { OrgUser, UserRole } from "@/lib/types"
 
-const ROLE_LABEL: Record<string, string> = {
-  org_admin: "مدیر سازمان",
-  project_manager: "مدیر پروژه",
-  employee: "کارمند",
-}
 const ROLE_VARIANT: Record<string, "primary" | "info" | "default"> = {
   org_admin: "primary",
   project_manager: "info",
