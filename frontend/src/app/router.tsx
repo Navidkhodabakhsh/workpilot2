@@ -2,6 +2,7 @@ import { createBrowserRouter } from "react-router-dom"
 
 import { AppShell } from "@/components/layout/app-shell"
 import { ProtectedRoute } from "@/app/protected-route"
+import { RoleProtectedRoute } from "@/app/role-protected-route"
 import { LoginPage } from "@/features/auth/pages/login-page"
 import { SignupPage } from "@/features/auth/pages/signup-page"
 import { ForgotPasswordPage } from "@/features/auth/pages/forgot-password-page"
@@ -34,9 +35,15 @@ export const router = createBrowserRouter([
           { path: "/tasks", element: <TasksListPage /> },
           { path: "/reports", element: <ReportsPage /> },
           { path: "/calendar", element: <CalendarPage /> },
-          { path: "/users", element: <UsersListPage /> },
+          {
+            element: <RoleProtectedRoute allowedRoles={["org_admin"]} />,
+            children: [{ path: "/users", element: <UsersListPage /> }],
+          },
           { path: "/workflow", element: <WorkflowPage /> },
-          { path: "/analytics", element: <AnalyticsPage /> },
+          {
+            element: <RoleProtectedRoute allowedRoles={["org_admin", "project_manager"]} />,
+            children: [{ path: "/analytics", element: <AnalyticsPage /> }],
+          },
           { path: "/messages", element: <MessagesPage /> },
           { path: "/files", element: <FilesListPage /> },
           { path: "/settings", element: <SettingsPage /> },

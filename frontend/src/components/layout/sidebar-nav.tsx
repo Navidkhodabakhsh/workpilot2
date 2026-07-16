@@ -15,12 +15,16 @@ import { NavLink } from "react-router-dom"
 
 import { cn } from "@/lib/utils"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { useAuthStore } from "@/features/auth/auth-store"
+import type { UserRole } from "@/lib/types"
 
 type NavItem = {
   to: string
   label: string
   icon: typeof LayoutDashboard
   end?: boolean
+  // Omit to show the item to every role.
+  allowedRoles?: UserRole[]
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -29,9 +33,9 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/tasks", label: "کارها", icon: CheckSquare },
   { to: "/reports", label: "گزارش‌ها", icon: BarChart3 },
   { to: "/calendar", label: "تقویم", icon: Calendar },
-  { to: "/users", label: "کاربران", icon: Users },
+  { to: "/users", label: "کاربران", icon: Users, allowedRoles: ["org_admin"] },
   { to: "/workflow", label: "گردش کار", icon: Workflow },
-  { to: "/analytics", label: "تحلیل‌ها", icon: LineChart },
+  { to: "/analytics", label: "تحلیل‌ها", icon: LineChart, allowedRoles: ["org_admin", "project_manager"] },
   { to: "/messages", label: "پیام‌ها", icon: MessageSquare },
   { to: "/files", label: "فایل‌ها", icon: Files },
   { to: "/settings", label: "تنظیمات", icon: Settings },
@@ -44,9 +48,12 @@ export function SidebarNav({
   onNavigate?: () => void
   collapsed?: boolean
 }) {
+  const role = useAuthStore((s) => s.user?.role)
+  const items = NAV_ITEMS.filter((item) => !item.allowedRoles || (role && item.allowedRoles.includes(role)))
+
   return (
     <nav className="flex flex-col gap-1 px-3">
-      {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => {
+      {items.map(({ to, label, icon: Icon, end }) => {
         const link = (
           // `className` must be a plain string, not react-router's function
           // form: `TooltipTrigger asChild` merges child props through Radix
