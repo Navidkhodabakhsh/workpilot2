@@ -6,6 +6,11 @@ export async function listTasks(projectId: string) {
   return data
 }
 
+export async function getTask(taskId: string) {
+  const { data } = await apiClient.get<Task>(`/api/v1/tasks/${taskId}`)
+  return data
+}
+
 export type TaskFilters = {
   status?: TaskStatus
   approval_status?: ApprovalStatus

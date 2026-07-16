@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
+import { useSearchParams } from "react-router-dom"
 import { ChevronDown, ChevronLeft, MessageSquare, Plus, Search } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
@@ -20,7 +21,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { createTask, listAllTasks } from "@/features/tasks/api"
+import { createTask, getTask, listAllTasks } from "@/features/tasks/api"
 import type { TaskFilters } from "@/features/tasks/api"
 import {
   APPROVAL_LABEL,
@@ -191,6 +192,13 @@ function visibleRows(rows: TaskTreeNode[], collapsedIds: Set<string>): TaskTreeN
 
 export function TasksListPage() {
   const currentUserId = useAuthStore((s) => s.user?.id)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const linkedTaskId = searchParams.get("task")
+  const { data: linkedTask } = useQuery({
+    queryKey: ["task", linkedTaskId],
+    queryFn: () => getTask(linkedTaskId!),
+    enabled: !!linkedTaskId,
+  })
   const [tab, setTab] = useState<TabKey>("assigned")
   const [search, setSearch] = useState("")
   const [projectFilter, setProjectFilter] = useState("")
@@ -277,6 +285,18 @@ export function TasksListPage() {
 
   return (
     <div className="flex flex-col gap-4">
+      {linkedTask && (
+        <TaskDetailDialog
+          task={linkedTask}
+          open
+          onOpenChange={(next) => {
+            if (!next) {
+              searchParams.delete("task")
+              setSearchParams(searchParams, { replace: true })
+            }
+          }}
+        />
+      )}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">تسک‌ها</h1>

@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useNavigate } from "react-router-dom"
 import { Bell } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { getUnreadCount, listNotifications, markAllRead, markRead } from "@/features/notifications/api"
-import { notificationMessage } from "@/features/notifications/message"
+import { notificationMessage, notificationTaskId } from "@/features/notifications/message"
 
 export function NotificationBell() {
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
 
   const { data: unreadCount } = useQuery({
     queryKey: ["notifications", "unread-count"],
@@ -69,7 +71,14 @@ export function NotificationBell() {
               notifications.map((n) => (
                 <button
                   key={n.id}
-                  onClick={() => !n.is_read && markReadMutation.mutate(n.id)}
+                  onClick={() => {
+                    if (!n.is_read) markReadMutation.mutate(n.id)
+                    const taskId = notificationTaskId(n)
+                    if (taskId) {
+                      setOpen(false)
+                      navigate(`/tasks?task=${taskId}`)
+                    }
+                  }}
                   className={`block w-full border-b border-border p-3 text-start text-sm last:border-0 hover:bg-muted ${
                     n.is_read ? "text-muted-foreground" : "font-medium"
                   }`}
