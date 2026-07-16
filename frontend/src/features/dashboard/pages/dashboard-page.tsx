@@ -7,11 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
 import { getDashboardSummary } from "@/features/dashboard/api"
 import type { StatusCount } from "@/features/dashboard/api"
-import { listProjects } from "@/features/projects/api"
-import { listAllTasks } from "@/features/tasks/api"
 import { listOrgUsers } from "@/features/users/api"
 import { useAuthStore } from "@/features/auth/auth-store"
-import type { Project, Task } from "@/lib/types"
 
 const TEAM_MEMBER_COLORS = [
   "var(--color-primary)",
@@ -92,32 +89,6 @@ function taskStatusChartData(tasksByStatus: StatusCount[]) {
     .sort((a, b) => b.value - a.value)
 }
 
-function progressColor(percent: number) {
-  if (percent >= 75) return "var(--color-success)"
-  if (percent >= 40) return "var(--color-info)"
-  return "var(--color-warning)"
-}
-
-function projectProgressData(tasks: Task[], projects: Project[]) {
-  const byProject = new Map<string, { total: number; done: number }>()
-  for (const task of tasks) {
-    if (task.project_id === null) continue // personal tasks have no project to attribute progress to
-    const entry = byProject.get(task.project_id) ?? { total: 0, done: 0 }
-    entry.total += 1
-    if (task.status === "completed") entry.done += 1
-    byProject.set(task.project_id, entry)
-  }
-  return projects
-    .filter((p) => byProject.has(p.id))
-    .map((p) => {
-      const { total, done } = byProject.get(p.id)!
-      const value = Math.round((done / total) * 100)
-      return { name: p.name, value, color: progressColor(value) }
-    })
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 8)
-}
-
 function SectionLabel({ children }: { children: string }) {
   return <h2 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{children}</h2>
 }
@@ -125,8 +96,6 @@ function SectionLabel({ children }: { children: string }) {
 export function DashboardPage() {
   const isOrgAdmin = useAuthStore((s) => s.user?.role === "org_admin")
   const { data, isLoading, isError } = useQuery({ queryKey: ["dashboard-summary"], queryFn: getDashboardSummary })
-  const { data: projects } = useQuery({ queryKey: ["projects"], queryFn: listProjects })
-  const { data: allTasks } = useQuery({ queryKey: ["tasks", "all"], queryFn: () => listAllTasks() })
   const { data: orgUsers } = useQuery({ queryKey: ["org-users"], queryFn: listOrgUsers, enabled: isOrgAdmin })
 
   if (isLoading) {
@@ -138,7 +107,6 @@ export function DashboardPage() {
 
   const doneCount = data.tasks_by_status.find((s) => s.status === "completed")?.count ?? 0
   const chartData = taskStatusChartData(data.tasks_by_status)
-  const progressData = projects && allTasks ? projectProgressData(allTasks, projects) : []
 
   return (
     <div className="flex flex-col gap-6">
@@ -166,7 +134,7 @@ export function DashboardPage() {
       <div className="flex flex-col gap-4">
         <SectionLabel>نمودارها</SectionLabel>
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4">
           <Card>
             <CardHeader>
               <CardTitle className="text-base">وضعیت وظایف</CardTitle>
@@ -184,37 +152,6 @@ export function DashboardPage() {
                     <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                       <LabelList dataKey="value" position="top" style={{ fontSize: 12 }} />
                       {chartData.map((entry) => (
-                        <Cell key={entry.name} fill={entry.color} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">درصد پیشرفت پروژه‌ها</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {progressData.length === 0 ? (
-                <EmptyState className="h-[220px]" message="هنوز وظیفه‌ای برای پروژه‌ای ثبت نشده است." />
-              ) : (
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={progressData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                    <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 12 }} />
-                    <Tooltip formatter={(value) => [`${value}%`, "پیشرفت"]} />
-                    <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                      <LabelList
-                        dataKey="value"
-                        position="top"
-                        formatter={(v) => `${v}%`}
-                        style={{ fontSize: 12 }}
-                      />
-                      {progressData.map((entry) => (
                         <Cell key={entry.name} fill={entry.color} />
                       ))}
                     </Bar>
