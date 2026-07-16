@@ -12,6 +12,7 @@ from app.api.routers import (
     health,
     notifications,
     organizations,
+    payments,
     projects,
     reports,
     search,
@@ -48,3 +49,4 @@ app.include_router(comments.router, prefix=settings.api_v1_prefix)
 app.include_router(attachments.task_attachments_router, prefix=settings.api_v1_prefix)
 app.include_router(attachments.attachments_router, prefix=settings.api_v1_prefix)
 app.include_router(calendar_events.router, prefix=settings.api_v1_prefix)
+app.include_router(payments.router, prefix=settings.api_v1_prefix)

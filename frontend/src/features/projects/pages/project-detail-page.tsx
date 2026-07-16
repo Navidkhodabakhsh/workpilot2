@@ -32,6 +32,7 @@ import { listOrgUsers } from "@/features/users/api"
 import { TaskCard } from "@/features/tasks/components/task-card"
 import { PendingApprovals } from "@/features/worklogs/components/pending-approvals"
 import { ExportDialog } from "@/features/exports/components/export-dialog"
+import { PaymentsSection } from "@/features/payments/components/payments-section"
 import { useAuthStore } from "@/features/auth/auth-store"
 
 const schema = z.object({
@@ -98,7 +99,13 @@ export function ProjectDetailPage() {
 
   const updateMutation = useMutation({
     mutationFn: (values: EditFormValues) =>
-      updateProject(projectId!, { ...values, manager_id: values.manager_id || undefined }),
+      updateProject(projectId!, {
+        ...values,
+        cooperation_start_date: values.cooperation_start_date || undefined,
+        start_date: values.start_date || undefined,
+        end_date: values.end_date || undefined,
+        manager_id: values.manager_id || undefined,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["project", projectId] })
       queryClient.invalidateQueries({ queryKey: ["project-members", projectId] })
@@ -314,6 +321,8 @@ export function ProjectDetailPage() {
           ))}
         </div>
       </div>
+
+      {isOrgAdmin && <PaymentsSection projectId={projectId!} />}
 
       {canManage && <PendingApprovals projectId={projectId!} tasks={tasks} users={users} />}
 

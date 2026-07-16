@@ -62,6 +62,9 @@ export function ProjectsListPage() {
     mutationFn: (values: FormValues) =>
       createProject({
         ...values,
+        cooperation_start_date: values.cooperation_start_date || undefined,
+        start_date: values.start_date || undefined,
+        end_date: values.end_date || undefined,
         manager_id: values.manager_id || undefined,
         member_ids: selectedMemberIds,
       }),
