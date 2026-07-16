@@ -25,5 +25,10 @@ class User(UUIDPKMixin, TimestampMixin, Base):
     full_name: Mapped[str] = mapped_column(String(200), nullable=False)
     role: Mapped[UserRole] = mapped_column(Enum(UserRole), nullable=False, default=UserRole.employee)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Logical grouping only (see models/department.py) -- nullable since
+    # existing users predate this field and platform_admin has none.
+    department_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("departments.id", ondelete="SET NULL"), nullable=True
+    )
 
     organization: Mapped["Organization"] = relationship(back_populates="users")

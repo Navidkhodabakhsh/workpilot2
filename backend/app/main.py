@@ -8,6 +8,7 @@ from app.api.routers import (
     calendar_events,
     comments,
     dashboard,
+    departments,
     exports,
     health,
     notifications,
@@ -50,3 +51,4 @@ app.include_router(attachments.task_attachments_router, prefix=settings.api_v1_p
 app.include_router(attachments.attachments_router, prefix=settings.api_v1_prefix)
 app.include_router(calendar_events.router, prefix=settings.api_v1_prefix)
 app.include_router(payments.router, prefix=settings.api_v1_prefix)
+app.include_router(departments.router, prefix=settings.api_v1_prefix)

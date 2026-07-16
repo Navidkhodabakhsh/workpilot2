@@ -1,3 +1,5 @@
+import uuid
+
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.models.enums import UserRole
@@ -13,6 +15,7 @@ class OrgUserCreate(BaseModel):
     phone_number: str = Field(min_length=8, max_length=32)
     password: str | None = Field(default=None, min_length=8, max_length=128)
     role: UserRole = UserRole.employee
+    department_id: uuid.UUID | None = None
 
     @field_validator("password")
     @classmethod
@@ -31,6 +34,7 @@ class UserUpdate(BaseModel):
     role: UserRole | None = None
     is_active: bool | None = None
     phone_number: str | None = Field(default=None, min_length=8, max_length=32)
+    department_id: uuid.UUID | None = None
 
     @field_validator("role")
     @classmethod

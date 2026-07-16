@@ -7,6 +7,7 @@ def test_signup_creates_org_admin(client, unique_email, unique_phone):
         "/api/v1/auth/signup",
         json={
             "organization_name": "Acme",
+            "department_name": "General",
             "full_name": "Admin User",
             "email": email,
             "phone_number": unique_phone(),
@@ -25,6 +26,7 @@ def test_duplicate_signup_email_is_conflict(client, signup_org_admin, unique_ema
         "/api/v1/auth/signup",
         json={
             "organization_name": "Org1",
+            "department_name": "General",
             "full_name": "Admin A",
             "email": email,
             "phone_number": unique_phone(),
@@ -36,6 +38,7 @@ def test_duplicate_signup_email_is_conflict(client, signup_org_admin, unique_ema
         "/api/v1/auth/signup",
         json={
             "organization_name": "Org2",
+            "department_name": "General",
             "full_name": "Admin B",
             "email": email,
             "phone_number": unique_phone(),
@@ -51,6 +54,7 @@ def test_wrong_password_is_unauthorized(client, unique_email, unique_phone):
         "/api/v1/auth/signup",
         json={
             "organization_name": "Org",
+            "department_name": "General",
             "full_name": "Admin A",
             "email": email,
             "phone_number": unique_phone(),
@@ -78,6 +82,7 @@ def test_password_without_digit_is_rejected(client, unique_email, unique_phone):
         "/api/v1/auth/signup",
         json={
             "organization_name": "Org",
+            "department_name": "General",
             "full_name": "Admin A",
             "email": unique_email(),
             "phone_number": unique_phone(),
@@ -92,6 +97,7 @@ def test_password_without_letter_is_rejected(client, unique_email, unique_phone)
         "/api/v1/auth/signup",
         json={
             "organization_name": "Org",
+            "department_name": "General",
             "full_name": "Admin A",
             "email": unique_email(),
             "phone_number": unique_phone(),
@@ -107,6 +113,7 @@ def test_refresh_flow_issues_a_new_access_token(client, unique_email, unique_pho
         "/api/v1/auth/signup",
         json={
             "organization_name": "Org",
+            "department_name": "General",
             "full_name": "Admin A",
             "email": email,
             "phone_number": unique_phone(),
@@ -140,6 +147,7 @@ def test_login_rate_limiting_blocks_after_five_attempts(client, unique_email, un
         "/api/v1/auth/signup",
         json={
             "organization_name": "Org",
+            "department_name": "General",
             "full_name": "Admin A",
             "email": email,
             "phone_number": unique_phone(),
@@ -166,6 +174,7 @@ def test_login_with_phone_number(client, unique_email):
         "/api/v1/auth/signup",
         json={
             "organization_name": "Org",
+            "department_name": "General",
             "full_name": "Admin A",
             "email": email,
             "phone_number": phone,

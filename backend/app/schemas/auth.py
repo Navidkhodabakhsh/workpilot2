@@ -8,6 +8,9 @@ from app.schemas.validators import validate_password_strength
 
 class SignupRequest(BaseModel):
     organization_name: str = Field(min_length=2, max_length=200)
+    # Required: every organization must define at least one department at
+    # creation time (see services/auth.py::signup).
+    department_name: str = Field(min_length=2, max_length=200)
     full_name: str = Field(min_length=2, max_length=200)
     email: EmailStr
     # Required: login is phone-first, so the founding admin needs one too.
@@ -42,6 +45,7 @@ class UserOut(BaseModel):
     role: UserRole
     is_active: bool
     has_password: bool
+    department_id: uuid.UUID | None
 
     model_config = {"from_attributes": True}
 

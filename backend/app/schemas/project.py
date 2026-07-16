@@ -13,6 +13,7 @@ class ProjectCreate(BaseModel):
     start_date: date | None = None
     end_date: date | None = None
     manager_id: uuid.UUID | None = None
+    department_id: uuid.UUID | None = None
     member_ids: list[uuid.UUID] = Field(default_factory=list)
 
 
@@ -24,6 +25,7 @@ class ProjectUpdate(BaseModel):
     end_date: date | None = None
     status: ProjectStatus | None = None
     manager_id: uuid.UUID | None = None
+    department_id: uuid.UUID | None = None
 
 
 class ProjectOut(BaseModel):
@@ -37,6 +39,7 @@ class ProjectOut(BaseModel):
     status: ProjectStatus
     created_by_id: uuid.UUID
     manager_id: uuid.UUID | None
+    department_id: uuid.UUID | None
     created_at: datetime
 
     model_config = {"from_attributes": True}

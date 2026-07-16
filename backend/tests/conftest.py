@@ -108,6 +108,7 @@ def signup_org_admin(client, unique_email, unique_phone):
             "/api/v1/auth/signup",
             json={
                 "organization_name": org_name,
+                "department_name": "General",
                 "full_name": "Admin User",
                 "email": email,
                 "phone_number": unique_phone(),

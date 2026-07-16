@@ -4,10 +4,17 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.db.tenant_repository import TenantScopedRepository
+from app.models.department import Department
 from app.models.enums import UserRole
 from app.models.project import Project, ProjectMember
 from app.models.user import User
 from app.schemas.project import ProjectCreate, ProjectUpdate
+
+
+def _validate_department(db: Session, org_id: uuid.UUID, department_id: uuid.UUID) -> None:
+    department = db.query(Department).filter(Department.id == department_id, Department.organization_id == org_id).first()
+    if department is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Department not found in this organization")
 
 
 class ProjectRepository(TenantScopedRepository[Project]):
@@ -59,6 +66,8 @@ def create_project(db: Session, org_id: uuid.UUID, current_user: User, data: Pro
 
     if data.manager_id is not None:
         _validate_manager(db, org_id, data.manager_id)
+    if data.department_id is not None:
+        _validate_department(db, org_id, data.department_id)
 
     repo = ProjectRepository(db, org_id)
     project = Project(
@@ -68,6 +77,7 @@ def create_project(db: Session, org_id: uuid.UUID, current_user: User, data: Pro
         start_date=data.start_date,
         end_date=data.end_date,
         manager_id=data.manager_id,
+        department_id=data.department_id,
         created_by_id=current_user.id,
     )
     repo.add(project)
@@ -123,6 +133,8 @@ def update_project(
         _validate_manager(db, org_id, changes["manager_id"])
         if not _is_member(db, project_id, changes["manager_id"]):
             db.add(ProjectMember(project_id=project_id, user_id=changes["manager_id"]))
+    if "department_id" in changes and changes["department_id"] is not None:
+        _validate_department(db, org_id, changes["department_id"])
 
     for field, value in changes.items():
         setattr(project, field, value)

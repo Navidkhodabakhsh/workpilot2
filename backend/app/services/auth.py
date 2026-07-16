@@ -5,6 +5,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.security import create_access_token, hash_password, verify_password
+from app.models.department import Department
 from app.models.enums import OtpPurpose, UserRole
 from app.models.organization import Organization
 from app.models.user import User
@@ -40,8 +41,16 @@ def signup(db: Session, data: SignupRequest) -> User:
     db.add(organization)
     db.flush()
 
+    # Every organization must define at least one department at creation
+    # time -- this is that department (purely a logical grouping, see
+    # models/department.py).
+    department = Department(organization_id=organization.id, name=data.department_name)
+    db.add(department)
+    db.flush()
+
     user = User(
         organization_id=organization.id,
+        department_id=department.id,
         email=data.email,
         phone_number=data.phone_number,
         hashed_password=hash_password(data.password),

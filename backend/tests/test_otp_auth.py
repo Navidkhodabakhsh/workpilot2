@@ -67,6 +67,7 @@ def test_otp_login_without_new_password_works_when_password_already_set(client, 
         "/api/v1/auth/signup",
         json={
             "organization_name": "Org",
+            "department_name": "General",
             "full_name": "Admin A",
             "email": unique_email("otpexisting"),
             "phone_number": phone,
@@ -86,6 +87,7 @@ def test_wrong_otp_code_is_unauthorized(client, unique_email, unique_phone):
         "/api/v1/auth/signup",
         json={
             "organization_name": "Org",
+            "department_name": "General",
             "full_name": "Admin A",
             "email": unique_email("otpwrong"),
             "phone_number": phone,
@@ -103,6 +105,7 @@ def test_otp_code_cannot_be_reused(client, unique_email, unique_phone):
         "/api/v1/auth/signup",
         json={
             "organization_name": "Org",
+            "department_name": "General",
             "full_name": "Admin A",
             "email": unique_email("otpreuse"),
             "phone_number": phone,
@@ -122,6 +125,7 @@ def test_expired_otp_code_is_rejected(client, db_session, unique_email, unique_p
         "/api/v1/auth/signup",
         json={
             "organization_name": "Org",
+            "department_name": "General",
             "full_name": "Admin A",
             "email": unique_email("otpexpired"),
             "phone_number": phone,
@@ -147,6 +151,7 @@ def test_otp_verify_locks_out_after_max_attempts(client, db_session, unique_emai
         "/api/v1/auth/signup",
         json={
             "organization_name": "Org",
+            "department_name": "General",
             "full_name": "Admin A",
             "email": unique_email("otplockout"),
             "phone_number": phone,
@@ -169,6 +174,7 @@ def test_otp_request_rate_limiting_blocks_after_three_requests(client, unique_em
         "/api/v1/auth/signup",
         json={
             "organization_name": "Org",
+            "department_name": "General",
             "full_name": "Admin A",
             "email": unique_email("otprate"),
             "phone_number": phone,
@@ -190,6 +196,7 @@ def test_password_reset_flow_changes_password(client, unique_email, unique_phone
         "/api/v1/auth/signup",
         json={
             "organization_name": "Org",
+            "department_name": "General",
             "full_name": "Admin A",
             "email": unique_email("otpresetpw"),
             "phone_number": phone,
@@ -221,6 +228,7 @@ def test_password_reset_code_cannot_be_used_for_login(client, unique_email, uniq
         "/api/v1/auth/signup",
         json={
             "organization_name": "Org",
+            "department_name": "General",
             "full_name": "Admin A",
             "email": unique_email("otppurpose"),
             "phone_number": phone,

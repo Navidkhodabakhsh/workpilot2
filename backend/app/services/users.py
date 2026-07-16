@@ -4,9 +4,16 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.security import hash_password
+from app.models.department import Department
 from app.models.enums import UserRole
 from app.models.user import User
 from app.schemas.user import OrgUserCreate, UserUpdate
+
+
+def _validate_department(db: Session, org_id: uuid.UUID, department_id: uuid.UUID) -> None:
+    department = db.query(Department).filter(Department.id == department_id, Department.organization_id == org_id).first()
+    if department is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Department not found in this organization")
 
 
 def create_org_user(db: Session, org_id: uuid.UUID, current_user: User, data: OrgUserCreate) -> User:
@@ -19,11 +26,14 @@ def create_org_user(db: Session, org_id: uuid.UUID, current_user: User, data: Or
     existing_phone = db.query(User).filter(User.phone_number == data.phone_number).first()
     if existing_phone is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Phone number already registered")
+    if data.department_id is not None:
+        _validate_department(db, org_id, data.department_id)
 
     # No password means "invited by phone" -- they complete OTP verification
     # and set their own password on first login (see services/otp.py).
     user = User(
         organization_id=org_id,
+        department_id=data.department_id,
         email=data.email,
         phone_number=data.phone_number,
         hashed_password=hash_password(data.password) if data.password else None,
@@ -61,6 +71,9 @@ def update_org_user(
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Phone number already registered")
         target.phone_number = data.phone_number
 
+    if data.department_id is not None:
+        _validate_department(db, org_id, data.department_id)
+        target.department_id = data.department_id
     if data.role is not None:
         target.role = data.role
     if data.is_active is not None:
