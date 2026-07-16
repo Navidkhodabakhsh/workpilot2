@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
-import { Input } from "@/components/ui/input"
+import { JalaliDateInput } from "@/components/ui/jalali-date-input"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -92,11 +92,11 @@ export function ReportsPage() {
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="report-from">از تاریخ</Label>
-            <Input id="report-from" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+            <JalaliDateInput id="report-from" value={dateFrom} onChange={setDateFrom} />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="report-to">تا تاریخ</Label>
-            <Input id="report-to" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+            <JalaliDateInput id="report-to" value={dateTo} onChange={setDateTo} />
           </div>
         </CardContent>
       </Card>

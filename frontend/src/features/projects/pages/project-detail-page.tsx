@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { useParams } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useForm } from "react-hook-form"
+import { Controller, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { Archive, Pencil, Plus, UserPlus, X } from "lucide-react"
@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Input } from "@/components/ui/input"
+import { JalaliDateInput } from "@/components/ui/jalali-date-input"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import {
@@ -252,16 +253,30 @@ export function ProjectDetailPage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-2">
                 <Label htmlFor="edit-cooperation-start">تاریخ شروع همکاری</Label>
-                <Input id="edit-cooperation-start" type="date" {...editForm.register("cooperation_start_date")} />
+                <Controller
+                  control={editForm.control}
+                  name="cooperation_start_date"
+                  render={({ field }) => (
+                    <JalaliDateInput id="edit-cooperation-start" value={field.value ?? ""} onChange={field.onChange} />
+                  )}
+                />
               </div>
               <div className="flex flex-col gap-2">
                 <Label htmlFor="edit-start-date">تاریخ شروع پروژه</Label>
-                <Input id="edit-start-date" type="date" {...editForm.register("start_date")} />
+                <Controller
+                  control={editForm.control}
+                  name="start_date"
+                  render={({ field }) => <JalaliDateInput id="edit-start-date" value={field.value ?? ""} onChange={field.onChange} />}
+                />
               </div>
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="edit-end-date">تاریخ پایان</Label>
-              <Input id="edit-end-date" type="date" {...editForm.register("end_date")} />
+              <Controller
+                control={editForm.control}
+                name="end_date"
+                render={({ field }) => <JalaliDateInput id="edit-end-date" value={field.value ?? ""} onChange={field.onChange} />}
+              />
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="edit-status">وضعیت</Label>

@@ -2,7 +2,7 @@ import { useRef, useState } from "react"
 import { Download } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { JalaliDateInput } from "@/components/ui/jalali-date-input"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import {
@@ -130,23 +130,11 @@ export function ExportDialog({ projectId }: { projectId: string }) {
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-2">
                 <Label htmlFor="export-from">از تاریخ</Label>
-                <Input
-                  id="export-from"
-                  type="date"
-                  value={customFrom}
-                  onChange={(e) => setCustomFrom(e.target.value)}
-                  disabled={busy}
-                />
+                <JalaliDateInput id="export-from" value={customFrom} onChange={setCustomFrom} disabled={busy} />
               </div>
               <div className="flex flex-col gap-2">
                 <Label htmlFor="export-to">تا تاریخ</Label>
-                <Input
-                  id="export-to"
-                  type="date"
-                  value={customTo}
-                  onChange={(e) => setCustomTo(e.target.value)}
-                  disabled={busy}
-                />
+                <JalaliDateInput id="export-to" value={customTo} onChange={setCustomTo} disabled={busy} />
               </div>
             </div>
           )}

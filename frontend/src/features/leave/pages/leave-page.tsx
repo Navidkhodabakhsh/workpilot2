@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useForm } from "react-hook-form"
+import { Controller, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { Plane } from "lucide-react"
@@ -17,7 +17,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { EmptyState } from "@/components/ui/empty-state"
-import { Input } from "@/components/ui/input"
+import { JalaliDateInput } from "@/components/ui/jalali-date-input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { approveLeaveRequest, createLeaveRequest, listLeaveRequests, rejectLeaveRequest, type LeaveRequest } from "@/features/leave/api"
@@ -74,14 +74,22 @@ function NewLeaveRequestDialog() {
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-2">
               <Label htmlFor="start_date">از تاریخ</Label>
-              <Input id="start_date" type="date" {...form.register("start_date")} />
+              <Controller
+                control={form.control}
+                name="start_date"
+                render={({ field }) => <JalaliDateInput id="start_date" value={field.value} onChange={field.onChange} />}
+              />
               {form.formState.errors.start_date && (
                 <p className="text-sm text-danger">{form.formState.errors.start_date.message}</p>
               )}
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="end_date">تا تاریخ</Label>
-              <Input id="end_date" type="date" {...form.register("end_date")} />
+              <Controller
+                control={form.control}
+                name="end_date"
+                render={({ field }) => <JalaliDateInput id="end_date" value={field.value} onChange={field.onChange} />}
+              />
               {form.formState.errors.end_date && (
                 <p className="text-sm text-danger">{form.formState.errors.end_date.message}</p>
               )}

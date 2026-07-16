@@ -6,7 +6,7 @@ import { Archive as ArchiveIcon } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
-import { Input } from "@/components/ui/input"
+import { JalaliDateInput } from "@/components/ui/jalali-date-input"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { listProjects } from "@/features/projects/api"
@@ -87,11 +87,11 @@ export function ArchivePage() {
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="archive-date-from">از تاریخ (مهلت)</Label>
-            <Input id="archive-date-from" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+            <JalaliDateInput id="archive-date-from" value={dateFrom} onChange={setDateFrom} />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="archive-date-to">تا تاریخ (مهلت)</Label>
-            <Input id="archive-date-to" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+            <JalaliDateInput id="archive-date-to" value={dateTo} onChange={setDateTo} />
           </div>
         </div>
 

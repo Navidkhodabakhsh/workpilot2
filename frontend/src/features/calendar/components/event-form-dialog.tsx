@@ -5,6 +5,7 @@ import { Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { JalaliDateInput } from "@/components/ui/jalali-date-input"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
@@ -198,14 +199,14 @@ export function EventFormDialog({
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-2">
               <Label htmlFor="event-start-date">تاریخ شروع</Label>
-              <Input id="event-start-date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              <JalaliDateInput id="event-start-date" value={startDate} onChange={setStartDate} />
               {!allDay && (
                 <Input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
               )}
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="event-end-date">تاریخ پایان</Label>
-              <Input id="event-end-date" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+              <JalaliDateInput id="event-end-date" value={endDate} onChange={setEndDate} />
               {!allDay && <Input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />}
             </div>
           </div>

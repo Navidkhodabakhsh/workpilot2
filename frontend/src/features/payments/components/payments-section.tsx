@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useForm } from "react-hook-form"
+import { Controller, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { Plus, Trash2, Wallet } from "lucide-react"
@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Input } from "@/components/ui/input"
+import { JalaliDateInput } from "@/components/ui/jalali-date-input"
 import { Label } from "@/components/ui/label"
 import { createPayment, deletePayment, listPayments } from "@/features/payments/api"
 
@@ -96,7 +97,11 @@ export function PaymentsSection({ projectId }: { projectId: string }) {
             >
               <div className="flex flex-col gap-2">
                 <Label htmlFor="payment_date">تاریخ</Label>
-                <Input id="payment_date" type="date" {...form.register("payment_date")} />
+                <Controller
+                  control={form.control}
+                  name="payment_date"
+                  render={({ field }) => <JalaliDateInput id="payment_date" value={field.value} onChange={field.onChange} />}
+                />
                 {form.formState.errors.payment_date && (
                   <p className="text-sm text-danger">{form.formState.errors.payment_date.message}</p>
                 )}

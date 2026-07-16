@@ -1,12 +1,13 @@
 import { useState } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useForm } from "react-hook-form"
+import { Controller, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { ClipboardList } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { JalaliDateInput } from "@/components/ui/jalali-date-input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -86,7 +87,11 @@ export function LogWorkDialog({ taskId, projectId }: { taskId: string; projectId
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="log_date">تاریخ</Label>
-            <Input id="log_date" type="date" {...form.register("log_date")} />
+            <Controller
+              control={form.control}
+              name="log_date"
+              render={({ field }) => <JalaliDateInput id="log_date" value={field.value} onChange={field.onChange} />}
+            />
           </div>
           <Button type="submit" disabled={mutation.isPending}>
             {mutation.isPending ? "در حال ثبت..." : "ثبت گزارش"}
