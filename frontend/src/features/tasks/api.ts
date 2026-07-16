@@ -29,6 +29,7 @@ export async function createTask(payload: {
   title: string
   assignee_id?: string
   priority?: TaskPriority
+  start_date?: string
   deadline?: string
   estimated_hours?: number
   parent_task_id?: string
@@ -47,6 +48,7 @@ export async function updateTask(
     status: TaskStatus
     progress_percent: number
     estimated_hours: number
+    start_date: string
     deadline: string
   }>
 ) {

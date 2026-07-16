@@ -25,6 +25,7 @@ export type Task = {
   parent_task_id: string | null
   assignee_id: string | null
   created_by_id: string
+  created_by_full_name: string | null
   title: string
   description: string | null
   priority: TaskPriority
@@ -33,6 +34,7 @@ export type Task = {
   progress_percent: number
   estimated_hours: number | null
   actual_hours: number
+  start_date: string | null
   deadline: string | null
   created_at: string
 }

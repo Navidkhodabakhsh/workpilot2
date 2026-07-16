@@ -1,12 +1,20 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { MessageSquare } from "lucide-react"
+import { CalendarDays, MessageSquare, UserPen } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Select } from "@/components/ui/select"
 import { updateTaskStatus } from "@/features/tasks/api"
-import { APPROVAL_LABEL, APPROVAL_VARIANT, PRIORITY_LABEL, PRIORITY_VARIANT, STATUS_COLUMNS } from "@/features/tasks/constants"
+import {
+  APPROVAL_LABEL,
+  APPROVAL_VARIANT,
+  PRIORITY_LABEL,
+  PRIORITY_VARIANT,
+  STATUS_COLUMNS,
+  STATUS_LABEL,
+  STATUS_VARIANT,
+} from "@/features/tasks/constants"
 import { TaskDetailDialog } from "@/features/tasks/components/task-detail-dialog"
 import { LogWorkDialog } from "@/features/worklogs/components/log-work-dialog"
 import { useAuthStore } from "@/features/auth/auth-store"
@@ -33,22 +41,40 @@ export function TaskCard({
   })
 
   return (
-    <Card>
-      <CardContent className="flex flex-col gap-3 pt-6">
+    <Card className="border-border/70 transition-shadow hover:shadow-sm">
+      <CardContent className="flex flex-col gap-2.5 pt-5">
         <div className="flex items-start justify-between gap-2">
-          <p className="font-medium">{task.title}</p>
+          <p className="font-medium leading-snug">{task.title}</p>
           <Badge variant={PRIORITY_VARIANT[task.priority]} className="shrink-0">
             {PRIORITY_LABEL[task.priority]}
           </Badge>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+
+        <div className="flex flex-wrap items-center gap-1.5">
           {projectName && <Badge variant="info">{projectName}</Badge>}
           {!task.project_id && <Badge variant="secondary">شخصی</Badge>}
           {task.approval_status && (
             <Badge variant={APPROVAL_VARIANT[task.approval_status]}>{APPROVAL_LABEL[task.approval_status]}</Badge>
           )}
         </div>
-        {assignee && <p className="text-sm text-muted-foreground">{assignee.full_name}</p>}
+
+        <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+          {assignee && <p>مسئول: {assignee.full_name}</p>}
+          {task.created_by_full_name && (
+            <p className="flex items-center gap-1">
+              <UserPen className="size-3" aria-hidden="true" />
+              ثبت‌کننده: {task.created_by_full_name}
+            </p>
+          )}
+          {(task.start_date || task.deadline) && (
+            <p className="flex items-center gap-1">
+              <CalendarDays className="size-3" aria-hidden="true" />
+              {task.start_date ? new Date(task.start_date).toLocaleDateString("fa-IR") : "—"}
+              {" تا "}
+              {task.deadline ? new Date(task.deadline).toLocaleDateString("fa-IR") : "—"}
+            </p>
+          )}
+        </div>
 
         {task.progress_percent > 0 && (
           <div className="flex flex-col gap-1">
@@ -62,17 +88,24 @@ export function TaskCard({
           </div>
         )}
 
-        <Select
-          value={task.status}
-          onChange={(e) => mutation.mutate(e.target.value as TaskStatus)}
-          disabled={mutation.isPending}
-        >
-          {STATUS_COLUMNS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </Select>
+        {isOwnTask ? (
+          <Select
+            value={task.status}
+            onChange={(e) => mutation.mutate(e.target.value as TaskStatus)}
+            disabled={mutation.isPending}
+          >
+            {STATUS_COLUMNS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </Select>
+        ) : (
+          <Badge variant={STATUS_VARIANT[task.status]} className="w-fit">
+            {STATUS_LABEL[task.status]}
+          </Badge>
+        )}
+
         <div className="flex items-center gap-2">
           <TaskDetailDialog
             task={task}

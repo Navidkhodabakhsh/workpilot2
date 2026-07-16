@@ -20,7 +20,6 @@ import { EmptyState } from "@/components/ui/empty-state"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { createTask, getTask, listAllTasks } from "@/features/tasks/api"
 import type { TaskFilters } from "@/features/tasks/api"
 import {
@@ -54,6 +53,7 @@ const createSchema = z.object({
   project_id: z.string().optional(),
   assignee_id: z.string().optional(),
   priority: z.enum(["low", "medium", "high"]),
+  start_date: z.string().optional(),
   deadline: z.string().optional(),
   estimated_hours: z.string().optional(),
 })
@@ -82,6 +82,7 @@ function CreateTaskDialog({
       project_id: defaultProjectId ?? "",
       assignee_id: "",
       priority: "medium",
+      start_date: "",
       deadline: "",
       estimated_hours: "",
     },
@@ -95,6 +96,7 @@ function CreateTaskDialog({
         project_id: values.project_id || undefined,
         assignee_id: values.project_id ? values.assignee_id || undefined : undefined,
         priority: values.priority,
+        start_date: values.start_date || undefined,
         deadline: values.deadline || undefined,
         estimated_hours: values.estimated_hours ? Number(values.estimated_hours) : undefined,
         parent_task_id: parentTaskId,
@@ -146,17 +148,21 @@ function CreateTaskDialog({
               </Select>
             </div>
           )}
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="priority">اولویت</Label>
+            <Select id="priority" {...form.register("priority")}>
+              <option value="low">کم</option>
+              <option value="medium">متوسط</option>
+              <option value="high">بالا</option>
+            </Select>
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="priority">اولویت</Label>
-              <Select id="priority" {...form.register("priority")}>
-                <option value="low">کم</option>
-                <option value="medium">متوسط</option>
-                <option value="high">بالا</option>
-              </Select>
+              <Label htmlFor="start_date">تاریخ شروع (اختیاری)</Label>
+              <Input id="start_date" type="date" {...form.register("start_date")} />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="deadline">مهلت (اختیاری)</Label>
+              <Label htmlFor="deadline">تاریخ پایان (اختیاری)</Label>
               <Input id="deadline" type="date" {...form.register("deadline")} />
             </div>
           </div>
@@ -382,109 +388,96 @@ export function TasksListPage() {
         groups.map((group) => (
           <div key={group.key} className="flex flex-col gap-2">
             {group.label && <h2 className="font-semibold">{group.label}</h2>}
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>عنوان</TableHead>
-                  {!groupByProject && <TableHead>پروژه</TableHead>}
-                  <TableHead>مسئول</TableHead>
-                  <TableHead>اولویت</TableHead>
-                  <TableHead>وضعیت</TableHead>
-                  <TableHead>تأیید</TableHead>
-                  <TableHead>پیشرفت</TableHead>
-                  <TableHead>مهلت</TableHead>
-                  <TableHead />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visibleRows(group.rows, collapsedIds).map((task) => (
-                  <TableRow key={task.id}>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-1" style={{ paddingInlineStart: task.depth * 20 }}>
-                        {task.children.length > 0 ? (
-                          <button
-                            onClick={() => toggleCollapse(task.id)}
-                            aria-label={collapsedIds.has(task.id) ? "باز کردن زیروظایف" : "بستن زیروظایف"}
-                            className="text-muted-foreground hover:text-foreground"
-                          >
-                            {collapsedIds.has(task.id) ? (
-                              <ChevronLeft className="size-4" />
-                            ) : (
-                              <ChevronDown className="size-4" />
-                            )}
-                          </button>
+            <div className="flex flex-col gap-2">
+              {visibleRows(group.rows, collapsedIds).map((task) => (
+                <div
+                  key={task.id}
+                  className="flex flex-col gap-2.5 rounded-lg border border-border/70 bg-card p-3 transition-shadow hover:shadow-sm sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="flex min-w-0 items-start gap-1.5" style={{ paddingInlineStart: task.depth * 20 }}>
+                    {task.children.length > 0 ? (
+                      <button
+                        onClick={() => toggleCollapse(task.id)}
+                        aria-label={collapsedIds.has(task.id) ? "باز کردن زیروظایف" : "بستن زیروظایف"}
+                        className="mt-0.5 shrink-0 text-muted-foreground hover:text-foreground"
+                      >
+                        {collapsedIds.has(task.id) ? (
+                          <ChevronLeft className="size-4" />
                         ) : (
-                          <span className="inline-block size-4" />
+                          <ChevronDown className="size-4" />
                         )}
-                        {task.title}
-                      </div>
-                    </TableCell>
-                    {!groupByProject && (
-                      <TableCell>
-                        {task.project_id ? (
-                          <Badge variant="info">{projectName(task.project_id)}</Badge>
-                        ) : (
-                          <Badge variant="secondary">شخصی</Badge>
-                        )}
-                      </TableCell>
+                      </button>
+                    ) : (
+                      <span className="mt-0.5 inline-block size-4 shrink-0" />
                     )}
-                    <TableCell>{assigneeName(task.assignee_id)}</TableCell>
-                    <TableCell>
-                      <Badge variant={PRIORITY_VARIANT[task.priority]}>{PRIORITY_LABEL[task.priority]}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={STATUS_VARIANT[task.status]}>{STATUS_LABEL[task.status]}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      {task.approval_status ? (
-                        <Badge variant={APPROVAL_VARIANT[task.approval_status]}>
-                          {APPROVAL_LABEL[task.approval_status]}
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
-                          <div
-                            className="h-full rounded-full bg-primary"
-                            style={{ width: `${task.progress_percent}%` }}
-                          />
-                        </div>
-                        <span className="text-xs text-muted-foreground">{task.progress_percent}%</span>
+                    <div className="flex min-w-0 flex-col gap-1.5">
+                      <p className="truncate font-medium">{task.title}</p>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {!groupByProject &&
+                          (task.project_id ? (
+                            <Badge variant="info">{projectName(task.project_id)}</Badge>
+                          ) : (
+                            <Badge variant="secondary">شخصی</Badge>
+                          ))}
+                        <Badge variant={PRIORITY_VARIANT[task.priority]}>{PRIORITY_LABEL[task.priority]}</Badge>
+                        <Badge variant={STATUS_VARIANT[task.status]}>{STATUS_LABEL[task.status]}</Badge>
+                        {task.approval_status && (
+                          <Badge variant={APPROVAL_VARIANT[task.approval_status]}>
+                            {APPROVAL_LABEL[task.approval_status]}
+                          </Badge>
+                        )}
                       </div>
-                    </TableCell>
-                    <TableCell>{task.deadline ? new Date(task.deadline).toLocaleDateString("fa-IR") : "—"}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <TaskDetailDialog
-                          task={task}
+                      <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                        <span>مسئول: {assigneeName(task.assignee_id)}</span>
+                        {task.created_by_full_name && <span>ثبت‌کننده: {task.created_by_full_name}</span>}
+                        {(task.start_date || task.deadline) && (
+                          <span>
+                            {task.start_date ? new Date(task.start_date).toLocaleDateString("fa-IR") : "—"}
+                            {" تا "}
+                            {task.deadline ? new Date(task.deadline).toLocaleDateString("fa-IR") : "—"}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-3 ps-6 sm:ps-0">
+                    <div className="flex items-center gap-2">
+                      <div className="h-1.5 w-14 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full bg-primary"
+                          style={{ width: `${task.progress_percent}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-muted-foreground">{task.progress_percent}%</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <TaskDetailDialog
+                        task={task}
+                        trigger={
+                          <Button variant="ghost" size="icon" aria-label="نظرات و فایل‌ها">
+                            <MessageSquare className="size-4" />
+                          </Button>
+                        }
+                      />
+                      {projects && users && (
+                        <CreateTaskDialog
+                          projects={projects}
+                          users={users}
+                          defaultProjectId={task.project_id ?? undefined}
+                          parentTaskId={task.id}
                           trigger={
-                            <Button variant="ghost" size="icon" aria-label="نظرات و فایل‌ها">
-                              <MessageSquare className="size-4" />
+                            <Button variant="ghost" size="icon" aria-label="افزودن زیروظیفه">
+                              <Plus className="size-4" />
                             </Button>
                           }
                         />
-                        {projects && users && (
-                          <CreateTaskDialog
-                            projects={projects}
-                            users={users}
-                            defaultProjectId={task.project_id ?? undefined}
-                            parentTaskId={task.id}
-                            trigger={
-                              <Button variant="ghost" size="icon" aria-label="افزودن زیروظیفه">
-                                <Plus className="size-4" />
-                              </Button>
-                            }
-                          />
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         ))}
     </div>
