@@ -7,6 +7,7 @@ export type CurrentUser = {
   full_name: string
   role: "platform_admin" | "org_admin" | "project_manager" | "employee"
   is_active: boolean
+  department_id: string | null
 }
 
 type AuthState = {

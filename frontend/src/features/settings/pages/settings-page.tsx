@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { getMyOrganization, updateMyOrganization, updateProfile, changePassword } from "@/features/settings/api"
+import { createDepartment, listDepartments } from "@/features/departments/api"
 import { useAuthStore } from "@/features/auth/auth-store"
 
 const profileSchema = z.object({
@@ -30,6 +31,9 @@ type PasswordValues = z.infer<typeof passwordSchema>
 
 const orgSchema = z.object({ name: z.string().min(2, "نام سازمان را وارد کنید") })
 type OrgValues = z.infer<typeof orgSchema>
+
+const departmentSchema = z.object({ name: z.string().min(2, "نام دپارتمان را وارد کنید") })
+type DepartmentValues = z.infer<typeof departmentSchema>
 
 function ProfileSection() {
   const user = useAuthStore((s) => s.user)
@@ -194,6 +198,56 @@ function OrganizationSection() {
   )
 }
 
+function DepartmentsSection() {
+  const queryClient = useQueryClient()
+  const { data: departments } = useQuery({ queryKey: ["departments"], queryFn: listDepartments })
+
+  const form = useForm<DepartmentValues>({ resolver: zodResolver(departmentSchema), defaultValues: { name: "" } })
+
+  const mutation = useMutation({
+    mutationFn: (values: DepartmentValues) => createDepartment(values.name),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["departments"] })
+      form.reset()
+    },
+  })
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">دپارتمان‌ها</CardTitle>
+        <CardDescription>
+          سازمان شما را به بخش‌های جداگانه (مثل حسابداری، برنامه‌نویسی، منابع انسانی) تقسیم کنید
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <div className="flex flex-wrap gap-2">
+          {departments?.map((d) => (
+            <span key={d.id} className="rounded-full bg-muted px-3 py-1 text-sm">
+              {d.name}
+            </span>
+          ))}
+        </div>
+        <form
+          onSubmit={form.handleSubmit((values) => mutation.mutate(values))}
+          className="flex flex-col gap-3 sm:max-w-sm"
+        >
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="department_name">افزودن دپارتمان جدید</Label>
+            <Input id="department_name" placeholder="مثلاً: منابع انسانی" {...form.register("name")} />
+            {form.formState.errors.name && (
+              <p className="text-sm text-danger">{form.formState.errors.name.message}</p>
+            )}
+          </div>
+          <Button type="submit" disabled={mutation.isPending} className="self-start">
+            {mutation.isPending ? "در حال افزودن..." : "افزودن دپارتمان"}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
+  )
+}
+
 export function SettingsPage() {
   const role = useAuthStore((s) => s.user?.role)
 
@@ -207,6 +261,7 @@ export function SettingsPage() {
       <ProfileSection />
       <PasswordSection />
       {role === "org_admin" && <OrganizationSection />}
+      {role === "org_admin" && <DepartmentsSection />}
     </div>
   )
 }

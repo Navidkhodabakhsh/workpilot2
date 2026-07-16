@@ -18,6 +18,7 @@ export async function createProject(payload: {
   start_date?: string
   end_date?: string
   manager_id?: string
+  department_id?: string
   member_ids?: string[]
 }) {
   const { data } = await apiClient.post<Project>("/api/v1/projects", payload)
@@ -34,6 +35,7 @@ export async function updateProject(
     end_date: string
     status: string
     manager_id: string
+    department_id: string
   }>
 ) {
   const { data } = await apiClient.patch<Project>(`/api/v1/projects/${projectId}`, payload)

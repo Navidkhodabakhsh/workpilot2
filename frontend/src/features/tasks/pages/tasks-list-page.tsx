@@ -34,6 +34,7 @@ import { TaskDetailDialog } from "@/features/tasks/components/task-detail-dialog
 import { buildTaskTree, flattenTaskTree, type TaskTreeNode } from "@/features/tasks/task-tree"
 import { listProjects } from "@/features/projects/api"
 import { listOrgUsers } from "@/features/users/api"
+import { useDepartmentStore } from "@/features/departments/department-store"
 import { useAuthStore } from "@/features/auth/auth-store"
 import type { OrgUser, Project, Task } from "@/lib/types"
 
@@ -237,6 +238,7 @@ export function TasksListPage() {
   })
   const { data: projects } = useQuery({ queryKey: ["projects"], queryFn: listProjects })
   const { data: users } = useQuery({ queryKey: ["org-users"], queryFn: listOrgUsers })
+  const selectedDepartmentId = useDepartmentStore((s) => s.selectedDepartmentId)
 
   const projectName = (id: string | null) => (id ? (projects?.find((p) => p.id === id)?.name ?? "—") : "شخصی")
   const assigneeName = (id: string | null) => (id ? (users?.find((u) => u.id === id)?.full_name ?? "—") : "بدون مسئول")
@@ -249,6 +251,12 @@ export function TasksListPage() {
     .filter((t) => !projectFilter || t.project_id === projectFilter)
     .filter((t) => !priorityFilter || t.priority === priorityFilter)
     .filter((t) => !search.trim() || t.title.toLowerCase().includes(search.trim().toLowerCase()))
+    .filter((t) => {
+      // Personal tasks (no project) have no department to scope by, so they
+      // stay visible under any department filter.
+      if (!selectedDepartmentId || !t.project_id) return true
+      return projects?.find((p) => p.id === t.project_id)?.department_id === selectedDepartmentId
+    })
 
   const priorityOrder: Record<string, number> = { high: 0, medium: 1, low: 2 }
   const sorted = [...filtered].sort((a, b) => {

@@ -15,6 +15,7 @@ import { PASSWORD_HINT, PHONE_HINT, passwordSchema, phoneSchema } from "@/featur
 
 const schema = z.object({
   organization_name: z.string().min(2, "نام سازمان را وارد کنید"),
+  department_name: z.string().min(2, "نام دپارتمان را وارد کنید"),
   full_name: z.string().min(2, "نام و نام خانوادگی را وارد کنید"),
   email: z.string().email("ایمیل معتبر وارد کنید"),
   phone_number: phoneSchema,
@@ -30,7 +31,14 @@ export function SignupPage() {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { organization_name: "", full_name: "", email: "", phone_number: "", password: "" },
+    defaultValues: {
+      organization_name: "",
+      department_name: "",
+      full_name: "",
+      email: "",
+      phone_number: "",
+      password: "",
+    },
   })
 
   async function onSubmit(values: FormValues) {
@@ -67,6 +75,17 @@ export function SignupPage() {
               <Input id="organization_name" {...form.register("organization_name")} />
               {form.formState.errors.organization_name && (
                 <p className="text-sm text-danger">{form.formState.errors.organization_name.message}</p>
+              )}
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="department_name">نام دپارتمان</Label>
+              <Input id="department_name" placeholder="مثلاً: عمومی" {...form.register("department_name")} />
+              {form.formState.errors.department_name ? (
+                <p className="text-sm text-danger">{form.formState.errors.department_name.message}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  هر سازمان باید حداقل یک دپارتمان داشته باشد؛ بعداً می‌توانید دپارتمان‌های بیشتری اضافه کنید.
+                </p>
               )}
             </div>
             <div className="flex flex-col gap-2">

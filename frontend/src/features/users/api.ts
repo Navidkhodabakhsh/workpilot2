@@ -12,6 +12,7 @@ export async function createOrgUser(payload: {
   phone_number: string
   password?: string
   role: UserRole
+  department_id?: string
 }) {
   const { data } = await apiClient.post<OrgUser>("/api/v1/users", payload)
   return data
@@ -19,7 +20,7 @@ export async function createOrgUser(payload: {
 
 export async function updateOrgUser(
   userId: string,
-  payload: { role?: UserRole; is_active?: boolean; phone_number?: string }
+  payload: { role?: UserRole; is_active?: boolean; phone_number?: string; department_id?: string }
 ) {
   const { data } = await apiClient.patch<OrgUser>(`/api/v1/users/${userId}`, payload)
   return data

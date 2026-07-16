@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { GlobalSearch } from "@/features/search/components/global-search"
 import { NotificationBell } from "@/features/notifications/components/notification-bell"
+import { DepartmentSelector } from "@/features/departments/components/department-selector"
 import { logoutRequest } from "@/features/auth/api"
 import { useAuthStore } from "@/features/auth/auth-store"
 
@@ -185,6 +186,7 @@ export function AppShell() {
           <GlobalSearch />
 
           <div className="flex shrink-0 items-center justify-end gap-3">
+            <DepartmentSelector />
             <NotificationBell />
             <AccountMenu onLogout={handleLogout} />
           </div>

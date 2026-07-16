@@ -21,6 +21,8 @@ import {
 } from "@/components/ui/dialog"
 import { Select } from "@/components/ui/select"
 import { createProject, listProjects } from "@/features/projects/api"
+import { listDepartments } from "@/features/departments/api"
+import { useDepartmentStore } from "@/features/departments/department-store"
 import { listOrgUsers } from "@/features/users/api"
 import { useAuthStore } from "@/features/auth/auth-store"
 
@@ -31,6 +33,7 @@ const schema = z.object({
   start_date: z.string().optional(),
   end_date: z.string().optional(),
   manager_id: z.string().optional(),
+  department_id: z.string().optional(),
 })
 type FormValues = z.infer<typeof schema>
 
@@ -55,6 +58,8 @@ export function ProjectsListPage() {
 
   const { data: projects, isLoading } = useQuery({ queryKey: ["projects"], queryFn: listProjects })
   const { data: users } = useQuery({ queryKey: ["org-users"], queryFn: listOrgUsers, enabled: canCreate })
+  const { data: departments } = useQuery({ queryKey: ["departments"], queryFn: listDepartments })
+  const selectedDepartmentId = useDepartmentStore((s) => s.selectedDepartmentId)
 
   const form = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { name: "", description: "" } })
 
@@ -66,6 +71,7 @@ export function ProjectsListPage() {
         start_date: values.start_date || undefined,
         end_date: values.end_date || undefined,
         manager_id: values.manager_id || undefined,
+        department_id: values.department_id || undefined,
         member_ids: selectedMemberIds,
       }),
     onSuccess: () => {
@@ -140,6 +146,19 @@ export function ProjectsListPage() {
                     </Select>
                   </div>
                 )}
+                {departments && departments.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="department_id">دپارتمان (اختیاری)</Label>
+                    <Select id="department_id" {...form.register("department_id")}>
+                      <option value="">بدون دپارتمان مشخص</option>
+                      {departments.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                )}
                 {users && users.length > 0 && (
                   <div className="flex flex-col gap-2">
                     <Label>اعضای پروژه (اختیاری)</Label>
@@ -169,7 +188,9 @@ export function ProjectsListPage() {
       {isLoading && <p className="text-muted-foreground">در حال بارگذاری...</p>}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {projects?.map((project) => (
+        {projects
+          ?.filter((p) => !selectedDepartmentId || p.department_id === selectedDepartmentId)
+          .map((project) => (
           <Link key={project.id} to={`/projects/${project.id}`}>
             <Card className="h-full transition-shadow hover:shadow-md">
               <CardHeader>

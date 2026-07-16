@@ -15,6 +15,14 @@ export type Project = {
   status: ProjectStatus
   created_by_id: string
   manager_id: string | null
+  department_id: string | null
+  created_at: string
+}
+
+export type Department = {
+  id: string
+  organization_id: string
+  name: string
   created_at: string
 }
 
@@ -58,6 +66,7 @@ export type OrgUser = {
   role: UserRole
   is_active: boolean
   has_password: boolean
+  department_id: string | null
 }
 
 export type ProjectMember = {

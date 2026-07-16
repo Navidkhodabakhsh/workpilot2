@@ -20,6 +20,8 @@ import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { createOrgUser, listOrgUsers, updateOrgUser } from "@/features/users/api"
+import { listDepartments } from "@/features/departments/api"
+import { useDepartmentStore } from "@/features/departments/department-store"
 import { useAuthStore } from "@/features/auth/auth-store"
 import { PASSWORD_HINT, PHONE_HINT, passwordSchema, phoneSchema } from "@/features/auth/validation"
 import { ROLE_LABEL } from "@/lib/role-labels"
@@ -37,6 +39,7 @@ const schema = z.object({
   phone_number: phoneSchema,
   password: z.union([z.literal(""), passwordSchema]),
   role: z.enum(["project_manager", "employee"]),
+  department_id: z.string().optional(),
 })
 type FormValues = z.infer<typeof schema>
 
@@ -44,6 +47,7 @@ const editSchema = z.object({
   role: z.enum(["org_admin", "project_manager", "employee"]),
   is_active: z.enum(["true", "false"]),
   phone_number: z.union([z.literal(""), phoneSchema]),
+  department_id: z.string().optional(),
 })
 type EditFormValues = z.infer<typeof editSchema>
 
@@ -55,6 +59,8 @@ export function UsersListPage() {
   const queryClient = useQueryClient()
 
   const { data: users, isLoading } = useQuery({ queryKey: ["org-users"], queryFn: listOrgUsers })
+  const { data: departments } = useQuery({ queryKey: ["departments"], queryFn: listDepartments })
+  const selectedDepartmentId = useDepartmentStore((s) => s.selectedDepartmentId)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -69,6 +75,7 @@ export function UsersListPage() {
         phone_number: values.phone_number,
         password: values.password || undefined,
         role: values.role as UserRole,
+        department_id: values.department_id || undefined,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["org-users"] })
@@ -95,6 +102,7 @@ export function UsersListPage() {
         role: values.role,
         is_active: values.is_active === "true",
         ...(values.phone_number ? { phone_number: values.phone_number } : {}),
+        ...(values.department_id ? { department_id: values.department_id } : {}),
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["org-users"] })
@@ -119,6 +127,7 @@ export function UsersListPage() {
       role: u.role as "org_admin" | "project_manager" | "employee",
       is_active: u.is_active ? "true" : "false",
       phone_number: u.phone_number ?? "",
+      department_id: u.department_id ?? "",
     })
   }
 
@@ -193,6 +202,19 @@ export function UsersListPage() {
                     <option value="project_manager">مدیر پروژه</option>
                   </Select>
                 </div>
+                {departments && departments.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="department_id">دپارتمان (اختیاری)</Label>
+                    <Select id="department_id" {...form.register("department_id")}>
+                      <option value="">بدون دپارتمان مشخص</option>
+                      {departments.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                )}
                 {serverError && <p className="text-sm text-danger">{serverError}</p>}
                 <Button type="submit" disabled={createMutation.isPending}>
                   {createMutation.isPending ? "در حال ایجاد..." : "افزودن کاربر"}
@@ -218,7 +240,9 @@ export function UsersListPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {users.map((u) => (
+            {users
+              .filter((u) => !selectedDepartmentId || u.department_id === selectedDepartmentId)
+              .map((u) => (
               <TableRow key={u.id}>
                 <TableCell className="font-medium">{u.full_name}</TableCell>
                 <TableCell>{u.email}</TableCell>
@@ -282,6 +306,19 @@ export function UsersListPage() {
                 </p>
               )}
             </div>
+            {departments && departments.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="edit-department">دپارتمان</Label>
+                <Select id="edit-department" {...editForm.register("department_id")}>
+                  <option value="">بدون دپارتمان مشخص</option>
+                  {departments.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            )}
             {editError && <p className="text-sm text-danger">{editError}</p>}
             <Button type="submit" disabled={updateMutation.isPending}>
               {updateMutation.isPending ? "در حال ذخیره..." : "ذخیرهٔ تغییرات"}
