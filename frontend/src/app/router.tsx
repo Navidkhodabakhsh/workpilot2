@@ -18,6 +18,7 @@ import { SettingsPage } from "@/features/settings/pages/settings-page"
 import { CalendarPage } from "@/features/calendar/pages/calendar-page"
 import { WorkflowPage } from "@/features/workflow/pages/workflow-page"
 import { AnalyticsPage } from "@/features/analytics/pages/analytics-page"
+import { ArchivePage } from "@/features/archive/pages/archive-page"
 
 export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
@@ -46,6 +47,7 @@ export const router = createBrowserRouter([
           },
           { path: "/messages", element: <MessagesPage /> },
           { path: "/files", element: <FilesListPage /> },
+          { path: "/archive", element: <ArchivePage /> },
           { path: "/settings", element: <SettingsPage /> },
         ],
       },

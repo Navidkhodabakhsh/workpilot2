@@ -1,9 +1,11 @@
+import { useState } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { CalendarDays, MessageSquare, UserPen } from "lucide-react"
+import { Archive, CalendarDays, MessageSquare, UserPen } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Select } from "@/components/ui/select"
 import { updateTaskStatus } from "@/features/tasks/api"
 import {
@@ -34,10 +36,22 @@ export function TaskCard({
   const currentUserId = useAuthStore((s) => s.user?.id)
   const assignee = users.find((u) => u.id === task.assignee_id)
   const isOwnTask = task.assignee_id === currentUserId
+  const [archivePromptOpen, setArchivePromptOpen] = useState(false)
 
   const mutation = useMutation({
     mutationFn: (status: TaskStatus) => updateTaskStatus(task.id, status),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tasks"], exact: false }),
+    onSuccess: (updated) => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"], exact: false })
+      if (updated.status === "completed") setArchivePromptOpen(true)
+    },
+  })
+
+  const archiveMutation = useMutation({
+    mutationFn: () => updateTaskStatus(task.id, "archived"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"], exact: false })
+      setArchivePromptOpen(false)
+    },
   })
 
   return (
@@ -106,7 +120,7 @@ export function TaskCard({
           </Badge>
         )}
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <TaskDetailDialog
             task={task}
             trigger={
@@ -116,9 +130,31 @@ export function TaskCard({
               </Button>
             }
           />
+          {isOwnTask && task.status === "completed" && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => archiveMutation.mutate()}
+              disabled={archiveMutation.isPending}
+            >
+              <Archive className="size-4" />
+              انتقال به بایگانی
+            </Button>
+          )}
         </div>
         {isOwnTask && task.project_id && <LogWorkDialog taskId={task.id} projectId={task.project_id} />}
       </CardContent>
+
+      <ConfirmDialog
+        open={archivePromptOpen}
+        onOpenChange={setArchivePromptOpen}
+        title="انتقال به بایگانی؟"
+        description="این وظیفه به‌عنوان تکمیل‌شده علامت خورد. آیا می‌خواهید همین حالا آن را به بایگانی منتقل کنید؟ در غیر این صورت بعداً هم می‌توانید این کار را انجام دهید."
+        confirmLabel="انتقال به بایگانی"
+        cancelLabel="فعلاً نه"
+        onConfirm={() => archiveMutation.mutate()}
+        isConfirming={archiveMutation.isPending}
+      />
     </Card>
   )
 }

@@ -4,10 +4,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { Pencil, Plus, UserPlus, X } from "lucide-react"
+import { Archive, Pencil, Plus, UserPlus, X } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
@@ -48,6 +49,7 @@ const editSchema = z.object({
   start_date: z.string().optional(),
   end_date: z.string().optional(),
   manager_id: z.string().optional(),
+  status: z.enum(["active", "completed", "archived"]),
 })
 type EditFormValues = z.infer<typeof editSchema>
 
@@ -96,6 +98,7 @@ export function ProjectDetailPage() {
   })
 
   const editForm = useForm<EditFormValues>({ resolver: zodResolver(editSchema) })
+  const [archivePromptOpen, setArchivePromptOpen] = useState(false)
 
   const updateMutation = useMutation({
     mutationFn: (values: EditFormValues) =>
@@ -106,10 +109,19 @@ export function ProjectDetailPage() {
         end_date: values.end_date || undefined,
         manager_id: values.manager_id || undefined,
       }),
-    onSuccess: () => {
+    onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: ["project", projectId] })
       queryClient.invalidateQueries({ queryKey: ["project-members", projectId] })
       setEditOpen(false)
+      if (updated.status === "completed") setArchivePromptOpen(true)
+    },
+  })
+
+  const archiveMutation = useMutation({
+    mutationFn: () => updateProject(projectId!, { status: "archived" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["project", projectId] })
+      setArchivePromptOpen(false)
     },
   })
 
@@ -122,6 +134,7 @@ export function ProjectDetailPage() {
       start_date: project.start_date ?? "",
       end_date: project.end_date ?? "",
       manager_id: project.manager_id ?? "",
+      status: project.status,
     })
     setEditOpen(true)
   }
@@ -162,6 +175,12 @@ export function ProjectDetailPage() {
             <Button variant="secondary" onClick={openEdit}>
               <Pencil className="size-4" />
               ویرایش پروژه
+            </Button>
+          )}
+          {canManage && project.status === "completed" && (
+            <Button variant="secondary" onClick={() => archiveMutation.mutate()} disabled={archiveMutation.isPending}>
+              <Archive className="size-4" />
+              انتقال به بایگانی
             </Button>
           )}
           {canManage && (
@@ -244,6 +263,14 @@ export function ProjectDetailPage() {
               <Label htmlFor="edit-end-date">تاریخ پایان</Label>
               <Input id="edit-end-date" type="date" {...editForm.register("end_date")} />
             </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="edit-status">وضعیت</Label>
+              <Select id="edit-status" {...editForm.register("status")}>
+                <option value="active">فعال</option>
+                <option value="completed">تکمیل‌شده</option>
+                <option value="archived">بایگانی‌شده</option>
+              </Select>
+            </div>
             {isOrgAdmin && (
               <div className="flex flex-col gap-2">
                 <Label htmlFor="edit-manager">مدیر پروژه</Label>
@@ -265,6 +292,17 @@ export function ProjectDetailPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={archivePromptOpen}
+        onOpenChange={setArchivePromptOpen}
+        title="انتقال به بایگانی؟"
+        description="این پروژه به‌عنوان تکمیل‌شده علامت خورد. آیا می‌خواهید همین حالا آن را به بایگانی منتقل کنید؟ در غیر این صورت بعداً هم می‌توانید این کار را انجام دهید."
+        confirmLabel="انتقال به بایگانی"
+        cancelLabel="فعلاً نه"
+        onConfirm={() => archiveMutation.mutate()}
+        isConfirming={archiveMutation.isPending}
+      />
 
       <div className="rounded-lg border p-4">
         <div className="flex items-center justify-between">

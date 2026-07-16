@@ -9,6 +9,7 @@ import {
   LineChart,
   MessageSquare,
   Files,
+  Archive,
   Settings,
 } from "lucide-react"
 import { NavLink } from "react-router-dom"
@@ -38,6 +39,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/analytics", label: "تحلیل‌ها", icon: LineChart, allowedRoles: ["org_admin", "project_manager"] },
   { to: "/messages", label: "پیام‌ها", icon: MessageSquare },
   { to: "/files", label: "فایل‌ها", icon: Files },
+  { to: "/archive", label: "بایگانی", icon: Archive },
   { to: "/settings", label: "تنظیمات", icon: Settings },
 ]
 
