@@ -205,7 +205,7 @@ export function CalendarPage() {
         </Button>
       </div>
 
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-3 shadow-sm lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" aria-label="قبلی" onClick={() => calendarRef.current?.getApi().prev()}>
             <ChevronRight className="size-4" />
@@ -218,14 +218,14 @@ export function CalendarPage() {
           </Button>
           <span className="min-w-32 font-medium">{title}</span>
         </div>
-        <div className="flex gap-1 rounded-lg border border-border p-1">
+        <div className="flex gap-1 rounded-lg bg-muted p-1">
           {VIEWS.map((v) => (
             <button
               key={v.key}
               onClick={() => changeView(v.key)}
               className={
                 "rounded-md px-3 py-1.5 text-sm font-medium transition-colors " +
-                (view === v.key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted")
+                (view === v.key ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-background")
               }
             >
               {v.label}
@@ -235,19 +235,23 @@ export function CalendarPage() {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        {FILTERABLE_TYPES.map((t) => (
-          <button
-            key={t}
-            onClick={() => toggleType(t)}
-            className={
-              "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-opacity " +
-              (activeTypes.has(t) ? "border-border opacity-100" : "border-border opacity-40")
-            }
-          >
-            <span className="size-2 rounded-full" style={{ backgroundColor: FILTER_COLOR[t] }} />
-            {FILTER_LABEL[t]}
-          </button>
-        ))}
+        {FILTERABLE_TYPES.map((t) => {
+          const active = activeTypes.has(t)
+          return (
+            <button
+              key={t}
+              onClick={() => toggleType(t)}
+              className={
+                "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-all " +
+                (active ? "border-transparent" : "border-border text-muted-foreground opacity-60 hover:opacity-100")
+              }
+              style={active ? { backgroundColor: `color-mix(in oklab, ${FILTER_COLOR[t]} 14%, transparent)` } : undefined}
+            >
+              <span className="size-2 rounded-full" style={{ backgroundColor: FILTER_COLOR[t] }} />
+              {FILTER_LABEL[t]}
+            </button>
+          )
+        })}
         {projects && projects.length > 0 && (
           <select
             value={projectFilter}
@@ -264,7 +268,7 @@ export function CalendarPage() {
         )}
       </div>
 
-      <div className="calendar-shell rounded-lg border border-border bg-card p-2">
+      <div className="calendar-shell rounded-xl border border-border bg-card p-3 shadow-sm">
         <FullCalendar
           ref={calendarRef}
           plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin]}
@@ -277,6 +281,12 @@ export function CalendarPage() {
           selectable
           selectMirror
           editable
+          nowIndicator
+          dayMaxEvents={3}
+          slotMinTime="07:00:00"
+          slotMaxTime="21:00:00"
+          slotDuration="00:30:00"
+          scrollTime="08:00:00"
           events={allEvents}
           select={handleDateClick}
           eventClick={handleEventClick}
