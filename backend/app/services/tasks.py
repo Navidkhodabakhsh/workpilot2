@@ -125,15 +125,18 @@ def list_tasks(
     else:
         # No project given -- list across every project the user can see
         # (same visibility rule the dashboard/reports/search endpoints use),
-        # plus the caller's own personal tasks, for the global Tasks view.
+        # plus the caller's own personal tasks, plus any task assigned to the
+        # caller even in a project they aren't formally a member of -- being
+        # assigned a task is itself a legitimate reason to see it, and a
+        # manager assigning work shouldn't be blocked on remembering to also
+        # add the assignee as a project member first.
         visible_project_ids = get_visible_project_ids(db, org_id, current_user)
         own_personal_tasks = and_(Task.project_id.is_(None), Task.created_by_id == current_user.id)
-        visibility_clause = (
-            or_(Task.project_id.in_(visible_project_ids), own_personal_tasks)
-            if visible_project_ids
-            else own_personal_tasks
-        )
-        query = db.query(Task).filter(Task.organization_id == org_id, visibility_clause)
+        own_assigned_tasks = Task.assignee_id == current_user.id
+        clauses = [own_personal_tasks, own_assigned_tasks]
+        if visible_project_ids:
+            clauses.append(Task.project_id.in_(visible_project_ids))
+        query = db.query(Task).filter(Task.organization_id == org_id, or_(*clauses))
 
     if assignee_id is not None:
         query = query.filter(Task.assignee_id == assignee_id)
@@ -158,7 +161,9 @@ def get_task(db: Session, org_id: uuid.UUID, current_user: User, task_id: uuid.U
     if task.project_id is None:
         if task.created_by_id != current_user.id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This is a personal task")
-    else:
+    elif task.assignee_id != current_user.id:
+        # Being the assignee is always enough to view a task, even without
+        # formal project membership (see list_tasks for the matching rule).
         project = get_project(db, org_id, current_user, task.project_id)
         assert_can_view_project(db, project, current_user)
     return _attach_actual_hours(db, org_id, [task])[0]

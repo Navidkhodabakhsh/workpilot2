@@ -84,6 +84,67 @@ def test_list_tasks_without_project_id_returns_all_visible_tasks(client, signup_
     assert {t["title"] for t in resp.json()} == {"Task in P1", "Task in P2"}  # org_admin sees the whole org
 
 
+def test_assignee_sees_task_even_without_project_membership(client, signup_org_admin, create_org_user):
+    """A manager assigning a task to someone shouldn't be blocked on also
+    remembering to add them as a formal project member -- being the
+    assignee is itself enough to view (and find in "my tasks") the task."""
+    admin_token, _ = signup_org_admin()
+    pm_token, _ = create_org_user(admin_token, "project_manager", "pm")
+    emp_token, emp = create_org_user(admin_token, "employee", "emp")
+
+    project_id = client.post("/api/v1/projects", json={"name": "Project"}, headers=auth_headers(pm_token)).json()["id"]
+    # Deliberately NOT adding emp as a project member here.
+    task_id = client.post(
+        "/api/v1/tasks",
+        json={"project_id": project_id, "title": "Task", "assignee_id": emp["id"]},
+        headers=auth_headers(pm_token),
+    ).json()["id"]
+
+    resp = client.get(f"/api/v1/tasks/{task_id}", headers=auth_headers(emp_token))
+    assert resp.status_code == 200
+
+    resp = client.get("/api/v1/tasks", params={"assignee_id": emp["id"]}, headers=auth_headers(emp_token))
+    assert resp.status_code == 200
+    assert {t["title"] for t in resp.json()} == {"Task"}
+
+    # but the employee still can't see the *whole* project (Kanban board),
+    # since that requires actual membership, not just being assigned one task
+    resp = client.get(f"/api/v1/projects/{project_id}", headers=auth_headers(emp_token))
+    assert resp.status_code == 403
+
+
+def test_create_project_with_manager_and_members(client, signup_org_admin, create_org_user):
+    admin_token, _ = signup_org_admin()
+    pm_token, pm = create_org_user(admin_token, "project_manager", "pm")
+    emp_token, emp = create_org_user(admin_token, "employee", "emp")
+
+    resp = client.post(
+        "/api/v1/projects",
+        json={"name": "Staffed Project", "manager_id": pm["id"], "member_ids": [emp["id"]]},
+        headers=auth_headers(admin_token),
+    )
+    assert resp.status_code == 201
+    project = resp.json()
+    assert project["manager_id"] == pm["id"]
+
+    # both the designated manager and the listed member were auto-added,
+    # so they can each interact with the project without a separate step
+    resp = client.get(f"/api/v1/projects/{project['id']}", headers=auth_headers(pm_token))
+    assert resp.status_code == 200
+    resp = client.get(f"/api/v1/projects/{project['id']}", headers=auth_headers(emp_token))
+    assert resp.status_code == 200
+
+
+def test_create_project_rejects_employee_as_manager(client, signup_org_admin, create_org_user):
+    admin_token, _ = signup_org_admin()
+    _, emp = create_org_user(admin_token, "employee", "emp")
+
+    resp = client.post(
+        "/api/v1/projects", json={"name": "Project", "manager_id": emp["id"]}, headers=auth_headers(admin_token)
+    )
+    assert resp.status_code == 400
+
+
 def test_task_dependency_cycle_is_rejected(client, signup_org_admin, create_org_user):
     admin_token, _ = signup_org_admin()
     pm_token, _ = create_org_user(admin_token, "project_manager", "pm")
