@@ -72,6 +72,10 @@ postgresql+psycopg2://workpilot:workpilot@localhost:5432/workpilot
 | `04da1673aa0f_rebuild_tasks_status_approval` | بازسازی `tasks`: کاهش enum وضعیت به ۴ مقدار، افزودن `approval_status`، `progress_percent`، `estimated_hours`، پشتیبانی از تسک شخصی، افزودن جدول `task_activity_logs` |
 | `a943e0a49f2e_add_otp_codes_nullable_password` | افزودن جدول `otp_codes`، nullable کردن `hashed_password` |
 | `275fdf9f608c_add_project_manager_and_cooperation_` | افزودن `manager_id` (مدیر تعیین‌شدهٔ پروژه) و `cooperation_start_date` به `projects` |
+| `ee822a986fe7_add_payments_table` | افزودن جدول `payments` (دفترچهٔ ساده و دستی پرداخت‌های هر پروژه) |
+| `032a3a3047df_add_task_start_date` | افزودن ستون `start_date` به `tasks` |
+| `734190b6fd34_add_departments` | افزودن جدول `departments`، و ستون `department_id` (nullable) به `users` و `projects` |
+| `60291deba722_add_leave_requests` | افزودن جدول `leave_requests` و مقدار `leave_reviewed` به `NotificationType`؛ با استفاده مجدد از enum پستگرسی `approvalstatus` که پیش‌تر برای `tasks.approval_status` ساخته شده بود (`create_type=False` تا این ستون دوباره تلاش نکند همان نوع را از نو بسازد) |
 
 ---
 
@@ -91,6 +95,19 @@ postgresql+psycopg2://workpilot:workpilot@localhost:5432/workpilot
 | `is_active` | `boolean`, پیش‌فرض `true` | آیا سازمان فعال است (فعلاً هیچ endpoint ای این فیلد را از طریق API تغییر نمی‌دهد) |
 | `created_at` / `updated_at` | `timestamptz` | زمان ساخت/آخرین ویرایش |
 
+### `departments` — دپارتمان‌ها
+
+یک دپارتمان صرفاً یک **گروه‌بندی منطقی** درون یک سازمان است (مثلاً «مالی»، «فنی»، «منابع انسانی») — **هیچ جداسازی فیزیکی دادهٔ واقعی** در پی ندارد؛ فقط یک ستون `department_id` روی `users` و `projects` است که در فرانت‌اند برای فیلتر/گروه‌بندی نمایش استفاده می‌شود. فقط `org_admin` می‌تواند دپارتمان بسازد.
+
+**نکتهٔ مهم:** از این نسخه به بعد، **هر سازمان تازه باید حداقل یک دپارتمان در همان لحظهٔ ثبت‌نام تعریف کند** — `POST /api/v1/auth/signup` حالا یک فیلد اجباری `department_name` دارد و سرویس `signup` (`backend/app/services/auth.py`) هم‌زمان با ساخت `Organization`، اولین `Department` را هم می‌سازد و اولین کاربر (org_admin) را عضو همان دپارتمان می‌کند.
+
+| ستون | نوع | توضیح |
+|---|---|---|
+| `id` | UUID (PK) | |
+| `organization_id` | UUID (FK → `organizations.id`), اجباری | سازمان صاحب دپارتمان |
+| `name` | `varchar(200)`, اجباری | نام دپارتمان |
+| `created_at` / `updated_at` | `timestamptz` | |
+
 ### `users` — کاربران
 
 هر ردیف یک حساب کاربری است. کاربران یا به یک سازمان تعلق دارند، یا (در حالت خاص `platform_admin`) به هیچ سازمانی.
@@ -105,6 +122,7 @@ postgresql+psycopg2://workpilot:workpilot@localhost:5432/workpilot
 | `full_name` | `varchar(200)`, اجباری | نام کامل |
 | `role` | enum `UserRole`, اجباری، پیش‌فرض `employee` | نقش کاربر (جدول مقادیر پایین) |
 | `is_active` | `boolean`, پیش‌فرض `true` | غیرفعال‌سازی حساب (معادل نزدیک‌ترین چیز به «حذف» که از طریق API در دسترس است) |
+| `department_id` | UUID (FK → `departments.id`, `ondelete SET NULL`), nullable | دپارتمان اختیاریِ کاربر — صرفاً گروه‌بندی منطقی (بخش «دپارتمان‌ها» بالا)؛ اولین کاربر هر سازمان (org_admin ثبت‌نام‌کننده) همیشه به‌طور خودکار همان دپارتمان اولیهٔ سازمان را می‌گیرد |
 | `created_at` / `updated_at` | `timestamptz` | |
 
 مقادیر enum `role`:
@@ -129,6 +147,7 @@ postgresql+psycopg2://workpilot:workpilot@localhost:5432/workpilot
 | `status` | enum `ProjectStatus`, پیش‌فرض `active` | وضعیت پروژه: `active` (فعال)، `completed` (تکمیل‌شده)، `archived` (بایگانی‌شده) |
 | `created_by_id` | UUID (FK → `users.id`), اجباری | کاربری که پروژه را ساخته |
 | `manager_id` | UUID (FK → `users.id`), nullable | مدیر پروژهٔ تعیین‌شده توسط org_admin — **فقط توصیفی است**، جایگزین بررسی RBAC واقعی (نقش + عضویت در `project_members`) نمی‌شود؛ هنگام تعیین، همان کاربر به‌صورت خودکار عضو پروژه هم می‌شود |
+| `department_id` | UUID (FK → `departments.id`, `ondelete SET NULL`), nullable | دپارتمان اختیاریِ پروژه — مثل `manager_id`، این هم صرفاً یک برچسب توصیفی/گروه‌بندی است (بخش «دپارتمان‌ها» بالا)، نه یک محدودیت دسترسی؛ پروژه‌های قدیمی‌تر از این ستون مقدار `NULL` دارند |
 | `created_at` / `updated_at` | `timestamptz` | |
 
 ### `project_members` — عضویت در پروژه
@@ -141,6 +160,23 @@ postgresql+psycopg2://workpilot:workpilot@localhost:5432/workpilot
 | `project_id` | UUID (FK → `projects.id`), اجباری | |
 | `user_id` | UUID (FK → `users.id`), اجباری | |
 | `created_at` / `updated_at` | `timestamptz` | تاریخ عضویت |
+
+### `payments` — پرداخت‌ها
+
+یک دفترچهٔ ساده و **دستی‌ثبت‌شونده** از پرداخت‌های هر پروژه — **نه یک سامانهٔ واقعی صورتحساب/حسابداری**؛ فقط یک رکورد متنی از این‌که «فلان مبلغ در فلان تاریخ برای فلان پروژه ثبت شد»، بدون هیچ منطق مالیاتی/تسویه/فاکتور رسمی.
+
+> **نکتهٔ مهم دسترسی:** برخلاف بیشتر منابع پروژه‌محور (که معمولاً هم `org_admin` و هم `project_manager` عضو پروژه به آن‌ها دسترسی دارند)، دسترسی به `payments` **منحصراً به `org_admin` محدود است** — حتی `project_manager` عضو همان پروژه هم نمی‌تواند پرداخت‌ها را ببیند یا ثبت کند. این یک تصمیم عمدی و سخت‌گیرانه‌تر از الگوی معمول است (`backend/app/services/payments.py`, تابع `_assert_owner`).
+
+| ستون | نوع | توضیح |
+|---|---|---|
+| `id` | UUID (PK) | |
+| `organization_id` | UUID (FK → `organizations.id`), اجباری | |
+| `project_id` | UUID (FK → `projects.id`), اجباری | پروژه‌ای که این پرداخت برای آن ثبت شده |
+| `recorded_by_id` | UUID (FK → `users.id`), اجباری | چه کسی این پرداخت را ثبت کرده (همیشه خودِ org_admin) |
+| `payment_date` | `date`, اجباری | تاریخ پرداخت |
+| `description` | `text`, اجباری | توضیح پرداخت |
+| `amount` | `numeric(12,2)`, اجباری | مبلغ (باید بزرگ‌تر از صفر باشد) |
+| `created_at` / `updated_at` | `timestamptz` | |
 
 ### `tasks` — وظایف
 
@@ -161,12 +197,15 @@ postgresql+psycopg2://workpilot:workpilot@localhost:5432/workpilot
 | `approval_status` | enum `ApprovalStatus`, **nullable** | `NULL` تا وقتی وظیفه هرگز submit نشده؛ سپس `pending` (در انتظار تأیید) / `approved` (تأییدشده) / `rejected` (ردشده) |
 | `progress_percent` | `integer`, پیش‌فرض `0` | درصد پیشرفت (۰ تا ۱۰۰) |
 | `estimated_hours` | `numeric(6,2)`, nullable | ساعت برآوردی |
+| `start_date` | `date`, nullable | تاریخ شروع کار روی وظیفه (متفاوت از `deadline` که تاریخ پایان/مهلت آن است) |
 | `deadline` | `date`, nullable | مهلت انجام |
 | `created_at` / `updated_at` | `timestamptz` | |
 
 > نکتهٔ مهم: `status` و `approval_status` **کاملاً مستقل از هم هستند** — یک وظیفه می‌تواند هم‌زمان `completed` (از نظر پیشرفت کار) و `pending` (از نظر تأیید مدیر) باشد. رسیدن وضعیت به `completed` به‌طور خودکار `approval_status` را `pending` می‌کند؛ خارج‌شدن از `completed` مقدار تأیید را پاک (`NULL`) می‌کند.
 >
 > نکتهٔ دیگر: ستونی برای «ساعت واقعی صرف‌شده» (`actual_hours`) در جدول وجود **ندارد** — این عدد هیچ‌وقت ذخیره نمی‌شود؛ همیشه در لحظه از مجموع دقایق `worklogs` با وضعیت `approved` مربوط به همان تسک محاسبه می‌شود.
+>
+> به همین ترتیب، ستونی برای «نام کامل سازنده» هم در جدول وجود **ندارد** — فیلد `created_by_full_name` که در schema خروجی `TaskOut` دیده می‌شود، دقیقاً مثل `actual_hours` یک فیلد محاسبه‌شده و ذخیره‌نشده است: در لایهٔ سرویس (`backend/app/services/tasks.py`, تابع `_attach_computed_fields`) با یک کوئری دسته‌ای (batch) روی `users` پر می‌شود تا فرانت‌اند بدون درخواست جداگانه بداند هر وظیفه را چه کسی ساخته.
 
 ### `task_dependencies` — وابستگی بین وظایف
 
@@ -236,6 +275,7 @@ postgresql+psycopg2://workpilot:workpilot@localhost:5432/workpilot
 | `report_reviewed` | گزارش کاری کاربر تأیید یا رد شد |
 | `comment_added` | کامنت جدیدی روی وظیفهٔ کاربر اضافه شد |
 | `event_reminder` | یادآوری رویداد تقویم (فعلاً enum تعریف شده ولی هیچ Job زمان‌بندی‌شده‌ای این نوع را واقعاً نمی‌سازد) |
+| `leave_reviewed` | درخواست مرخصی کاربر تأیید یا رد شد (بخش «دپارتمان‌ها و مرخصی» — جدول `leave_requests`) |
 
 ### `calendar_events` — رویدادهای تقویم
 
@@ -252,6 +292,30 @@ postgresql+psycopg2://workpilot:workpilot@localhost:5432/workpilot
 | `start_at` / `end_at` | `timestamptz`, اجباری | بازهٔ زمانی رویداد (`end_at` باید ≥ `start_at` باشد) |
 | `all_day` | `boolean`, پیش‌فرض `false` | آیا رویداد تمام‌روز است |
 | `created_at` / `updated_at` | `timestamptz` | |
+
+> توجه: مقدار `leave` در enum `event_type` همچنان در دیتابیس تعریف شده (به‌خاطر سازگاری با گذشته)، ولی در فرانت‌اند دیگر **قابل‌انتخاب یا نمایش نیست** — فرم ساخت رویداد آن را عمداً از فهرست گزینه‌ها حذف کرده (`frontend/src/features/calendar/components/event-form-dialog.tsx`) و صفحهٔ تقویم هم آن را رندر نمی‌کند (`frontend/src/features/calendar/pages/calendar-page.tsx`). دلیلش این است که مدیریت مرخصی حالا یک گردش‌کار اختصاصی و جدا دارد — جدول `leave_requests` زیر — که جایگزین این روش قدیمی‌تر شده است.
+
+### `leave_requests` — درخواست‌های مرخصی
+
+گردش‌کار اختصاصی درخواست/تأیید مرخصی — جایگزین روش قدیمی‌تر «رویداد تقویم از نوع `leave`» شده (نکتهٔ بالا را ببینید). هر عضو سازمان می‌تواند برای خودش درخواست مرخصی ثبت کند؛ بررسی (تأیید/رد) آن **در سطح کل سازمان** است، نه محدود به یک پروژهٔ خاص — چون مرخصی اصلاً به هیچ پروژه‌ای وابسته نیست.
+
+| ستون | نوع | توضیح |
+|---|---|---|
+| `id` | UUID (PK) | |
+| `organization_id` | UUID (FK → `organizations.id`), اجباری | |
+| `user_id` | UUID (FK → `users.id`), اجباری | کاربری که درخواست داده |
+| `start_date` / `end_date` | `date`, اجباری | بازهٔ زمانی مرخصی (`end_date` نباید قبل از `start_date` باشد) |
+| `reason` | `text`, nullable | دلیل مرخصی (اختیاری) |
+| `status` | enum `ApprovalStatus`, اجباری، پیش‌فرض `pending` | `pending` (در انتظار بررسی) / `approved` (تأییدشده) / `rejected` (ردشده) |
+| `reviewed_by_id` | UUID (FK → `users.id`, `ondelete SET NULL`), nullable | چه کسی تأیید/رد کرده |
+| `review_comment` | `text`, nullable | توضیح رد (یا هر توضیح دیگر بررسی‌کننده) |
+| `created_at` / `updated_at` | `timestamptz` | |
+
+> نکتهٔ فنی دربارهٔ enum: ستون `status` این جدول از **همان نوع پستگرسی `approvalstatus`** استفاده می‌کند که پیش‌تر برای `tasks.approval_status` ساخته شده بود — یک enum مشترک، نه یک enum جداگانهٔ هم‌نام. Migration مربوطه (`60291deba722_add_leave_requests`) با `create_type=False` این ستون را می‌سازد تا پستگرس تلاش نکند دوباره همان نوع را از نو `CREATE TYPE` کند (که با خطای «نوع از قبل وجود دارد» شکست می‌خورد).
+>
+> چه کسی مجاز به بررسی است: **`org_admin` یا `project_manager`** (هر project_manager سازمان، نه فقط مدیر یک پروژهٔ خاص — چون همان‌طور که گفته شد، این بررسی سازمانی است، نه پروژه‌ای). فهرست درخواست‌ها هم بر همین اساس فیلتر می‌شود: کارمند عادی فقط درخواست‌های خودش را می‌بیند؛ org_admin/project_manager همهٔ درخواست‌های سازمان را می‌بینند.
+>
+> **اعلان `leave_reviewed`:** تأیید یا رد یک درخواست، یک اعلان از نوع `leave_reviewed` برای درخواست‌دهنده می‌سازد (`backend/app/services/leave_requests.py`) — **مگر این‌که بررسی‌کننده همان درخواست‌دهنده باشد** (یعنی کسی درخواست خودش را بررسی کند، که در عمل فقط وقتی رخ می‌دهد که یک org_admin/project_manager مدیریت مرخصی خودش را هم داشته باشد)؛ در آن حالت هیچ اعلانی به خودش ساخته نمی‌شود. این دقیقاً همان الگویی است که برای اعلان `report_reviewed` روی تأیید/رد گزارش‌های کاری (`worklogs`) هم استفاده شده است.
 
 ### `otp_codes` — کدهای یک‌بارمصرف
 
@@ -335,17 +399,24 @@ postgresql+psycopg2://workpilot:workpilot@localhost:5432/workpilot
 
 ```
 organizations
+  └─(organization_id)── departments
   └─(organization_id)── users            (nullable فقط برای platform_admin)
   └─(organization_id)── projects
   └─(organization_id)── tasks             [دنرمالایز از project.organization_id]
   └─(organization_id)── worklogs
   └─(organization_id)── notifications
   └─(organization_id)── calendar_events
+  └─(organization_id)── leave_requests
+  └─(organization_id)── payments
   └─(organization_id)── export_jobs
   └─(organization_id)── comments
   └─(organization_id)── attachments
   └─(organization_id)── task_activity_logs
   └─(organization_id, nullable)── audit_logs
+
+departments
+  └─(department_id, nullable)── users     [فقط گروه‌بندی منطقی، نه ایزوله‌سازی فیزیکی]
+  └─(department_id, nullable)── projects  [همان‌طور]
 
 users
   └─(created_by_id)── projects
@@ -359,6 +430,9 @@ users
   └─(user_id)──────── notifications
   └─(created_by_id)── calendar_events
   └─(user_id, nullable)── calendar_events
+  └─(user_id)──────── leave_requests
+  └─(reviewed_by_id, nullable)── leave_requests
+  └─(recorded_by_id)── payments
   └─(requested_by_id)── export_jobs
   └─(author_id)──────── comments
   └─(uploaded_by_id)──── attachments
@@ -367,6 +441,7 @@ projects
   └─(project_id)── project_members
   └─(project_id, nullable)── tasks        [NULL روی task یعنی «تسک شخصی»]
   └─(project_id, nullable)── calendar_events
+  └─(project_id)── payments
 
 tasks
   └─(parent_task_id, self-FK, nullable)── tasks           [درخت زیروظیفه]
@@ -388,6 +463,9 @@ otp_codes   ← مستقل، فقط با phone_number (نه FK) به کاربر 
 - **یک وظیفه چند گزارش کاری (worklog)، چند کامنت و چند پیوست (attachment) دارد.** همهٔ این‌ها با `task_id` به همان وظیفه وصل می‌شوند.
 - **یک تسک «شخصی»** (بدون `project_id`) استثنای مهم این مدل است: چون هیچ پروژه‌ای ندارد، عملاً فقط برای سازندهٔ خودش قابل دیدن است و هیچ گردش‌کار تأیید/رد یا وابستگی روی آن اجرا نمی‌شود.
 - **گزارش کاری (`worklogs`) به‌طور مستقیم هم به `tasks` و هم به `users` وصل است** — و علاوه‌بر آن یک فیلد اختیاری `reviewed_by_id` دارد که وقتی مدیر پروژه آن را تأیید/رد می‌کند پر می‌شود.
+- **`departments` فقط یک برچسب گروه‌بندی است، نه یک مرز ایزوله‌سازی.** برخلاف `organization_id` که واقعاً دید داده را محدود می‌کند، `department_id` روی `users` و `projects` هیچ محدودیت دسترسی‌ای اعمال نمی‌کند — صرفاً برای نمایش/فیلتر در فرانت‌اند استفاده می‌شود.
+- **`payments` یک دفترچهٔ ساده و دستی است، محدود به `org_admin`.** برخلاف اکثر جدول‌های پروژه‌محور (که project_manager عضو هم به آن‌ها دسترسی دارد)، فقط org_admin می‌تواند پرداخت‌های یک پروژه را ثبت/دیدن/حذف کند.
+- **`leave_requests` جایگزین رویدادهای تقویم از نوع `leave` شده** و بررسی آن (برخلاف اکثر گردش‌کارهای تأیید که پروژه‌محورند) در سطح کل سازمان انجام می‌شود، نه محدود به یک پروژهٔ خاص.
 
 ---
 
@@ -1148,6 +1226,32 @@ Content-Type: application/json
 
 ---
 
+### گروه Departments (`/api/v1/departments`)
+
+| # | کاربرد | Method + مسیر | نقش مجاز |
+|---|---|---|---|
+| ۱ | ساخت دپارتمان جدید | `POST /api/v1/departments` | فقط `org_admin` |
+| ۲ | فهرست دپارتمان‌های سازمان (به ترتیب نام) | `GET /api/v1/departments` | هر کاربر واردشدهٔ همان سازمان |
+
+**`POST /api/v1/departments`** — بدنه (`DepartmentCreate`): `{"name": "string(2..200)"}`. نمونه:
+```json
+{ "name": "مالی" }
+```
+پاسخ (`201`, `DepartmentOut`):
+```json
+{
+  "id": "dd11ee22-...",
+  "organization_id": "b7d4a1c0-...",
+  "name": "مالی",
+  "created_at": "2026-07-16T09:00:00Z"
+}
+```
+خطاها: `403` (کاربر جاری org_admin نیست)، `422` (طول نام نامعتبر).
+
+**`GET /api/v1/departments`** — بدون پارامتر. پاسخ: آرایه‌ای از `DepartmentOut`، مرتب‌شده بر اساس `name`. این endpoint عمداً به همهٔ نقش‌ها باز است (نه فقط org_admin) — دقیقاً مثل `GET /api/v1/users` — چون فهرست دپارتمان‌ها برای منوهای انتخاب (مثلاً هنگام ساخت/ویرایش پروژه یا کاربر) در چند جای فرانت‌اند لازم است.
+
+---
+
 ### گروه Projects (`/api/v1/projects`)
 
 | # | کاربرد | Method + مسیر | نقش مجاز |
@@ -1217,6 +1321,92 @@ Content-Type: application/json
 
 ---
 
+### گروه Payments (`/api/v1/projects/{project_id}/payments`)
+
+| # | کاربرد | Method + مسیر | نقش مجاز |
+|---|---|---|---|
+| ۱ | ثبت پرداخت جدید برای پروژه | `POST /api/v1/projects/{project_id}/payments` | فقط `org_admin` |
+| ۲ | فهرست پرداخت‌های یک پروژه | `GET /api/v1/projects/{project_id}/payments` | فقط `org_admin` |
+| ۳ | حذف یک پرداخت | `DELETE /api/v1/projects/{project_id}/payments/{payment_id}` | فقط `org_admin` |
+
+> نکتهٔ مهم: هر سه endpoint این گروه **فقط برای org_admin باز هستند** — حتی `project_manager` عضو همان پروژه هم به آن‌ها دسترسی ندارد (`backend/app/services/payments.py`, تابع `_assert_owner`). این سخت‌گیرانه‌تر از الگوی معمول سایر منابع پروژه‌محور (مثل تسک‌ها یا گزارش‌های کاری) است که معمولاً project_manager عضو هم به آن‌ها دسترسی مدیریتی دارد.
+
+**`POST /api/v1/projects/{project_id}/payments`** — بدنه (`PaymentCreate`): `payment_date` (تاریخ، اجباری)، `description` (رشته، ۱..۱۰۰۰ کاراکتر، اجباری)، `amount` (عدد اعشاری، باید بزرگ‌تر از صفر باشد، اجباری). نمونه:
+```json
+{
+  "payment_date": "2026-07-16",
+  "description": "پیش‌پرداخت اول قرارداد",
+  "amount": 50000000
+}
+```
+پاسخ (`201`, `PaymentOut`):
+```json
+{
+  "id": "pp33qq44-...",
+  "project_id": "1a2b3c4d-...",
+  "recorded_by_id": "9c1f2e3a-...",
+  "payment_date": "2026-07-16",
+  "description": "پیش‌پرداخت اول قرارداد",
+  "amount": 50000000,
+  "created_at": "2026-07-16T17:00:00Z"
+}
+```
+خطاها: `403` (کاربر جاری org_admin نیست)، `404` (پروژه در این سازمان پیدا نشد)، `422` (مبلغ صفر یا منفی، یا توضیح خالی).
+
+**`GET /api/v1/projects/{project_id}/payments`** — بدون پارامتر. پاسخ: آرایه‌ای از `PaymentOut`، مرتب‌شده از جدیدترین به قدیمی‌ترین (`payment_date` سپس `created_at`، هردو نزولی). خطاها: `403`, `404`.
+
+**`DELETE /api/v1/projects/{project_id}/payments/{payment_id}`** — بدون بدنه. پاسخ: `204 No Content`. خطاها: `403`, `404` (پروژه یا پرداخت پیدا نشد).
+
+---
+
+### گروه Leave Requests (`/api/v1/leave-requests`)
+
+| # | کاربرد | Method + مسیر | نقش مجاز |
+|---|---|---|---|
+| ۱ | ثبت درخواست مرخصی جدید (برای خودِ کاربر) | `POST /api/v1/leave-requests` | هر عضو سازمان |
+| ۲ | فهرست درخواست‌های مرخصی | `GET /api/v1/leave-requests` | همه (اما محدودهٔ دیده‌شده بر اساس نقش فرق می‌کند) |
+| ۳ | دریافت یک درخواست خاص | `GET /api/v1/leave-requests/{leave_request_id}` | صاحب درخواست، یا `org_admin`/`project_manager` |
+| ۴ | تأیید درخواست | `POST /api/v1/leave-requests/{leave_request_id}/approve` | فقط `org_admin`/`project_manager` |
+| ۵ | رد درخواست | `POST /api/v1/leave-requests/{leave_request_id}/reject` | فقط `org_admin`/`project_manager` |
+
+> نکتهٔ مهم دربارهٔ فهرست (#۲): کارمند عادی فقط درخواست‌های خودش را می‌بیند؛ `org_admin`/`project_manager` همهٔ درخواست‌های سازمان را می‌بینند — چون بررسی مرخصی، برخلاف اکثر گردش‌کارهای تأیید این سیستم، **در سطح کل سازمان است، نه محدود به یک پروژهٔ خاص**.
+
+**`POST /api/v1/leave-requests`** — بدنه (`LeaveRequestCreate`): `start_date` (تاریخ، اجباری)، `end_date` (تاریخ، اجباری، نباید قبل از `start_date` باشد)، `reason` (رشته، اختیاری، حداکثر ۲۰۰۰ کاراکتر). نمونه:
+```json
+{
+  "start_date": "2026-08-01",
+  "end_date": "2026-08-03",
+  "reason": "سفر خانوادگی"
+}
+```
+پاسخ (`201`, `LeaveRequestOut`):
+```json
+{
+  "id": "ll55mm66-...",
+  "organization_id": "b7d4a1c0-...",
+  "user_id": "9c1f2e3a-...",
+  "user_full_name": "کارمند نمونه",
+  "start_date": "2026-08-01",
+  "end_date": "2026-08-03",
+  "reason": "سفر خانوادگی",
+  "status": "pending",
+  "reviewed_by_id": null,
+  "review_comment": null,
+  "created_at": "2026-07-16T17:00:00Z"
+}
+```
+خطاها: `422` (تاریخ پایان قبل از تاریخ شروع، یا فیلد ناقص).
+
+**`GET /api/v1/leave-requests`** — بدون پارامتر. پاسخ: آرایه‌ای از `LeaveRequestOut` (جدیدترین اول)، با فیلد اضافهٔ `user_full_name` که مثل `Task.created_by_full_name` یک فیلد محاسبه‌شده (نه ستون واقعی جدول) است — با یک کوئری دسته‌ای روی `users` پر می‌شود.
+
+**`GET /api/v1/leave-requests/{leave_request_id}`** — خطاها: `403` (نه صاحب درخواست است، نه مدیر)، `404` (پیدا نشد یا متعلق به سازمان دیگری است).
+
+**`POST /api/v1/leave-requests/{leave_request_id}/approve`** — بدون بدنه. وضعیت را به `approved` تغییر می‌دهد و یک اعلان `leave_reviewed` برای درخواست‌دهنده می‌سازد (مگر این‌که بررسی‌کننده همان درخواست‌دهنده باشد). خطاها: `403` (کاربر جاری نه org_admin است نه project_manager)، `404`، `400` (درخواست از قبل بررسی شده — فقط درخواست‌های `pending` قابل بررسی‌اند).
+
+**`POST /api/v1/leave-requests/{leave_request_id}/reject`** — بدنه (`LeaveRequestReview`، اختیاری): `{"review_comment": "string(اختیاری)"}`. مثل approve عمل می‌کند اما وضعیت را `rejected` می‌کند. خطاها: مشابه approve.
+
+---
+
 ### گروه Tasks (`/api/v1/tasks`)
 
 | # | کاربرد | Method + مسیر | نقش مجاز |
@@ -1242,6 +1432,7 @@ Content-Type: application/json
 | `description` | رشته | خیر |
 | `assignee_id` | UUID | خیر |
 | `priority` | یکی از `low`/`medium`/`high` (پیش‌فرض `medium`) | خیر |
+| `start_date` | تاریخ | خیر |
 | `deadline` | تاریخ | خیر |
 | `estimated_hours` | عدد اعشاری، ۰ تا ۹۹۹۹ | خیر |
 
@@ -1253,6 +1444,7 @@ Content-Type: application/json
   "description": "فرم باید شامل نام مشتری، اقلام، و مبلغ کل باشد",
   "assignee_id": "5f6e7d8c-...",
   "priority": "high",
+  "start_date": "2026-08-01",
   "deadline": "2026-08-10",
   "estimated_hours": 6
 }
@@ -1270,6 +1462,7 @@ Content-Type: application/json
   "parent_task_id": null,
   "assignee_id": "5f6e7d8c-...",
   "created_by_id": "9c1f2e3a-...",
+  "created_by_full_name": "علی رضایی",
   "title": "طراحی فرم ثبت فاکتور فروش",
   "description": "فرم باید شامل نام مشتری، اقلام، و مبلغ کل باشد",
   "priority": "high",
@@ -1278,17 +1471,20 @@ Content-Type: application/json
   "progress_percent": 0,
   "estimated_hours": 6,
   "actual_hours": 0,
+  "start_date": "2026-08-01",
   "deadline": "2026-08-10",
   "created_at": "2026-07-16T11:00:00Z"
 }
 ```
 خطاها: `400` (تسک شخصی باید به خودِ سازنده تخصیص یابد؛ یا `parent_task_id` در پروژهٔ دیگری است)، `403` (مجوز مدیریت پروژه ندارد)، `404` (پروژه پیدا نشد)، `422`.
 
+> `created_by_full_name` و `actual_hours` هیچ‌کدام ستون واقعی جدول `tasks` نیستند — هردو در لایهٔ سرویس محاسبه/پیوست می‌شوند (بخش «توضیح تمام جداول» بالا، جدول `tasks`).
+
 **`GET /api/v1/tasks`** — پارامترهای Query (همه اختیاری): `project_id`, `assignee_id`, `status` (`todo`/`in_progress`/`completed`/`archived`), `approval_status` (`pending`/`approved`/`rejected`), `overdue` (بولین)، `personal_only` (بولین). پاسخ: آرایه‌ای از `TaskOut`. خطاها: `403`/`404` اگر `project_id` داده شود و دسترسی نباشد.
 
 **`GET /api/v1/tasks/{task_id}`** — پاسخ: `TaskOut`. خطاها: `404`, `403` (تسک شخصیِ فرد دیگر، یا عدم عضویت در پروژه).
 
-**`PATCH /api/v1/tasks/{task_id}`** — بدنه (`TaskUpdate`، همه اختیاری): `title`, `description`, `assignee_id`, `priority`, `status`, `progress_percent` (۰..۱۰۰), `estimated_hours`, `deadline`. نمونهٔ کارمندی که فقط وضعیت خودش را عوض می‌کند:
+**`PATCH /api/v1/tasks/{task_id}`** — بدنه (`TaskUpdate`، همه اختیاری): `title`, `description`, `assignee_id`, `priority`, `status`, `progress_percent` (۰..۱۰۰), `estimated_hours`, `start_date`, `deadline`. نمونهٔ کارمندی که فقط وضعیت خودش را عوض می‌کند:
 ```json
 { "status": "completed", "progress_percent": 100 }
 ```
@@ -1570,6 +1766,60 @@ Content-Type: application/json
 **`PATCH /api/v1/calendar-events/{event_id}`** — بدنه (`CalendarEventUpdate`، همه اختیاری): `title`, `description`, `start_at`, `end_at`, `all_day`. خطاها: `400` (`end_at` قبل از `start_at`)، `403`, `404`.
 
 **`DELETE /api/v1/calendar-events/{event_id}`** — پاسخ: `204`. خطاها: `403`, `404`.
+
+---
+
+### گروه Leave Requests (`/api/v1/leave-requests`)
+
+> این گروه جایگزین رویدادهای تقویم از نوع `leave` شده (بخش «توضیح تمام جداول» بالا، جدول `leave_requests` را ببینید) — یک گردش‌کار اختصاصیِ درخواست/تأیید مرخصی، با بررسی در سطح کل سازمان (نه محدود به یک پروژه).
+
+| # | کاربرد | Method + مسیر | نقش مجاز |
+|---|---|---|---|
+| ۱ | ثبت درخواست مرخصی | `POST /api/v1/leave-requests` | هر عضو سازمان (برای خودش) |
+| ۲ | فهرست درخواست‌ها | `GET /api/v1/leave-requests` | هر عضو (فقط درخواست‌های خودش)؛ `org_admin`/`project_manager` همهٔ درخواست‌های سازمان |
+| ۳ | جزئیات یک درخواست | `GET /api/v1/leave-requests/{leave_request_id}` | درخواست‌دهنده یا `org_admin`/`project_manager` |
+| ۴ | تأیید درخواست | `POST /api/v1/leave-requests/{leave_request_id}/approve` | فقط `org_admin`/`project_manager` |
+| ۵ | رد درخواست | `POST /api/v1/leave-requests/{leave_request_id}/reject` | فقط `org_admin`/`project_manager` |
+
+**`POST /api/v1/leave-requests`** — بدنه (`LeaveRequestCreate`): `start_date` (تاریخ، اجباری)، `end_date` (تاریخ، اجباری، نباید قبل از `start_date` باشد)، `reason` (رشته، حداکثر ۲۰۰۰ کاراکتر، اختیاری). نمونه:
+```json
+{
+  "start_date": "2026-08-05",
+  "end_date": "2026-08-09",
+  "reason": "مرخصی استحقاقی سالانه"
+}
+```
+پاسخ (`201`, `LeaveRequestOut`):
+```json
+{
+  "id": "rr55ss66-...",
+  "organization_id": "b7d4a1c0-...",
+  "user_id": "9c1f2e3a-...",
+  "user_full_name": "علی رضایی",
+  "start_date": "2026-08-05",
+  "end_date": "2026-08-09",
+  "reason": "مرخصی استحقاقی سالانه",
+  "status": "pending",
+  "reviewed_by_id": null,
+  "review_comment": null,
+  "created_at": "2026-07-16T18:00:00Z"
+}
+```
+خطاها: `422` (`end_date` قبل از `start_date`، یا طول `reason` نامعتبر).
+
+**`GET /api/v1/leave-requests`** — بدون پارامتر. پاسخ: آرایه‌ای از `LeaveRequestOut`. کارمند عادی فقط درخواست‌های خودش را می‌بیند؛ `org_admin`/`project_manager` همهٔ درخواست‌های سازمان را می‌بینند (مرتب‌شده از جدیدترین به قدیمی‌ترین).
+
+**`GET /api/v1/leave-requests/{leave_request_id}`** — پاسخ: `LeaveRequestOut`. خطاها: `404` (پیدا نشد)، `403` (نه درخواست‌دهنده است، نه org_admin/project_manager).
+
+**`POST /api/v1/leave-requests/{leave_request_id}/approve`** — بدون بدنه. پاسخ: `LeaveRequestOut` با `status: "approved"` و `reviewed_by_id` پرشده. خطاها: `403` (نقش مجاز به بررسی نیست)، `404`، `400` (درخواست از قبل `pending` نیست).
+
+**`POST /api/v1/leave-requests/{leave_request_id}/reject`** — بدنه (`LeaveRequestReview`): `{"review_comment": "string(حداکثر ۲۰۰۰ کاراکتر), اختیاری"}`. نمونه:
+```json
+{ "review_comment": "در این بازه تیم نیاز به حضور شما دارد؛ لطفاً تاریخ دیگری پیشنهاد دهید." }
+```
+پاسخ: `LeaveRequestOut` با `status: "rejected"`. خطاها: مشابه approve + `422`.
+
+> **اعلان:** تأیید/رد یک درخواست، یک اعلان `leave_reviewed` برای درخواست‌دهنده می‌سازد — مگر این‌که بررسی‌کننده همان درخواست‌دهنده باشد (که در این حالت هیچ اعلانی به خودش ساخته نمی‌شود؛ همان الگوی اعلان‌های تأیید/رد گزارش کاری).
 
 ---
 
