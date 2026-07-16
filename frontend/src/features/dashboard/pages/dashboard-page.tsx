@@ -1,13 +1,30 @@
+import type { ReactElement } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Link } from "react-router-dom"
-import { Bar, BarChart, CartesianGrid, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  LabelList,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts"
 import { CheckCircle2, ClipboardList, Clock, FolderKanban, Users } from "lucide-react"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
 import { getDashboardSummary } from "@/features/dashboard/api"
 import type { StatusCount } from "@/features/dashboard/api"
+import { hoursByProject, projectProgress, userProductivity, weeklyActivity } from "@/features/dashboard/chart-utils"
 import { listOrgUsers } from "@/features/users/api"
+import { listProjects } from "@/features/projects/api"
+import { listAllTasks } from "@/features/tasks/api"
+import { getWorklogReport } from "@/features/reports/api"
 import { useAuthStore } from "@/features/auth/auth-store"
 
 const TEAM_MEMBER_COLORS = [
@@ -93,10 +110,62 @@ function SectionLabel({ children }: { children: string }) {
   return <h2 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{children}</h2>
 }
 
+function ChartCard({
+  title,
+  isLoading,
+  isEmpty,
+  emptyMessage,
+  height,
+  children,
+}: {
+  title: string
+  isLoading: boolean
+  isEmpty: boolean
+  emptyMessage: string
+  height: number
+  children: ReactElement
+}) {
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader>
+        <CardTitle className="text-base">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {isLoading && <EmptyState className="h-[240px]" message="در حال بارگذاری..." />}
+        {!isLoading && isEmpty && <EmptyState className="h-[220px]" message={emptyMessage} />}
+        {!isLoading && !isEmpty && (
+          <ResponsiveContainer width="100%" height={height}>
+            {children}
+          </ResponsiveContainer>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function ProductivityTooltip({ active, payload }: any) {
+  if (!active || !payload?.length) return null
+  const p = payload[0].payload
+  return (
+    <div className="rounded-lg border border-border bg-card px-3 py-2 text-xs shadow-md">
+      <p className="mb-1 font-medium">{p.full_name}</p>
+      <p>ساعت کاری: {p.hours}</p>
+      <p>تعداد وظایف: {p.task_count}</p>
+      <p>درصد تکمیل: {p.completion_percent}٪</p>
+    </div>
+  )
+}
+
 export function DashboardPage() {
   const isOrgAdmin = useAuthStore((s) => s.user?.role === "org_admin")
   const { data, isLoading, isError } = useQuery({ queryKey: ["dashboard-summary"], queryFn: getDashboardSummary })
-  const { data: orgUsers } = useQuery({ queryKey: ["org-users"], queryFn: listOrgUsers, enabled: isOrgAdmin })
+  const { data: orgUsers } = useQuery({ queryKey: ["org-users"], queryFn: listOrgUsers })
+  const { data: projects } = useQuery({ queryKey: ["projects", "dashboard"], queryFn: listProjects })
+  const { data: tasks } = useQuery({ queryKey: ["tasks", "dashboard-all"], queryFn: () => listAllTasks() })
+  const { data: worklogReport, isLoading: isReportLoading } = useQuery({
+    queryKey: ["worklog-report", "dashboard"],
+    queryFn: () => getWorklogReport({}),
+  })
 
   if (isLoading) {
     return <p className="text-muted-foreground">در حال بارگذاری داشبورد...</p>
@@ -107,6 +176,14 @@ export function DashboardPage() {
 
   const doneCount = data.tasks_by_status.find((s) => s.status === "completed")?.count ?? 0
   const chartData = taskStatusChartData(data.tasks_by_status)
+  const teamHoursData = [...data.team_hours].sort((a, b) => b.approved_hours - a.approved_hours)
+  const projectHours = worklogReport ? hoursByProject(worklogReport.items) : []
+  const productivity =
+    worklogReport && tasks && orgUsers
+      ? userProductivity(worklogReport.items, tasks, orgUsers).slice(0, 8)
+      : []
+  const activity = worklogReport ? weeklyActivity(worklogReport.items) : []
+  const progress = tasks && projects ? projectProgress(tasks, projects).slice(0, 8) : []
 
   return (
     <div className="flex flex-col gap-6">
@@ -134,59 +211,139 @@ export function DashboardPage() {
       <div className="flex flex-col gap-4">
         <SectionLabel>نمودارها</SectionLabel>
 
-        <div className="grid grid-cols-1 gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">وضعیت وظایف</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {chartData.length === 0 ? (
-                <EmptyState className="h-[220px]" message="هنوز وظیفه‌ای ثبت نشده است." />
-              ) : (
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-                    <Tooltip />
-                    <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                      <LabelList dataKey="value" position="top" style={{ fontSize: 12 }} />
-                      {chartData.map((entry) => (
-                        <Cell key={entry.name} fill={entry.color} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <ChartCard
+            title="وضعیت وظایف"
+            isLoading={false}
+            isEmpty={chartData.length === 0}
+            emptyMessage="هنوز وظیفه‌ای ثبت نشده است."
+            height={240}
+          >
+            <BarChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+              <Tooltip />
+              <Bar dataKey="value" radius={[6, 6, 0, 0]} animationDuration={700}>
+                <LabelList dataKey="value" position="top" style={{ fontSize: 12 }} />
+                {chartData.map((entry) => (
+                  <Cell key={entry.name} fill={entry.color} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ChartCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">ساعات کاری اعضای تیم</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {data.team_hours.length === 0 ? (
-              <EmptyState className="h-[240px]" message="هنوز گزارش کاری تأییدشده‌ای وجود ندارد." />
-            ) : (
-              <ResponsiveContainer width="100%" height={240}>
-                <BarChart data={[...data.team_hours].sort((a, b) => b.approved_hours - a.approved_hours)}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="full_name" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} />
-                  <Tooltip />
-                  <Bar dataKey="approved_hours" radius={[4, 4, 0, 0]} maxBarSize={64}>
-                    <LabelList dataKey="approved_hours" position="top" style={{ fontSize: 12 }} />
-                    {data.team_hours.map((entry, index) => (
-                      <Cell key={entry.user_id} fill={TEAM_MEMBER_COLORS[index % TEAM_MEMBER_COLORS.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
+          <ChartCard
+            title="مقایسهٔ ساعات کاری اعضای تیم"
+            isLoading={false}
+            isEmpty={teamHoursData.length === 0}
+            emptyMessage="هنوز گزارش کاری تأییدشده‌ای وجود ندارد."
+            height={240}
+          >
+            <BarChart data={teamHoursData} layout="vertical" margin={{ left: 12 }}>
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+              <XAxis type="number" tick={{ fontSize: 12 }} />
+              <YAxis type="category" dataKey="full_name" width={90} tick={{ fontSize: 12 }} />
+              <Tooltip />
+              <Bar dataKey="approved_hours" radius={[0, 6, 6, 0]} maxBarSize={26} animationDuration={700}>
+                <LabelList dataKey="approved_hours" position="right" style={{ fontSize: 12 }} />
+                {teamHoursData.map((entry, index) => (
+                  <Cell key={entry.user_id} fill={TEAM_MEMBER_COLORS[index % TEAM_MEMBER_COLORS.length]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ChartCard>
+
+          <ChartCard
+            title="ساعات ثبت‌شده به تفکیک پروژه"
+            isLoading={isReportLoading}
+            isEmpty={projectHours.length === 0}
+            emptyMessage="هنوز گزارش کاری تأییدشده‌ای وجود ندارد."
+            height={240}
+          >
+            <BarChart data={projectHours} layout="vertical" margin={{ left: 12 }}>
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+              <XAxis type="number" tick={{ fontSize: 12 }} />
+              <YAxis type="category" dataKey="project_name" width={110} tick={{ fontSize: 12 }} />
+              <Tooltip />
+              <Bar dataKey="hours" fill="var(--color-info)" radius={[0, 6, 6, 0]} maxBarSize={26} animationDuration={700}>
+                <LabelList dataKey="hours" position="right" style={{ fontSize: 12 }} />
+              </Bar>
+            </BarChart>
+          </ChartCard>
+
+          <ChartCard
+            title="بهره‌وری کاربران"
+            isLoading={isReportLoading}
+            isEmpty={productivity.length === 0}
+            emptyMessage="هنوز داده‌ای برای بهره‌وری وجود ندارد."
+            height={240}
+          >
+            <BarChart data={productivity} layout="vertical" margin={{ left: 12 }}>
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+              <XAxis type="number" tick={{ fontSize: 12 }} />
+              <YAxis type="category" dataKey="full_name" width={90} tick={{ fontSize: 12 }} />
+              <Tooltip content={<ProductivityTooltip />} />
+              <Bar dataKey="hours" fill="var(--color-secondary)" radius={[0, 6, 6, 0]} maxBarSize={26} animationDuration={700}>
+                {productivity.map((entry, index) => (
+                  <Cell key={entry.user_id} fill={TEAM_MEMBER_COLORS[index % TEAM_MEMBER_COLORS.length]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ChartCard>
+
+          <ChartCard
+            title="فعالیت هفتگی تیم"
+            isLoading={isReportLoading}
+            isEmpty={activity.length === 0}
+            emptyMessage="هنوز فعالیتی برای نمایش روند هفتگی وجود ندارد."
+            height={240}
+          >
+            <AreaChart data={activity}>
+              <defs>
+                <linearGradient id="activityGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.4} />
+                  <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis
+                dataKey="week_start"
+                tick={{ fontSize: 12 }}
+                tickFormatter={(v) => new Date(v).toLocaleDateString("fa-IR")}
+              />
+              <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+              <Tooltip labelFormatter={(v) => new Date(v).toLocaleDateString("fa-IR")} />
+              <Area
+                type="monotone"
+                dataKey="active_users"
+                name="کاربران فعال"
+                stroke="var(--color-primary)"
+                fill="url(#activityGradient)"
+                strokeWidth={2}
+                animationDuration={700}
+              />
+            </AreaChart>
+          </ChartCard>
+
+          <ChartCard
+            title="روند پیشرفت پروژه‌ها"
+            isLoading={false}
+            isEmpty={progress.length === 0}
+            emptyMessage="هنوز داده‌ای برای پیشرفت پروژه‌ها وجود ندارد."
+            height={240}
+          >
+            <BarChart data={progress} layout="vertical" margin={{ left: 12 }}>
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+              <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 12 }} />
+              <YAxis type="category" dataKey="project_name" width={110} tick={{ fontSize: 12 }} />
+              <Tooltip formatter={(v) => `${v}٪`} />
+              <Bar dataKey="percent" fill="var(--color-success)" radius={[0, 6, 6, 0]} maxBarSize={26} animationDuration={700}>
+                <LabelList dataKey="percent" position="right" formatter={(v) => `${v}٪`} style={{ fontSize: 12 }} />
+              </Bar>
+            </BarChart>
+          </ChartCard>
+        </div>
       </div>
 
       <div className="border-t border-border" />
