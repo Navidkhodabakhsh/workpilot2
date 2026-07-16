@@ -4,8 +4,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { Plus } from "lucide-react"
+import { Pencil, Plus, UserPlus, X } from "lucide-react"
 
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -18,7 +19,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { getProject } from "@/features/projects/api"
+import {
+  addProjectMember,
+  getProject,
+  listProjectMembers,
+  removeProjectMember,
+  updateProject,
+} from "@/features/projects/api"
 import { createTask, listTasks } from "@/features/tasks/api"
 import { STATUS_COLUMNS } from "@/features/tasks/constants"
 import { listOrgUsers } from "@/features/users/api"
@@ -33,11 +40,25 @@ const schema = z.object({
 })
 type FormValues = z.infer<typeof schema>
 
+const editSchema = z.object({
+  name: z.string().min(2, "نام پروژه را وارد کنید"),
+  description: z.string().optional(),
+  cooperation_start_date: z.string().optional(),
+  start_date: z.string().optional(),
+  end_date: z.string().optional(),
+  manager_id: z.string().optional(),
+})
+type EditFormValues = z.infer<typeof editSchema>
+
 export function ProjectDetailPage() {
   const { projectId } = useParams<{ projectId: string }>()
   const role = useAuthStore((s) => s.user?.role)
+  const isOrgAdmin = role === "org_admin"
   const canManage = role === "org_admin" || role === "project_manager"
   const [open, setOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
+  const [addMemberOpen, setAddMemberOpen] = useState(false)
+  const [newMemberId, setNewMemberId] = useState("")
   const queryClient = useQueryClient()
 
   const { data: project } = useQuery({
@@ -51,6 +72,11 @@ export function ProjectDetailPage() {
     enabled: !!projectId,
   })
   const { data: users } = useQuery({ queryKey: ["org-users"], queryFn: listOrgUsers })
+  const { data: members } = useQuery({
+    queryKey: ["project-members", projectId],
+    queryFn: () => listProjectMembers(projectId!),
+    enabled: !!projectId,
+  })
 
   const form = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { title: "", assignee_id: "" } })
 
@@ -68,6 +94,50 @@ export function ProjectDetailPage() {
     },
   })
 
+  const editForm = useForm<EditFormValues>({ resolver: zodResolver(editSchema) })
+
+  const updateMutation = useMutation({
+    mutationFn: (values: EditFormValues) =>
+      updateProject(projectId!, { ...values, manager_id: values.manager_id || undefined }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["project", projectId] })
+      queryClient.invalidateQueries({ queryKey: ["project-members", projectId] })
+      setEditOpen(false)
+    },
+  })
+
+  function openEdit() {
+    if (!project) return
+    editForm.reset({
+      name: project.name,
+      description: project.description ?? "",
+      cooperation_start_date: project.cooperation_start_date ?? "",
+      start_date: project.start_date ?? "",
+      end_date: project.end_date ?? "",
+      manager_id: project.manager_id ?? "",
+    })
+    setEditOpen(true)
+  }
+
+  const addMemberMutation = useMutation({
+    mutationFn: (userId: string) => addProjectMember(projectId!, userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["project-members", projectId] })
+      setAddMemberOpen(false)
+      setNewMemberId("")
+    },
+  })
+
+  const removeMemberMutation = useMutation({
+    mutationFn: (userId: string) => removeProjectMember(projectId!, userId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["project-members", projectId] }),
+  })
+
+  const memberUsers = (members ?? [])
+    .map((m) => users?.find((u) => u.id === m.user_id))
+    .filter((u): u is NonNullable<typeof u> => !!u)
+  const nonMemberUsers = (users ?? []).filter((u) => !memberUsers.some((m) => m.id === u.id))
+
   if (!project || !tasks || !users) {
     return <p className="text-muted-foreground">در حال بارگذاری...</p>
   }
@@ -81,6 +151,12 @@ export function ProjectDetailPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <ExportDialog projectId={projectId!} />
+          {canManage && (
+            <Button variant="secondary" onClick={openEdit}>
+              <Pencil className="size-4" />
+              ویرایش پروژه
+            </Button>
+          )}
           {canManage && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
@@ -123,6 +199,119 @@ export function ProjectDetailPage() {
             </DialogContent>
           </Dialog>
           )}
+        </div>
+      </div>
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>ویرایش پروژه</DialogTitle>
+            <DialogDescription>اطلاعات پروژه را به‌روزرسانی کنید</DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={editForm.handleSubmit((values) => updateMutation.mutate(values))}
+            className="flex flex-col gap-4"
+          >
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="edit-name">نام پروژه</Label>
+              <Input id="edit-name" {...editForm.register("name")} />
+              {editForm.formState.errors.name && (
+                <p className="text-sm text-danger">{editForm.formState.errors.name.message}</p>
+              )}
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="edit-description">توضیحات</Label>
+              <Input id="edit-description" {...editForm.register("description")} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="edit-cooperation-start">تاریخ شروع همکاری</Label>
+                <Input id="edit-cooperation-start" type="date" {...editForm.register("cooperation_start_date")} />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="edit-start-date">تاریخ شروع پروژه</Label>
+                <Input id="edit-start-date" type="date" {...editForm.register("start_date")} />
+              </div>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="edit-end-date">تاریخ پایان</Label>
+              <Input id="edit-end-date" type="date" {...editForm.register("end_date")} />
+            </div>
+            {isOrgAdmin && (
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="edit-manager">مدیر پروژه</Label>
+                <Select id="edit-manager" {...editForm.register("manager_id")}>
+                  <option value="">بدون مدیر مشخص</option>
+                  {users
+                    .filter((u) => u.role === "org_admin" || u.role === "project_manager")
+                    .map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.full_name}
+                      </option>
+                    ))}
+                </Select>
+              </div>
+            )}
+            <Button type="submit" disabled={updateMutation.isPending}>
+              {updateMutation.isPending ? "در حال ذخیره..." : "ذخیرهٔ تغییرات"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <div className="rounded-lg border p-4">
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold">اعضای پروژه</h2>
+          {canManage && (
+            <Dialog open={addMemberOpen} onOpenChange={setAddMemberOpen}>
+              <DialogTrigger asChild>
+                <Button variant="secondary" size="sm">
+                  <UserPlus className="size-4" />
+                  افزودن عضو
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>افزودن عضو به پروژه</DialogTitle>
+                  <DialogDescription>یک کاربر سازمان را به این پروژه اضافه کنید</DialogDescription>
+                </DialogHeader>
+                <div className="flex flex-col gap-4">
+                  <Select value={newMemberId} onChange={(e) => setNewMemberId(e.target.value)}>
+                    <option value="">انتخاب کاربر</option>
+                    {nonMemberUsers.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.full_name}
+                      </option>
+                    ))}
+                  </Select>
+                  <Button
+                    disabled={!newMemberId || addMemberMutation.isPending}
+                    onClick={() => addMemberMutation.mutate(newMemberId)}
+                  >
+                    {addMemberMutation.isPending ? "در حال افزودن..." : "افزودن"}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {memberUsers.length === 0 && <p className="text-sm text-muted-foreground">هنوز عضوی اضافه نشده است.</p>}
+          {memberUsers.map((u) => (
+            <Badge key={u.id} variant="default" className="flex items-center gap-1.5 py-1.5">
+              {u.full_name}
+              {canManage && (
+                <button
+                  type="button"
+                  aria-label={`حذف ${u.full_name} از پروژه`}
+                  onClick={() => removeMemberMutation.mutate(u.id)}
+                  className="rounded-full hover:bg-black/10"
+                >
+                  <X className="size-3" />
+                </button>
+              )}
+            </Badge>
+          ))}
         </div>
       </div>
 

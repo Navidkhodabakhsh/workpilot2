@@ -9,10 +9,12 @@ export type Project = {
   organization_id: string
   name: string
   description: string | null
+  cooperation_start_date: string | null
   start_date: string | null
   end_date: string | null
   status: ProjectStatus
   created_by_id: string
+  manager_id: string | null
   created_at: string
 }
 
