@@ -17,6 +17,10 @@ export function notificationMessage(notification: Notification): string {
       return `${payload.author_full_name} روی «${payload.task_title}» نظر جدیدی ثبت کرد`
     case "event_reminder":
       return `یادآوری رویداد «${payload.title}» نزدیک است`
+    case "leave_reviewed":
+      return payload.status === "approved"
+        ? "درخواست مرخصی شما تأیید شد"
+        : `درخواست مرخصی شما رد شد: ${payload.review_comment ?? ""}`
     default:
       return "اعلان جدید"
   }

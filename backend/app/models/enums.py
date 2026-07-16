@@ -47,6 +47,7 @@ class NotificationType(str, enum.Enum):
     report_reviewed = "report_reviewed"
     comment_added = "comment_added"
     event_reminder = "event_reminder"
+    leave_reviewed = "leave_reviewed"
 
 
 class CalendarEventType(str, enum.Enum):

@@ -44,7 +44,9 @@ const DAY_TITLE_FORMATTER = new Intl.DateTimeFormat("fa-IR", {
 })
 const DAY_NUMBER_FORMATTER = new Intl.DateTimeFormat("fa-IR", { calendar: "persian", day: "numeric" })
 
-const FILTERABLE_TYPES: (CalendarEventType | "task")[] = ["task", "meeting", "leave", "holiday", "reminder"]
+// "leave" is deliberately excluded: leave is now handled by the dedicated
+// Leave Request workflow (/leave) and must never appear on the calendar.
+const FILTERABLE_TYPES: (CalendarEventType | "task")[] = ["task", "meeting", "holiday", "reminder"]
 const FILTER_LABEL: Record<CalendarEventType | "task", string> = { task: "مهلت وظایف", ...EVENT_TYPE_LABEL }
 const FILTER_COLOR: Record<CalendarEventType | "task", string> = { task: TASK_EVENT_COLOR, ...EVENT_TYPE_COLOR }
 

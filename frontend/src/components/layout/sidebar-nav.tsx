@@ -10,6 +10,7 @@ import {
   MessageSquare,
   Files,
   Archive,
+  Plane,
   Settings,
 } from "lucide-react"
 import { NavLink } from "react-router-dom"
@@ -40,6 +41,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/messages", label: "پیام‌ها", icon: MessageSquare },
   { to: "/files", label: "فایل‌ها", icon: Files },
   { to: "/archive", label: "بایگانی", icon: Archive },
+  { to: "/leave", label: "مرخصی", icon: Plane },
   { to: "/settings", label: "تنظیمات", icon: Settings },
 ]
 

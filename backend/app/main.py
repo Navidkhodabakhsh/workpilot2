@@ -11,6 +11,7 @@ from app.api.routers import (
     departments,
     exports,
     health,
+    leave_requests,
     notifications,
     organizations,
     payments,
@@ -52,3 +53,4 @@ app.include_router(attachments.attachments_router, prefix=settings.api_v1_prefix
 app.include_router(calendar_events.router, prefix=settings.api_v1_prefix)
 app.include_router(payments.router, prefix=settings.api_v1_prefix)
 app.include_router(departments.router, prefix=settings.api_v1_prefix)
+app.include_router(leave_requests.router, prefix=settings.api_v1_prefix)

@@ -6,6 +6,7 @@ from app.models.calendar_event import CalendarEvent
 from app.models.collaboration import Attachment, Comment
 from app.models.department import Department
 from app.models.export_job import ExportJob
+from app.models.leave_request import LeaveRequest
 from app.models.notification import Notification
 from app.models.organization import Organization
 from app.models.otp_code import OtpCode
@@ -23,6 +24,7 @@ __all__ = [
     "Comment",
     "Department",
     "ExportJob",
+    "LeaveRequest",
     "Notification",
     "Organization",
     "OtpCode",

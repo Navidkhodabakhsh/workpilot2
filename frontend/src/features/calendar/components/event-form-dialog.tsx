@@ -76,7 +76,7 @@ export function EventFormDialog({
     } else {
       setTitle("")
       setDescription("")
-      setEventType(canManageOrgWide ? "meeting" : "leave")
+      setEventType(canManageOrgWide ? "meeting" : "reminder")
       setProjectId("")
     }
     if (source) {
@@ -146,9 +146,9 @@ export function EventFormDialog({
   }
 
   const busy = createMutation.isPending || updateMutation.isPending || deleteMutation.isPending
-  const availableTypes: CalendarEventType[] = canManageOrgWide
-    ? ["meeting", "holiday", "leave", "reminder"]
-    : ["leave", "reminder"]
+  // "leave" is intentionally excluded here: it's now handled by the
+  // dedicated Leave Request workflow (/leave), not as a calendar event.
+  const availableTypes: CalendarEventType[] = canManageOrgWide ? ["meeting", "holiday", "reminder"] : ["reminder"]
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

@@ -7,6 +7,7 @@ export type NotificationType =
   | "report_reviewed"
   | "comment_added"
   | "event_reminder"
+  | "leave_reviewed"
 
 export type Notification = {
   id: string
