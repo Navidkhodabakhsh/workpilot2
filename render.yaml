@@ -1,22 +1,29 @@
 services:
-  # ۱. کانفیگ مربوط به فرانت‌اند (React)
+  # 1. Frontend Configuration (React)
   - type: web
     name: workpilot-frontend
     runtime: static
     buildCommand: npm run build
-    publishDir: dist # یا build بسته به کانفیگ ویپک/ویت پروژه‌ات
+    publishDir: dist
     routes:
       - src: /*
         dest: /index.html
 
-  # ۲. کانفیگ مربوط به بک‌اند (ASP.NET Core)
+  # 2. Backend Configuration (ASP.NET Core)
   - type: web
     name: workpilot-backend
-    runtime: docker # رندر برای دات‌نت بهترین حالتش استفاده از داکر است
+    runtime: docker
     buildCommand: ""
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
+
+databases:
+  # 3. Database Configuration (PostgreSQL)
+  - name: workpilot-db
+    databaseName: workpilot
+    user: workpilot_user
+    plan: free
 
 databases:
   # ۳. دیتابیس (پستگرس یا هر دیتابیسی که در Phase 0 در نظر داری)
