@@ -2,12 +2,12 @@ services:
   # 1. Frontend Configuration (React)
   - type: web
     name: workpilot-frontend
-    runtime: static
-    buildCommand: npm run build
-    publishDir: dist
-    routes:
-      - src: /*
-        dest: /index.html
+    runtime: node
+    buildCommand: npm install && npm run build
+    startCommand: npx serve -s dist
+    envVars:
+      - key: NODE_ENV
+        value: production
 
   # 2. Backend Configuration (ASP.NET Core)
   - type: web
