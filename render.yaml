@@ -24,9 +24,3 @@ databases:
     databaseName: workpilot
     user: workpilot_user
     plan: free
-
-databases:
-  # ۳. دیتابیس (پستگرس یا هر دیتابیسی که در Phase 0 در نظر داری)
-  - name: workpilot-db
-    databaseName: workpilot
-    user: workpilot_user
