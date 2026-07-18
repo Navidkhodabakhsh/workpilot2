@@ -1,21 +1,19 @@
-name: Claude Code Action
+name: Claude Code Review
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  issue_comment:
-    types: [ created ]
 
 jobs:
-  claude_review:
+  review:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Run Claude Code Action
-        uses: anthropics/claude-code-action@v1
-        env:
+      - name: Claude AI Code Review
+        uses: anton-poot/claude-code-review-action@v1.3.0
+        with:
           CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
