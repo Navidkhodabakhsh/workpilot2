@@ -17,10 +17,3 @@ services:
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
-
-databases:
-  # 3. Database Configuration (PostgreSQL)
-  - name: workpilot-db
-    databaseName: workpilot
-    user: workpilot_user
-    plan: free
