@@ -1,19 +1,60 @@
-services:
-  # 1. Frontend Configuration (React)
-  - type: web
-    name: workpilot-frontend
-    runtime: node
-    buildCommand: npm install && npm run build
-    startCommand: npx serve -s dist
-    envVars:
-      - key: NODE_ENV
-        value: production
+databases:
+  # PostgreSQL — matches backend/app/core/config.py::database_url
+  - name: workpilot-db
+    databaseName: workpilot
+    user: workpilot_user
+    plan: free
 
-  # 2. Backend Configuration (ASP.NET Core)
+services:
+  # Redis (Key Value) — required by app/core/rate_limit.py for login/OTP
+  # rate limiting; without it every login request raises and 500s.
+  - type: keyvalue
+    name: workpilot-redis
+    plan: free
+    maxmemoryPolicy: allkeys-lru
+
+  # Backend: FastAPI (Python), built from backend/Dockerfile.
   - type: web
     name: workpilot-backend
     runtime: docker
-    buildCommand: ""
+    rootDir: backend
+    plan: free
     envVars:
-      - key: ASPNETCORE_ENVIRONMENT
-        value: Production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: workpilot-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: workpilot-redis
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: RUN_MIGRATIONS
+        value: "true"
+      - key: COOKIE_SECURE
+        value: "true"
+      # Must list the frontend's actual origin(s) -- CORS is credentialed
+      # (see app/main.py), so a wildcard won't work. Update this if the
+      # frontend service ends up on a different onrender.com subdomain.
+      - key: CORS_ORIGINS
+        value: '["https://workpilot-frontend.onrender.com"]'
+
+  # Frontend: Vite + React static build.
+  - type: web
+    name: workpilot-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      # Baked in at build time -- must be the backend's public URL, not an
+      # internal hostname. Update this if the backend ends up on a
+      # different onrender.com subdomain.
+      - key: VITE_API_BASE_URL
+        value: https://workpilot-backend.onrender.com
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

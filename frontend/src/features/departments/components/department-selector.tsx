@@ -5,12 +5,16 @@ import { Select } from "@/components/ui/select"
 import { listDepartments } from "@/features/departments/api"
 import { useDepartmentStore } from "@/features/departments/department-store"
 
+// Temporarily disabled per user request -- re-enable by removing this early
+// return once the department filter is ready to ship.
+const DISABLED = true
+
 export function DepartmentSelector() {
   const { data: departments } = useQuery({ queryKey: ["departments"], queryFn: listDepartments })
   const selectedDepartmentId = useDepartmentStore((s) => s.selectedDepartmentId)
   const setSelectedDepartmentId = useDepartmentStore((s) => s.setSelectedDepartmentId)
 
-  if (!departments || departments.length === 0) return null
+  if (DISABLED || !departments || departments.length === 0) return null
 
   return (
     <div className="hidden items-center gap-1.5 sm:flex">
