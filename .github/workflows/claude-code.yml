@@ -12,9 +12,14 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Claude AI Chat
-        uses: coleanthony9/claude-action@v1.0.3
-        with:
-          prompt: "Please review the latest changes in this commit and provide feedback."
-        env:
-          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+      - name: Call Claude API Directly
+        run: |
+          curl https://api.anthropic.com/v1/messages \
+            -H "x-api-key: ${{ secrets.CLAUDE_API_KEY }}" \
+            -H "anthropic-version: 2023-06-01" \
+            -H "content-type: application/json" \
+            -d '{
+              "model": "claude-3-5-sonnet-20240620",
+              "max_tokens": 1024,
+              "messages": [{"role": "user", "content": "Please review the repository structure and latest changes."}]
+            }'
