@@ -50,7 +50,15 @@ skill/        → Skill های Claude نصب‌شده در این مخزن
 
 ## نحوهٔ اجرا (Local Development)
 
-### با Docker (روش پیشنهادی)
+### نصب یک‌مرحله‌ای روی اوبونتو
+
+```bash
+./install.sh
+```
+
+این اسکریپت در صورت نیاز Docker را نصب می‌کند، `backend/.env` را با یک `SECRET_KEY` تصادفی می‌سازد، و کل استک (`docker compose up -d --build`) را بالا می‌آورد.
+
+### با Docker (روش پیشنهادی، دستی)
 
 ```bash
 cp backend/.env.example backend/.env    # اختیاری برای اجرای محلی؛ برای production حتماً SECRET_KEY را عوض کنید
