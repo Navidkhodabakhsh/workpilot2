@@ -27,3 +27,6 @@ dist-ssr/
 .DS_Store
 .vscode/
 .idea/
+
+# Local Redis dump (created when running the rate-limit tests locally)
+dump.rdb
