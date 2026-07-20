@@ -3,36 +3,30 @@
 # Run from inside the extracted project directory: ./install.sh
 set -euo pipefail
 
-# docker info (not just `command -v docker`) catches both "not installed"
-# and "installed but this user isn't in the docker group yet / socket
-# permission denied" -- the latter is common right after a fresh install.
-if ! docker info &>/dev/null 2>&1; then
-  if ! command -v docker &>/dev/null; then
-    echo "Docker not found -- installing..."
-    sudo apt-get update
-    sudo apt-get install -y docker.io docker-compose-plugin
-    sudo systemctl enable --now docker
-  fi
-
-  if ! groups "$USER" | grep -qw docker; then
-    sudo usermod -aG docker "$USER"
-  fi
-
-  if [ -z "${WP_INSTALL_SG_RETRY:-}" ]; then
-    # Re-exec this same script with the docker group active in a fresh
-    # subshell (via `sg`), instead of making the user log out/in just to
-    # pick up group membership.
-    echo "Applying docker-group permissions for this session..."
-    export WP_INSTALL_SG_RETRY=1
-    exec sg docker -c "$0"
-  else
-    echo "Still can't reach the Docker daemon after adding you to the docker group." >&2
-    echo "Log out and back in (or reboot), then re-run ./install.sh." >&2
-    exit 1
-  fi
+if ! command -v docker &>/dev/null; then
+  echo "Docker not found -- installing..."
+  sudo apt-get update
+  sudo apt-get install -y docker.io docker-compose-plugin
+  sudo systemctl enable --now docker
 fi
 
-if ! docker compose version &>/dev/null; then
+# `docker info` (not just `command -v docker`) also catches "installed but
+# this user isn't in the docker group yet" (permission denied on the
+# socket) -- common right after a fresh install, since group membership
+# only takes effect in a new login session. Rather than force a
+# logout/reboot mid-script, fall back to `sudo docker`/`sudo docker
+# compose` for this run, while still fixing group membership for next time.
+COMPOSE="docker compose"
+if ! docker info &>/dev/null 2>&1; then
+  if ! groups "$USER" | grep -qw docker; then
+    sudo usermod -aG docker "$USER"
+    echo "Added $USER to the docker group (active starting next login)."
+  fi
+  echo "Docker group membership isn't active in this shell yet -- using sudo for this run."
+  COMPOSE="sudo docker compose"
+fi
+
+if ! $COMPOSE version &>/dev/null; then
   echo "docker compose plugin not found -- installing..."
   sudo apt-get update
   sudo apt-get install -y docker-compose-plugin
@@ -47,9 +41,9 @@ if [ ! -f backend/.env ]; then
   echo "Created backend/.env (with a random SECRET_KEY)."
 fi
 
-docker compose up -d --build
+$COMPOSE up -d --build
 
-cat <<'EOF'
+cat <<EOF
 
 Done. WorkPilot is starting up:
   Frontend:      http://localhost:5173
@@ -61,9 +55,9 @@ account's password is Test@1234). If you ran this stack before on this
 machine without seed data, the old database volume already exists and
 won't get reseeded automatically; run this once to force a clean, seeded
 database:
-  docker compose down -v && docker compose up -d --build
+  $COMPOSE down -v && $COMPOSE up -d --build
 
-Check status with:   docker compose ps
-Follow logs with:    docker compose logs -f
-Stop everything with: docker compose down
+Check status with:    $COMPOSE ps
+Follow logs with:     $COMPOSE logs -f
+Stop everything with: $COMPOSE down
 EOF
