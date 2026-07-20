@@ -4,6 +4,7 @@ import { MessageSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { TableRowsSkeleton } from "@/components/ui/table-rows-skeleton"
 import { TaskDetailDialog } from "@/features/tasks/components/task-detail-dialog"
 import { listAllTasks } from "@/features/tasks/api"
 import { listProjects } from "@/features/projects/api"
@@ -24,11 +25,9 @@ export function MessagesPage() {
         </p>
       </div>
 
-      {isLoading && <p className="text-muted-foreground">در حال بارگذاری...</p>}
-
       {!isLoading && (!tasks || tasks.length === 0) && <EmptyState icon={MessageSquare} message="وظیفه‌ای یافت نشد." />}
 
-      {!isLoading && tasks && tasks.length > 0 && (
+      {(isLoading || (tasks && tasks.length > 0)) && (
         <Table>
           <TableHeader>
             <TableRow>
@@ -38,7 +37,8 @@ export function MessagesPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {tasks.map((task) => (
+            {isLoading && <TableRowsSkeleton columns={3} />}
+            {!isLoading && tasks?.map((task) => (
               <TableRow key={task.id}>
                 <TableCell className="font-medium">{task.title}</TableCell>
                 <TableCell>{projectName(task.project_id)}</TableCell>

@@ -15,11 +15,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { Card, CardContent } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Input } from "@/components/ui/input"
 import { JalaliDateInput } from "@/components/ui/jalali-date-input"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
+import { Skeleton } from "@/components/ui/skeleton"
 import { createTask, getTask, listAllTasks } from "@/features/tasks/api"
 import type { TaskFilters } from "@/features/tasks/api"
 import { PRIORITY_LABEL, STATUS_COLUMNS } from "@/features/tasks/constants"
@@ -388,7 +390,22 @@ export function TasksListPage() {
         </Select>
       </div>
 
-      {isLoading && <p className="text-muted-foreground">در حال بارگذاری...</p>}
+      {isLoading && (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 6 }, (_, i) => (
+            <Card key={i} className="border-border/70">
+              <CardContent className="flex flex-col gap-2.5 pt-5">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3.5 w-1/2" />
+                <div className="flex gap-1.5">
+                  <Skeleton className="h-5 w-14 rounded-full" />
+                  <Skeleton className="h-5 w-14 rounded-full" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {!isLoading && ordered.length === 0 && (
         <EmptyState

@@ -8,6 +8,7 @@ import { Plus } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { JalaliDateInput } from "@/components/ui/jalali-date-input"
@@ -196,14 +197,29 @@ export function ProjectsListPage() {
         )}
       </div>
 
-      {isLoading && <p className="text-muted-foreground">در حال بارگذاری...</p>}
+      {isLoading && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }, (_, i) => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="h-5 w-2/3" />
+              </CardHeader>
+              <CardContent className="flex flex-col gap-2">
+                <Skeleton className="h-3.5 w-full" />
+                <Skeleton className="h-3.5 w-4/5" />
+                <Skeleton className="mt-1 h-5 w-16 rounded-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {projects
+        {!isLoading && projects
           ?.filter((p) => !selectedDepartmentId || p.department_id === selectedDepartmentId)
           .map((project) => (
           <Link key={project.id} to={`/projects/${project.id}`}>
-            <Card className="h-full transition-shadow hover:shadow-md">
+            <Card className="h-full transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
               <CardHeader>
                 <CardTitle className="text-base">{project.name}</CardTitle>
               </CardHeader>

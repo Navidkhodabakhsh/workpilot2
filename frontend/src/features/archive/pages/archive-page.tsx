@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/ui/empty-state"
 import { JalaliDateInput } from "@/components/ui/jalali-date-input"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
+import { Skeleton } from "@/components/ui/skeleton"
 import { listProjects } from "@/features/projects/api"
 import { listAllTasks } from "@/features/tasks/api"
 import { PRIORITY_LABEL, PRIORITY_VARIANT } from "@/features/tasks/constants"
@@ -95,7 +96,19 @@ export function ArchivePage() {
           </div>
         </div>
 
-        {tasksLoading && <p className="text-muted-foreground">در حال بارگذاری...</p>}
+        {tasksLoading && (
+          <div className="flex flex-col gap-2">
+            {Array.from({ length: 4 }, (_, i) => (
+              <div key={i} className="flex items-center justify-between gap-3 rounded-lg border border-border/70 bg-card p-3">
+                <div className="flex flex-1 flex-col gap-2">
+                  <Skeleton className="h-4 w-48" />
+                  <Skeleton className="h-5 w-32 rounded-full" />
+                </div>
+                <Skeleton className="h-3.5 w-16 shrink-0" />
+              </div>
+            ))}
+          </div>
+        )}
         {!tasksLoading && filteredTasks.length === 0 && (
           <EmptyState icon={ArchiveIcon} message="تسکی با این فیلترها یافت نشد." />
         )}

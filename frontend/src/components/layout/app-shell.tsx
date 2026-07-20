@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Outlet, useNavigate } from "react-router-dom"
+import { Outlet, useLocation, useNavigate } from "react-router-dom"
 import { Loader2, LogOut, Menu, PanelLeftClose, PanelLeftOpen, X } from "lucide-react"
 
 import { SidebarNav } from "@/components/layout/sidebar-nav"
@@ -26,6 +26,7 @@ export function AppShell() {
   const toggleCollapsed = useSidebarStore((s) => s.toggle)
   const logout = useAuthStore((s) => s.logout)
   const navigate = useNavigate()
+  const location = useLocation()
 
   useEffect(() => {
     if (!mobileNavOpen) return
@@ -220,7 +221,12 @@ export function AppShell() {
         </header>
 
         <main className="flex-1 overflow-y-auto p-4 sm:p-6">
-          <Outlet />
+          {/* Keyed on the path so each route swap remounts this wrapper and
+              replays the entrance animation -- a cheap way to get a page
+              transition without a routing/animation library. */}
+          <div key={location.pathname} className="animate-in fade-in-0 slide-in-from-bottom-1 duration-300">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

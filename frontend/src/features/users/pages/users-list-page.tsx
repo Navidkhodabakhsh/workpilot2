@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { TableRowsSkeleton } from "@/components/ui/table-rows-skeleton"
 import {
   createOrgUser,
   listOrgUsers,
@@ -239,9 +240,7 @@ export function UsersListPage() {
         )}
       </div>
 
-      {isLoading && <p className="text-muted-foreground">در حال بارگذاری...</p>}
-
-      {!isLoading && users && (
+      {(isLoading || users) && (
         <Table>
           <TableHeader>
             <TableRow>
@@ -254,8 +253,9 @@ export function UsersListPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {users
-              .filter((u) => !selectedDepartmentId || u.department_id === selectedDepartmentId)
+            {isLoading && <TableRowsSkeleton columns={isOrgAdmin ? 6 : 5} />}
+            {!isLoading && users
+              ?.filter((u) => !selectedDepartmentId || u.department_id === selectedDepartmentId)
               .map((u) => (
               <TableRow key={u.id}>
                 <TableCell className="font-medium">{u.full_name}</TableCell>

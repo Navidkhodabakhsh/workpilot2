@@ -15,6 +15,7 @@ import {
 import { EmptyState } from "@/components/ui/empty-state"
 import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { TableRowsSkeleton } from "@/components/ui/table-rows-skeleton"
 import { downloadAttachment, listOrgAttachments, uploadAttachment } from "@/features/attachments/api"
 import { TaskPicker } from "@/features/attachments/components/task-picker"
 import { listAllTasks } from "@/features/tasks/api"
@@ -122,13 +123,11 @@ export function FilesListPage() {
         <UploadFileDialog />
       </div>
 
-      {isLoading && <p className="text-muted-foreground">در حال بارگذاری...</p>}
-
       {!isLoading && (!attachments || attachments.length === 0) && (
         <EmptyState message="هنوز فایلی پیوست نشده است." />
       )}
 
-      {!isLoading && attachments && attachments.length > 0 && (
+      {(isLoading || (attachments && attachments.length > 0)) && (
         <Table>
           <TableHeader>
             <TableRow>
@@ -140,7 +139,8 @@ export function FilesListPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {attachments.map((a) => (
+            {isLoading && <TableRowsSkeleton columns={5} />}
+            {!isLoading && attachments?.map((a) => (
               <TableRow key={a.id}>
                 <TableCell className="font-medium">
                   <button

@@ -4,8 +4,10 @@ import { Link } from "react-router-dom"
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 import { CheckCircle2, ClipboardList, Clock, FolderKanban, Users } from "lucide-react"
 
+import { AnimatedNumber } from "@/components/ui/animated-number"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
+import { Skeleton } from "@/components/ui/skeleton"
 import { getDashboardSummary } from "@/features/dashboard/api"
 import type { StatusCount } from "@/features/dashboard/api"
 import { hoursByProject, projectProgress } from "@/features/dashboard/chart-utils"
@@ -58,11 +60,15 @@ function StatCard({
 }) {
   const content = (
     <CardContent className="flex items-center gap-3 pt-6">
-      <div className={`flex size-11 shrink-0 items-center justify-center rounded-full ${STAT_TONE_CLASS[tone]}`}>
+      <div
+        className={`flex size-11 shrink-0 items-center justify-center rounded-full transition-transform group-hover:scale-105 ${STAT_TONE_CLASS[tone]}`}
+      >
         <Icon className="size-5" />
       </div>
       <div>
-        <p className="text-2xl font-bold">{value}</p>
+        <p className="text-2xl font-bold tabular-nums">
+          {typeof value === "number" ? <AnimatedNumber value={value} /> : value}
+        </p>
         <p className="text-sm text-muted-foreground">{label}</p>
       </div>
     </CardContent>
@@ -71,11 +77,43 @@ function StatCard({
   if (to) {
     return (
       <Link to={to}>
-        <Card className="transition-shadow hover:shadow-md">{content}</Card>
+        <Card className="group transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">{content}</Card>
       </Link>
     )
   }
   return <Card>{content}</Card>
+}
+
+function StatCardSkeleton() {
+  return (
+    <Card>
+      <CardContent className="flex items-center gap-3 pt-6">
+        <Skeleton className="size-11 shrink-0 rounded-full" />
+        <div className="flex flex-1 flex-col gap-2">
+          <Skeleton className="h-6 w-16" />
+          <Skeleton className="h-3.5 w-24" />
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function ChartCardSkeleton() {
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader>
+        <Skeleton className="h-4 w-32" />
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        {Array.from({ length: 5 }, (_, i) => (
+          <div key={i} className="flex items-center gap-3">
+            <Skeleton className="h-3.5 w-20 shrink-0" />
+            <Skeleton className="h-2.5 flex-1" />
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  )
 }
 
 function taskStatusChartData(tasksByStatus: StatusCount[]) {
@@ -144,7 +182,24 @@ export function DashboardPage() {
   })
 
   if (isLoading) {
-    return <p className="text-muted-foreground">در حال بارگذاری داشبورد...</p>
+    return (
+      <div className="flex flex-col gap-6">
+        <div>
+          <Skeleton className="h-8 w-32" />
+          <Skeleton className="mt-2 h-4 w-64" />
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }, (_, i) => (
+            <StatCardSkeleton key={i} />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {Array.from({ length: 4 }, (_, i) => (
+            <ChartCardSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+    )
   }
   if (isError || !data) {
     return <p className="text-danger">اتصال به سرور برقرار نشد</p>

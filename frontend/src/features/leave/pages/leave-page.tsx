@@ -19,6 +19,7 @@ import {
 import { EmptyState } from "@/components/ui/empty-state"
 import { JalaliDateInput } from "@/components/ui/jalali-date-input"
 import { Label } from "@/components/ui/label"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { approveLeaveRequest, createLeaveRequest, listLeaveRequests, rejectLeaveRequest, type LeaveRequest } from "@/features/leave/api"
 import { useAuthStore } from "@/features/auth/auth-store"
@@ -194,7 +195,21 @@ export function LeavePage() {
         <NewLeaveRequestDialog />
       </div>
 
-      {isLoading && <p className="text-muted-foreground">در حال بارگذاری...</p>}
+      {isLoading && (
+        <div className="flex flex-col gap-3">
+          {Array.from({ length: 3 }, (_, i) => (
+            <Card key={i}>
+              <CardContent className="flex items-center justify-between gap-3 pt-6">
+                <div className="flex flex-1 flex-col gap-2">
+                  <Skeleton className="h-4 w-40" />
+                  <Skeleton className="h-3.5 w-56" />
+                </div>
+                <Skeleton className="h-5 w-16 rounded-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {!isLoading && (!requests || requests.length === 0) && (
         <Card>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { Loader2 } from "lucide-react"
 
 import { apiClient } from "@/lib/api-client"
 import { fetchMe } from "@/features/auth/api"
@@ -38,8 +39,8 @@ export function AuthBootstrap({ children }: { children: React.ReactNode }) {
 
   if (!ready) {
     return (
-      <div className="flex min-h-svh items-center justify-center">
-        <p className="text-muted-foreground">در حال بارگذاری...</p>
+      <div className="flex min-h-svh animate-in fade-in-0 items-center justify-center duration-300">
+        <Loader2 className="size-6 animate-spin text-muted-foreground" aria-hidden="true" />
       </div>
     )
   }
