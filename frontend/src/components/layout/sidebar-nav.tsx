@@ -2,15 +2,12 @@ import {
   LayoutDashboard,
   FolderKanban,
   CheckSquare,
-  BarChart3,
   Calendar,
   Users,
-  Workflow,
-  LineChart,
   MessageSquare,
   Files,
   Archive,
-  Plane,
+  CalendarOff,
   Settings,
 } from "lucide-react"
 import { NavLink } from "react-router-dom"
@@ -32,16 +29,13 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   { to: "/", label: "داشبورد", icon: LayoutDashboard, end: true },
   { to: "/projects", label: "پروژه‌ها", icon: FolderKanban },
-  { to: "/tasks", label: "کارها", icon: CheckSquare },
-  { to: "/reports", label: "گزارش‌ها", icon: BarChart3 },
+  { to: "/tasks", label: "تسک‌ها", icon: CheckSquare },
   { to: "/calendar", label: "تقویم", icon: Calendar },
   { to: "/users", label: "کاربران", icon: Users, allowedRoles: ["org_admin"] },
-  { to: "/workflow", label: "گردش کار", icon: Workflow },
-  { to: "/analytics", label: "تحلیل‌ها", icon: LineChart, allowedRoles: ["org_admin", "project_manager"] },
   { to: "/messages", label: "پیام‌ها", icon: MessageSquare },
   { to: "/files", label: "فایل‌ها", icon: Files },
   { to: "/archive", label: "بایگانی", icon: Archive },
-  { to: "/leave", label: "مرخصی", icon: Plane },
+  { to: "/leave", label: "مرخصی", icon: CalendarOff },
   { to: "/settings", label: "تنظیمات", icon: Settings },
 ]
 

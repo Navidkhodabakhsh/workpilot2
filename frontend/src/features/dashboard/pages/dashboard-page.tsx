@@ -202,7 +202,7 @@ export function DashboardPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard icon={FolderKanban} label="پروژه‌های فعال" value={data.project_count} tone="primary" to="/projects" />
           <StatCard icon={ClipboardList} label="کل وظایف" value={data.task_count} tone="secondary" to="/tasks" />
-          <StatCard icon={Clock} label="ساعات کاری تأییدشده" value={data.total_approved_hours} tone="info" to="/reports" />
+          <StatCard icon={Clock} label="ساعات کاری تأییدشده" value={data.total_approved_hours} tone="info" to="/tasks" />
           {isOrgAdmin ? (
             <StatCard icon={Users} label="کاربران سازمان" value={orgUsers?.length ?? "…"} tone="success" to="/users" />
           ) : (

@@ -10,14 +10,11 @@ import { DashboardPage } from "@/features/dashboard/pages/dashboard-page"
 import { ProjectsListPage } from "@/features/projects/pages/projects-list-page"
 import { ProjectDetailPage } from "@/features/projects/pages/project-detail-page"
 import { TasksListPage } from "@/features/tasks/pages/tasks-list-page"
-import { ReportsPage } from "@/features/reports/pages/reports-page"
 import { UsersListPage } from "@/features/users/pages/users-list-page"
 import { MessagesPage } from "@/features/messages/pages/messages-page"
 import { FilesListPage } from "@/features/attachments/pages/files-list-page"
 import { SettingsPage } from "@/features/settings/pages/settings-page"
 import { CalendarPage } from "@/features/calendar/pages/calendar-page"
-import { WorkflowPage } from "@/features/workflow/pages/workflow-page"
-import { AnalyticsPage } from "@/features/analytics/pages/analytics-page"
 import { ArchivePage } from "@/features/archive/pages/archive-page"
 import { LeavePage } from "@/features/leave/pages/leave-page"
 
@@ -35,16 +32,10 @@ export const router = createBrowserRouter([
           { path: "/projects", element: <ProjectsListPage /> },
           { path: "/projects/:projectId", element: <ProjectDetailPage /> },
           { path: "/tasks", element: <TasksListPage /> },
-          { path: "/reports", element: <ReportsPage /> },
           { path: "/calendar", element: <CalendarPage /> },
           {
             element: <RoleProtectedRoute allowedRoles={["org_admin"]} />,
             children: [{ path: "/users", element: <UsersListPage /> }],
-          },
-          { path: "/workflow", element: <WorkflowPage /> },
-          {
-            element: <RoleProtectedRoute allowedRoles={["org_admin", "project_manager"]} />,
-            children: [{ path: "/analytics", element: <AnalyticsPage /> }],
           },
           { path: "/messages", element: <MessagesPage /> },
           { path: "/files", element: <FilesListPage /> },
