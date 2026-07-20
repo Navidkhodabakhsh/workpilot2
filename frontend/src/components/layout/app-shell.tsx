@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { Outlet, useNavigate } from "react-router-dom"
-import { LogOut, Menu, PanelLeftClose, PanelLeftOpen, X } from "lucide-react"
+import { Loader2, LogOut, Menu, PanelLeftClose, PanelLeftOpen, X } from "lucide-react"
 
 import { SidebarNav } from "@/components/layout/sidebar-nav"
 import { useSidebarStore } from "@/components/layout/sidebar-store"
@@ -21,6 +21,7 @@ import { useAuthStore } from "@/features/auth/auth-store"
  */
 export function AppShell() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const [loggingOut, setLoggingOut] = useState(false)
   const collapsed = useSidebarStore((s) => s.collapsed)
   const toggleCollapsed = useSidebarStore((s) => s.toggle)
   const logout = useAuthStore((s) => s.logout)
@@ -36,8 +37,13 @@ export function AppShell() {
   }, [mobileNavOpen])
 
   async function handleLogout() {
+    if (loggingOut) return
+    setLoggingOut(true)
     try {
-      await logoutRequest()
+      // Races the API call against a timeout so a slow/unreachable server
+      // can never leave the button (and the user) stuck -- local state is
+      // cleared and the redirect happens either way.
+      await Promise.race([logoutRequest(), new Promise((resolve) => setTimeout(resolve, 5000))])
     } finally {
       logout()
       navigate("/login", { replace: true })
@@ -76,7 +82,14 @@ export function AppShell() {
           </span>
         </div>
         <div className="relative flex-1 overflow-y-auto">
-          <SidebarNav collapsed={collapsed} />
+          <div className="no-scrollbar h-full overflow-y-auto">
+            <SidebarNav collapsed={collapsed} />
+          </div>
+          {/* Scroll affordance without a visible scrollbar track/thumb --
+              just a soft fade at each edge over whatever's currently
+              underneath it. */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-6 bg-gradient-to-b from-sidebar to-transparent" aria-hidden="true" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-sidebar to-transparent" aria-hidden="true" />
         </div>
         <div className="relative flex flex-col gap-1 border-t border-sidebar-border/60 px-3 pt-3 pb-1">
           <Button
@@ -86,16 +99,21 @@ export function AppShell() {
               collapsed ? "justify-center px-0" : "justify-start px-3"
             )}
             onClick={handleLogout}
+            disabled={loggingOut}
             aria-label="خروج از حساب"
           >
-            <LogOut className="size-5 shrink-0" aria-hidden="true" />
+            {loggingOut ? (
+              <Loader2 className="size-5 shrink-0 animate-spin" aria-hidden="true" />
+            ) : (
+              <LogOut className="size-5 shrink-0" aria-hidden="true" />
+            )}
             <span
               className={cn(
                 "overflow-hidden whitespace-nowrap transition-all duration-300 ease-in-out",
                 collapsed ? "max-w-0 opacity-0" : "max-w-[10rem] opacity-100"
               )}
             >
-              خروج از حساب
+              {loggingOut ? "در حال خروج..." : "خروج از حساب"}
             </span>
           </Button>
           <Button
@@ -161,10 +179,15 @@ export function AppShell() {
               variant="ghost"
               className="flex h-11 w-full items-center justify-start gap-3 text-sidebar-foreground/80 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground"
               onClick={handleLogout}
+              disabled={loggingOut}
               aria-label="خروج از حساب"
             >
-              <LogOut className="size-5 shrink-0" aria-hidden="true" />
-              <span>خروج از حساب</span>
+              {loggingOut ? (
+                <Loader2 className="size-5 shrink-0 animate-spin" aria-hidden="true" />
+              ) : (
+                <LogOut className="size-5 shrink-0" aria-hidden="true" />
+              )}
+              <span>{loggingOut ? "در حال خروج..." : "خروج از حساب"}</span>
             </Button>
           </div>
         </div>
@@ -185,7 +208,11 @@ export function AppShell() {
 
           <GlobalSearch />
 
-          <div className="flex shrink-0 items-center justify-end gap-3">
+          {/* ms-auto pushes this to the true edge of the header even though
+              GlobalSearch caps out at max-w-md well before filling the row --
+              without it, this group floats wherever the search box happens
+              to end instead of reaching the edge. */}
+          <div className="ms-auto flex shrink-0 items-center gap-3">
             <DepartmentSelector />
             <NotificationBell />
             <AccountMenu onLogout={handleLogout} />

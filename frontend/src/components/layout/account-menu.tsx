@@ -41,14 +41,17 @@ export function AccountMenu({ onLogout }: { onLogout: () => void }) {
         aria-label="حساب کاربری"
         className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-muted"
       >
-        <div className="hidden text-end sm:block">
-          <div className="text-sm font-medium leading-tight">{user.full_name}</div>
-          <div className="text-xs leading-tight text-muted-foreground">{ROLE_LABEL[user.role]}</div>
-        </div>
+        {/* Icon side first in DOM so it lands next to the rest of the
+            topbar (RTL: first child renders on the right) -- the name
+            stays last, at the outer/left end of the button. */}
         <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
           {user.full_name.trim().charAt(0)}
         </div>
         <ChevronDown className="hidden size-4 text-muted-foreground sm:block" aria-hidden="true" />
+        <div className="hidden text-end sm:block">
+          <div className="text-sm font-medium leading-tight">{user.full_name}</div>
+          <div className="text-xs leading-tight text-muted-foreground">{ROLE_LABEL[user.role]}</div>
+        </div>
       </button>
 
       {open && (

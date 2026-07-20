@@ -142,6 +142,16 @@
   .animate-auth-float-b {
     animation: auth-float-b 12s ease-in-out infinite;
   }
+
+  /* Hides the native scrollbar track/thumb -- used where scrollability is
+     communicated with an edge fade instead (see SidebarNav). */
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @layer base {
