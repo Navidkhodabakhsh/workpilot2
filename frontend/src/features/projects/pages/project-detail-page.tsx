@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Controller, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { Archive, Pencil, Plus, UserPlus, X } from "lucide-react"
+import { Archive, Pencil, Plus, Users, UserPlus, X } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -32,6 +32,8 @@ import { createTask, listTasks } from "@/features/tasks/api"
 import { STATUS_COLUMNS } from "@/features/tasks/constants"
 import { listOrgUsers } from "@/features/users/api"
 import { TaskCard } from "@/features/tasks/components/task-card"
+import { EmptyState } from "@/components/ui/empty-state"
+import type { TaskStatus } from "@/lib/types"
 import { PendingApprovals } from "@/features/worklogs/components/pending-approvals"
 import { ExportDialog } from "@/features/exports/components/export-dialog"
 import { PaymentsSection } from "@/features/payments/components/payments-section"
@@ -61,8 +63,9 @@ export function ProjectDetailPage() {
   const canManage = role === "org_admin" || role === "project_manager"
   const [open, setOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
-  const [addMemberOpen, setAddMemberOpen] = useState(false)
+  const [membersOpen, setMembersOpen] = useState(false)
   const [newMemberId, setNewMemberId] = useState("")
+  const [statusFilter, setStatusFilter] = useState<"all" | TaskStatus>("all")
   const queryClient = useQueryClient()
 
   const { data: project } = useQuery({
@@ -144,7 +147,6 @@ export function ProjectDetailPage() {
     mutationFn: (userId: string) => addProjectMember(projectId!, userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["project-members", projectId] })
-      setAddMemberOpen(false)
       setNewMemberId("")
     },
   })
@@ -170,7 +172,37 @@ export function ProjectDetailPage() {
           <h1 className="text-2xl font-bold">{project.name}</h1>
           <p className="text-muted-foreground">{project.description || "بدون توضیحات"}</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Compact member cluster instead of a full-width box -- click to
+              manage. Overlapping circles are a deliberately small footprint
+              since this is secondary to the task board below, not the main
+              content of the page. */}
+          <button
+            type="button"
+            onClick={() => setMembersOpen(true)}
+            className="flex items-center gap-2 rounded-full border border-border py-1 ps-1 pe-3 hover:bg-muted"
+          >
+            <div className="flex -space-x-2 space-x-reverse">
+              {memberUsers.slice(0, 4).map((u) => (
+                <div
+                  key={u.id}
+                  title={u.full_name}
+                  className="flex size-7 items-center justify-center rounded-full border-2 border-card bg-primary text-[11px] font-semibold text-primary-foreground"
+                >
+                  {u.full_name.trim().charAt(0)}
+                </div>
+              ))}
+              {memberUsers.length === 0 && (
+                <div className="flex size-7 items-center justify-center rounded-full border-2 border-card bg-muted text-muted-foreground">
+                  <Users className="size-3.5" />
+                </div>
+              )}
+            </div>
+            <span className="text-sm text-muted-foreground">
+              {memberUsers.length > 4 ? `+${memberUsers.length - 4} ` : ""}
+              {memberUsers.length === 0 ? "بدون عضو" : "عضو"}
+            </span>
+          </button>
           <ExportDialog projectId={projectId!} />
           {canManage && (
             <Button variant="secondary" onClick={openEdit}>
@@ -319,24 +351,36 @@ export function ProjectDetailPage() {
         isConfirming={archiveMutation.isPending}
       />
 
-      <div className="rounded-lg border p-4">
-        <div className="flex items-center justify-between">
-          <h2 className="font-semibold">اعضای پروژه</h2>
-          {canManage && (
-            <Dialog open={addMemberOpen} onOpenChange={setAddMemberOpen}>
-              <DialogTrigger asChild>
-                <Button variant="secondary" size="sm">
-                  <UserPlus className="size-4" />
-                  افزودن عضو
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>افزودن عضو به پروژه</DialogTitle>
-                  <DialogDescription>یک کاربر سازمان را به این پروژه اضافه کنید</DialogDescription>
-                </DialogHeader>
-                <div className="flex flex-col gap-4">
-                  <Select value={newMemberId} onChange={(e) => setNewMemberId(e.target.value)}>
+      <Dialog open={membersOpen} onOpenChange={setMembersOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>اعضای پروژه</DialogTitle>
+            <DialogDescription>مدیریت کاربرانی که به این پروژه دسترسی دارند</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-wrap gap-2">
+              {memberUsers.length === 0 && <p className="text-sm text-muted-foreground">هنوز عضوی اضافه نشده است.</p>}
+              {memberUsers.map((u) => (
+                <Badge key={u.id} variant="default" className="flex items-center gap-1.5 py-1.5">
+                  {u.full_name}
+                  {canManage && (
+                    <button
+                      type="button"
+                      aria-label={`حذف ${u.full_name} از پروژه`}
+                      onClick={() => removeMemberMutation.mutate(u.id)}
+                      className="rounded-full hover:bg-black/10"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  )}
+                </Badge>
+              ))}
+            </div>
+            {canManage && (
+              <div className="flex flex-col gap-2 border-t border-border pt-4">
+                <Label htmlFor="add-member">افزودن عضو</Label>
+                <div className="flex gap-2">
+                  <Select id="add-member" value={newMemberId} onChange={(e) => setNewMemberId(e.target.value)} className="flex-1">
                     <option value="">انتخاب کاربر</option>
                     {nonMemberUsers.map((u) => (
                       <option key={u.id} value={u.id}>
@@ -348,63 +392,67 @@ export function ProjectDetailPage() {
                     disabled={!newMemberId || addMemberMutation.isPending}
                     onClick={() => addMemberMutation.mutate(newMemberId)}
                   >
+                    <UserPlus className="size-4" />
                     {addMemberMutation.isPending ? "در حال افزودن..." : "افزودن"}
                   </Button>
                 </div>
-              </DialogContent>
-            </Dialog>
-          )}
-        </div>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {memberUsers.length === 0 && <p className="text-sm text-muted-foreground">هنوز عضوی اضافه نشده است.</p>}
-          {memberUsers.map((u) => (
-            <Badge key={u.id} variant="default" className="flex items-center gap-1.5 py-1.5">
-              {u.full_name}
-              {canManage && (
-                <button
-                  type="button"
-                  aria-label={`حذف ${u.full_name} از پروژه`}
-                  onClick={() => removeMemberMutation.mutate(u.id)}
-                  className="rounded-full hover:bg-black/10"
-                >
-                  <X className="size-3" />
-                </button>
-              )}
-            </Badge>
-          ))}
-        </div>
-      </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {isOrgAdmin && <PaymentsSection projectId={projectId!} />}
 
       {canManage && <PendingApprovals projectId={projectId!} tasks={tasks} users={users} />}
 
-      {/* Kanban board: horizontally scrollable on small screens by design —
-          each column keeps a readable min-width instead of squeezing to fit. */}
-      <div className="flex gap-4 overflow-x-auto pb-2">
+      {/* Same status-pill-filter + card pattern as the main Tasks page,
+          instead of a separate four-column Kanban -- one consistent way to
+          look at tasks across the app. What actually shows up here is
+          already scoped server-side (an employee only ever gets their own
+          tasks on this board, even though they're a full project member). */}
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={() => setStatusFilter("all")}
+          className={
+            "rounded-full border px-3 py-1 text-xs font-medium transition-colors " +
+            (statusFilter === "all"
+              ? "border-primary bg-primary/10 text-primary"
+              : "border-border text-muted-foreground hover:border-foreground/30")
+          }
+        >
+          همه ({tasks.length})
+        </button>
         {STATUS_COLUMNS.map((col) => {
-          const columnTasks = tasks.filter((t) => t.status === col.value)
+          const count = tasks.filter((t) => t.status === col.value).length
           return (
-            <div key={col.value} className="w-72 shrink-0">
-              {/* count sits directly beside its own label (not spread to the
-                  column's far edge) so it can't be misread as belonging to
-                  the adjacent column when scanning across an RTL row */}
-              <div className="mb-2 flex items-center gap-2">
-                <h2 className="font-semibold">{col.label}</h2>
-                <span className="text-sm text-muted-foreground">({columnTasks.length})</span>
-              </div>
-              <div className="flex flex-col gap-3">
-                {columnTasks.map((task) => (
-                  <TaskCard key={task.id} task={task} users={users} />
-                ))}
-                {columnTasks.length === 0 && (
-                  <p className="text-sm text-muted-foreground">وظیفه‌ای نیست</p>
-                )}
-              </div>
-            </div>
+            <button
+              key={col.value}
+              onClick={() => setStatusFilter(col.value)}
+              className={
+                "rounded-full border px-3 py-1 text-xs font-medium transition-colors " +
+                (statusFilter === col.value
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground hover:border-foreground/30")
+              }
+            >
+              {col.label} ({count})
+            </button>
           )
         })}
       </div>
+
+      {(() => {
+        const visible = tasks.filter((t) => statusFilter === "all" || t.status === statusFilter)
+        if (visible.length === 0) return <EmptyState message="وظیفه‌ای در این بخش نیست." />
+        return (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {visible.map((task) => (
+              <TaskCard key={task.id} task={task} users={users} />
+            ))}
+          </div>
+        )
+      })()}
     </div>
   )
 }

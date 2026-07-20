@@ -131,6 +131,13 @@ def list_tasks(
         project = get_project(db, org_id, current_user, project_id)
         assert_can_view_project(db, project, current_user)
         query = db.query(Task).filter(Task.organization_id == org_id, Task.project_id == project_id)
+        # An employee only ever sees their own work on a project's board --
+        # org_admin/project_manager still see everything (they need the
+        # overview to assign work and review it). Membership alone used to
+        # be enough to see every teammate's tasks, which is more than an
+        # employee needs and more than they asked to see.
+        if current_user.role == UserRole.employee:
+            query = query.filter(Task.assignee_id == current_user.id)
     else:
         # No project given -- list across every project the user can see
         # (same visibility rule the dashboard/reports/search endpoints use),
@@ -173,6 +180,10 @@ def get_task(db: Session, org_id: uuid.UUID, current_user: User, task_id: uuid.U
     elif task.assignee_id != current_user.id:
         # Being the assignee is always enough to view a task, even without
         # formal project membership (see list_tasks for the matching rule).
+        # An employee who *isn't* the assignee never gets in via membership
+        # alone, matching list_tasks -- only org_admin/project_manager can.
+        if current_user.role == UserRole.employee:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only view your own tasks")
         project = get_project(db, org_id, current_user, task.project_id)
         assert_can_view_project(db, project, current_user)
     return _attach_computed_fields(db, org_id, [task])[0]
