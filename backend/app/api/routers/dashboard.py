@@ -1,4 +1,5 @@
 import uuid
+from datetime import date
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -15,9 +16,18 @@ router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 @router.get("/summary", response_model=DashboardSummary)
 def get_summary(
     department_id: uuid.UUID | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
     db: Session = Depends(get_db),
     org_id: uuid.UUID = Depends(get_current_org_id),
     current_user: User = Depends(get_current_user),
 ) -> DashboardSummary:
-    data = dashboard_service.get_summary(db, org_id, current_user, department_id=department_id)
+    data = dashboard_service.get_summary(
+        db,
+        org_id,
+        current_user,
+        department_id=department_id,
+        date_from=date_from,
+        date_to=date_to,
+    )
     return DashboardSummary.model_validate(data)

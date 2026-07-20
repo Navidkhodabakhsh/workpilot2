@@ -1,5 +1,5 @@
 import { apiClient } from "@/lib/api-client"
-import type { ApprovalStatus, Task, TaskActivity, TaskPriority, TaskStatus } from "@/lib/types"
+import type { ApprovalStatus, Task, TaskActivity, TaskPriority, TaskStatus, TaskValue } from "@/lib/types"
 
 export async function listTasks(projectId: string) {
   const { data } = await apiClient.get<Task[]>("/api/v1/tasks", { params: { project_id: projectId } })
@@ -27,8 +27,10 @@ export async function listAllTasks(filters?: TaskFilters) {
 export async function createTask(payload: {
   project_id?: string
   title: string
+  description?: string
   assignee_id?: string
   priority?: TaskPriority
+  value?: TaskValue
   start_date?: string
   deadline?: string
   estimated_hours?: number
@@ -42,14 +44,15 @@ export async function updateTask(
   taskId: string,
   payload: Partial<{
     title: string
-    description: string
+    description: string | null
     assignee_id: string
     priority: TaskPriority
+    value: TaskValue
     status: TaskStatus
     progress_percent: number
-    estimated_hours: number
-    start_date: string
-    deadline: string
+    estimated_hours: number | null
+    start_date: string | null
+    deadline: string | null
   }>
 ) {
   const { data } = await apiClient.patch<Task>(`/api/v1/tasks/${taskId}`, payload)

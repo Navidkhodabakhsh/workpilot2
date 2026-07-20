@@ -3,7 +3,7 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, Field
 
-from app.models.enums import ApprovalStatus, TaskPriority, TaskStatus
+from app.models.enums import ApprovalStatus, TaskPriority, TaskStatus, TaskValue
 
 
 class TaskCreate(BaseModel):
@@ -15,6 +15,7 @@ class TaskCreate(BaseModel):
     description: str | None = None
     assignee_id: uuid.UUID | None = None
     priority: TaskPriority = TaskPriority.medium
+    value: TaskValue = TaskValue.medium
     start_date: date | None = None
     deadline: date | None = None
     estimated_hours: float | None = Field(default=None, ge=0, le=9999)
@@ -29,6 +30,7 @@ class TaskUpdate(BaseModel):
     description: str | None = None
     assignee_id: uuid.UUID | None = None
     priority: TaskPriority | None = None
+    value: TaskValue | None = None
     status: TaskStatus | None = None
     progress_percent: int | None = Field(default=None, ge=0, le=100)
     estimated_hours: float | None = Field(default=None, ge=0, le=9999)
@@ -51,11 +53,14 @@ class TaskOut(BaseModel):
     title: str
     description: str | None
     priority: TaskPriority
+    value: TaskValue
     status: TaskStatus
     approval_status: ApprovalStatus | None
     progress_percent: int
     estimated_hours: float | None
     actual_hours: float = 0
+    pending_hours: float = 0
+    total_logged_hours: float = 0
     start_date: date | None
     deadline: date | None
     created_at: datetime

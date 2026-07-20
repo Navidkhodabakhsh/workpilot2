@@ -9,6 +9,7 @@ import {
   Archive,
   CalendarOff,
   Settings,
+  Landmark,
 } from "lucide-react"
 import { NavLink } from "react-router-dom"
 
@@ -32,6 +33,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/tasks", label: "تسک‌ها", icon: CheckSquare },
   { to: "/calendar", label: "تقویم", icon: Calendar },
   { to: "/users", label: "کاربران", icon: Users, allowedRoles: ["org_admin"] },
+  { to: "/finance", label: "درآمد و هزینه", icon: Landmark, allowedRoles: ["org_admin", "project_manager"] },
   { to: "/messages", label: "پیام‌ها", icon: MessageSquare },
   { to: "/files", label: "فایل‌ها", icon: Files },
   { to: "/archive", label: "بایگانی", icon: Archive },

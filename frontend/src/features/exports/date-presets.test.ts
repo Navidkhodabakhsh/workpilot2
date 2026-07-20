@@ -16,7 +16,7 @@ describe("computeDateRange", () => {
   it("this_week starts on Saturday", () => {
     const range = computeDateRange("this_week", NOW)
     expect(range).toEqual({ from: "2026-07-11", to: "2026-07-17" })
-    expect(new Date(range.from).getDay()).toBe(6) // Saturday
+    expect(new Date(range.from).getUTCDay()).toBe(6) // Saturday, timezone-independent
   })
 
   it("last_week is the seven days before this_week", () => {

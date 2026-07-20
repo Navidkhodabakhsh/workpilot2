@@ -19,6 +19,11 @@ export async function createWorklog(payload: {
   return data
 }
 
+export async function listTaskWorklogs(taskId: string) {
+  const { data } = await apiClient.get<WorkLog[]>(`/api/v1/worklogs/task/${taskId}`)
+  return data
+}
+
 export async function approveWorklog(worklogId: string) {
   const { data } = await apiClient.post<WorkLog>(`/api/v1/worklogs/${worklogId}/approve`)
   return data

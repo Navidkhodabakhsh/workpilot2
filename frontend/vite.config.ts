@@ -8,9 +8,13 @@ import path from 'path'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
+    alias: [
+      {
+        find: '@/features/tasks/components/task-card',
+        replacement: path.resolve(__dirname, './src/features/tasks/components/task-card-compat.tsx'),
+      },
+      { find: '@', replacement: path.resolve(__dirname, './src') },
+    ],
   },
   server: {
     host: true,
@@ -18,7 +22,7 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
-    setupFiles: ['./src/test/setup.ts'],
+    setupFiles: ['./src/test/setup-timezone.ts'],
     globals: true,
   },
 })

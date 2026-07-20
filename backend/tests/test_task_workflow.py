@@ -116,21 +116,27 @@ def test_only_the_assignee_can_change_status_not_even_the_manager(client, signup
     assert resp.status_code == 200
 
 
-def test_org_admin_completing_own_task_is_auto_approved(client, signup_org_admin, create_org_user):
+def test_org_admin_project_task_still_requires_approval_and_hierarchy_blocks_upward_assignment(client, signup_org_admin, create_org_user):
     admin_token, admin = signup_org_admin()
     pm_token, _ = create_org_user(admin_token, "project_manager", "pm")
     project_id = client.post("/api/v1/projects", json={"name": "Project"}, headers=auth_headers(pm_token)).json()["id"]
-    client.post(f"/api/v1/projects/{project_id}/members", json={"user_id": admin["id"]}, headers=auth_headers(pm_token))
-    task_id = client.post(
+    upward = client.post(
         "/api/v1/tasks",
         json={"project_id": project_id, "title": "Task", "assignee_id": admin["id"]},
         headers=auth_headers(pm_token),
+    )
+    assert upward.status_code == 403
+
+    task_id = client.post(
+        "/api/v1/tasks",
+        json={"project_id": project_id, "title": "Admin self task"},
+        headers=auth_headers(admin_token),
     ).json()["id"]
 
     resp = client.patch(f"/api/v1/tasks/{task_id}", json={"status": "completed"}, headers=auth_headers(admin_token))
     assert resp.status_code == 200
     assert resp.json()["status"] == "completed"
-    assert resp.json()["approval_status"] == "approved"
+    assert resp.json()["approval_status"] == "pending"
 
 
 def test_task_start_date_and_creator_name(client, signup_org_admin):

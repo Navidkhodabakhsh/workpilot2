@@ -8,6 +8,7 @@ export function notificationMessage(notification: Notification): string {
     case "deadline_approaching":
       return `مهلت وظیفهٔ «${payload.task_title}» نزدیک است (${payload.deadline})`
     case "report_submitted":
+      if (payload.kind === "task_approval") return `تسک «${payload.task_title}» منتظر تأیید شماست`
       return `گزارش کاری جدیدی برای «${payload.task_title}» ارسال شد`
     case "report_reviewed":
       return payload.status === "approved"

@@ -2,11 +2,12 @@ import uuid
 from datetime import date
 
 from fastapi import HTTPException, status
-from sqlalchemy import and_, func, or_
+from sqlalchemy import and_, case, func, or_
 from sqlalchemy.orm import Session
 
 from app.db.tenant_repository import TenantScopedRepository
 from app.models.enums import ApprovalStatus, NotificationType, TaskStatus, UserRole, WorkLogStatus
+from app.models.project import Project, ProjectMember
 from app.models.task import Task, TaskDependency
 from app.models.user import User
 from app.models.worklog import WorkLog
@@ -37,24 +38,92 @@ def _attach_computed_fields(db: Session, org_id: uuid.UUID, tasks: list[Task]) -
         return tasks
     task_ids = [t.id for t in tasks]
     rows = (
-        db.query(WorkLog.task_id, func.sum(WorkLog.time_spent_minutes))
+        db.query(
+            WorkLog.task_id,
+            func.sum(case((WorkLog.status == WorkLogStatus.approved, WorkLog.time_spent_minutes), else_=0)),
+            func.sum(case((WorkLog.status == WorkLogStatus.submitted, WorkLog.time_spent_minutes), else_=0)),
+            func.sum(
+                case(
+                    (WorkLog.status.in_([WorkLogStatus.approved, WorkLogStatus.submitted]), WorkLog.time_spent_minutes),
+                    else_=0,
+                )
+            ),
+        )
         .filter(
             WorkLog.organization_id == org_id,
             WorkLog.task_id.in_(task_ids),
-            WorkLog.status == WorkLogStatus.approved,
         )
         .group_by(WorkLog.task_id)
         .all()
     )
-    minutes_by_task = dict(rows)
+    minutes_by_task = {task_id: (approved or 0, pending or 0, total or 0) for task_id, approved, pending, total in rows}
 
     creator_ids = {t.created_by_id for t in tasks}
     name_by_creator = dict(db.query(User.id, User.full_name).filter(User.id.in_(creator_ids)).all())
 
     for task in tasks:
-        task.actual_hours = round((minutes_by_task.get(task.id) or 0) / 60, 2)
+        approved, pending, total = minutes_by_task.get(task.id, (0, 0, 0))
+        task.actual_hours = round(approved / 60, 2)
+        task.pending_hours = round(pending / 60, 2)
+        task.total_logged_hours = round(total / 60, 2)
         task.created_by_full_name = name_by_creator.get(task.created_by_id)
     return tasks
+
+
+_ROLE_RANK = {UserRole.employee: 1, UserRole.project_manager: 2, UserRole.org_admin: 3}
+
+
+def _validate_assignee(
+    db: Session,
+    org_id: uuid.UUID,
+    current_user: User,
+    project_id: uuid.UUID,
+    assignee_id: uuid.UUID,
+) -> User:
+    assignee = db.get(User, assignee_id)
+    if assignee is None or assignee.organization_id != org_id or not assignee.is_active:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assignee not found in this organization")
+    if assignee.id == current_user.id:
+        return assignee
+    if _ROLE_RANK.get(current_user.role, 0) <= _ROLE_RANK.get(assignee.role, 0):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only assign tasks to a lower organizational role",
+        )
+    _can_manage_project_tasks(db, org_id, current_user, project_id)
+    return assignee
+
+
+def _task_reviewer_ids(db: Session, org_id: uuid.UUID, task: Task) -> set[uuid.UUID]:
+    if task.project_id is None:
+        return set()
+    project = db.query(Project).filter(Project.id == task.project_id, Project.organization_id == org_id).first()
+    reviewer_ids: set[uuid.UUID] = set()
+    if project and project.manager_id:
+        reviewer_ids.add(project.manager_id)
+    if not reviewer_ids:
+        reviewer_ids.update(
+            user_id
+            for (user_id,) in (
+                db.query(ProjectMember.user_id)
+                .join(User, ProjectMember.user_id == User.id)
+                .filter(
+                    ProjectMember.project_id == task.project_id,
+                    User.organization_id == org_id,
+                    User.role == UserRole.project_manager,
+                    User.is_active.is_(True),
+                )
+                .all()
+            )
+        )
+    if not reviewer_ids:
+        reviewer_ids.update(
+            user_id
+            for (user_id,) in db.query(User.id)
+            .filter(User.organization_id == org_id, User.role == UserRole.org_admin, User.is_active.is_(True))
+            .all()
+        )
+    return reviewer_ids
 
 
 def create_task(db: Session, org_id: uuid.UUID, current_user: User, data: TaskCreate) -> Task:
@@ -67,8 +136,13 @@ def create_task(db: Session, org_id: uuid.UUID, current_user: User, data: TaskCr
             )
         assignee_id = current_user.id
     else:
-        _can_manage_project_tasks(db, org_id, current_user, data.project_id)
-        assignee_id = data.assignee_id
+        project = get_project(db, org_id, current_user, data.project_id)
+        assert_can_view_project(db, project, current_user)
+        # An omitted assignee means "a task I opened for myself". Every
+        # project member can do this; assigning another person follows the
+        # organization role hierarchy.
+        assignee_id = data.assignee_id or current_user.id
+        _validate_assignee(db, org_id, current_user, data.project_id, assignee_id)
 
     if data.parent_task_id is not None:
         parent = TaskRepository(db, org_id).get(data.parent_task_id)
@@ -87,6 +161,7 @@ def create_task(db: Session, org_id: uuid.UUID, current_user: User, data: TaskCr
         title=data.title,
         description=data.description,
         priority=data.priority,
+        value=data.value,
         start_date=data.start_date,
         deadline=data.deadline,
         estimated_hours=data.estimated_hours,
@@ -189,10 +264,33 @@ def get_task(db: Session, org_id: uuid.UUID, current_user: User, task_id: uuid.U
     return _attach_computed_fields(db, org_id, [task])[0]
 
 
-# Fields an `employee` is allowed to change on a task assigned to them.
-_EMPLOYEE_ALLOWED_FIELDS = {"status", "progress_percent"}
+# An assignee is an active owner of the task, so they can keep its working
+# details accurate as well as update status/progress. Reassignment remains a
+# manager-only operation and is deliberately not included here.
+_EMPLOYEE_ALLOWED_FIELDS = {
+    "status",
+    "progress_percent",
+    "title",
+    "description",
+    "priority",
+    "value",
+    "estimated_hours",
+    "start_date",
+    "deadline",
+}
+_SELF_CREATED_ALLOWED_FIELDS = {
+    "status",
+    "progress_percent",
+    "title",
+    "description",
+    "priority",
+    "value",
+    "estimated_hours",
+    "start_date",
+    "deadline",
+}
 
-_ACTIVITY_TRACKED_FIELDS = {"status", "assignee_id", "priority"}
+_ACTIVITY_TRACKED_FIELDS = {"status", "assignee_id", "priority", "value"}
 
 
 def update_task(db: Session, org_id: uuid.UUID, current_user: User, task_id: uuid.UUID, data: TaskUpdate) -> Task:
@@ -205,15 +303,35 @@ def update_task(db: Session, org_id: uuid.UUID, current_user: User, task_id: uui
     # the role-based rules below, which still govern every other field.
     if "status" in changes and task.assignee_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only the task's assignee can change its status")
+    if changes.get("status") == TaskStatus.archived:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A task is archived automatically after manager approval",
+        )
+    if task.status == TaskStatus.archived:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Archived tasks are read-only")
+    if "assignee_id" in changes:
+        if changes["assignee_id"] is None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="A task must have an assignee")
+        if task.project_id is None:
+            if changes["assignee_id"] != current_user.id:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Personal tasks must remain self-assigned")
+        else:
+            _validate_assignee(db, org_id, current_user, task.project_id, changes["assignee_id"])
 
     if current_user.role == UserRole.employee:
         if task.assignee_id != current_user.id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only update your own tasks")
-        disallowed = set(changes) - _EMPLOYEE_ALLOWED_FIELDS
+        allowed_fields = (
+            _SELF_CREATED_ALLOWED_FIELDS
+            if task.created_by_id == current_user.id and task.assignee_id == current_user.id
+            else _EMPLOYEE_ALLOWED_FIELDS
+        )
+        disallowed = set(changes) - allowed_fields
         if disallowed:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Employees may only update: {', '.join(sorted(_EMPLOYEE_ALLOWED_FIELDS))}",
+                detail=f"You may only update: {', '.join(sorted(allowed_fields))}",
             )
     elif task.project_id is not None:
         project = get_project(db, org_id, current_user, task.project_id)
@@ -243,14 +361,27 @@ def update_task(db: Session, org_id: uuid.UUID, current_user: User, task_id: uui
     # Guarded on an actual transition so re-sending the same status doesn't
     # wipe out an already-approved/rejected decision. Exception: the
     # org_admin completing a task assigned to themself skips review
-    # entirely (only the assignee can reach this branch at all, per the
-    # status-change check above, so this is necessarily their own task).
+    # entirely for a private no-project task. Project work always has a
+    # manager review, even when the assignee is an administrator.
     if status_changed:
         if changes["status"] == TaskStatus.completed:
-            if current_user.role == UserRole.org_admin:
-                task.approval_status = ApprovalStatus.approved
-            else:
-                task.approval_status = ApprovalStatus.pending
+            task.progress_percent = 100
+            task.approval_status = ApprovalStatus.pending if task.project_id is not None else None
+            if task.project_id is not None:
+                for reviewer_id in _task_reviewer_ids(db, org_id, task):
+                    if reviewer_id != current_user.id:
+                        create_notification(
+                            db,
+                            org_id,
+                            reviewer_id,
+                            NotificationType.report_submitted,
+                            {
+                                "kind": "task_approval",
+                                "task_id": str(task.id),
+                                "task_title": task.title,
+                                "project_id": str(task.project_id),
+                            },
+                        )
         else:
             task.approval_status = None
 
@@ -274,6 +405,7 @@ def approve_task(db: Session, org_id: uuid.UUID, current_user: User, task_id: uu
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only a pending task can be approved")
 
     task.approval_status = ApprovalStatus.approved
+    task.status = TaskStatus.archived
     db.flush()
 
     log_task_activity(db, org_id, task.id, current_user.id, "task.approve")
@@ -322,8 +454,9 @@ def reject_task(db: Session, org_id: uuid.UUID, current_user: User, task_id: uui
 def delete_task(db: Session, org_id: uuid.UUID, current_user: User, task_id: uuid.UUID) -> None:
     task = get_task(db, org_id, current_user, task_id)
     if task.project_id is not None:
-        project = get_project(db, org_id, current_user, task.project_id)
-        assert_can_manage_project(db, project, current_user)
+        if task.created_by_id != current_user.id:
+            project = get_project(db, org_id, current_user, task.project_id)
+            assert_can_manage_project(db, project, current_user)
     elif task.created_by_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This is a personal task")
 

@@ -25,6 +25,15 @@ export function DepartmentSelector() {
     enabled: isOrgAdmin,
   })
 
+  const myDepartments = user?.department_memberships ?? []
+  const isMineSelected = myDepartments.some((m) => m.department_id === selectedDepartmentId)
+  useEffect(() => {
+    if (!isOrgAdmin && myDepartments.length >= 2 && !isMineSelected) {
+      setSelectedDepartmentId(myDepartments[0].department_id)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOrgAdmin, myDepartments.length, isMineSelected])
+
   if (isOrgAdmin) {
     if (!allDepartments || allDepartments.length === 0) return null
     return (
@@ -47,20 +56,10 @@ export function DepartmentSelector() {
     )
   }
 
-  const myDepartments = user?.department_memberships ?? []
-
   // Default the actual filter to the first membership (not just the select's
   // displayed value) so a freshly-loaded dashboard is genuinely scoped to
   // one department from the start, not silently showing "all of them" while
   // the dropdown looks like a specific one is chosen.
-  const isMineSelected = myDepartments.some((m) => m.department_id === selectedDepartmentId)
-  useEffect(() => {
-    if (myDepartments.length >= 2 && !isMineSelected) {
-      setSelectedDepartmentId(myDepartments[0].department_id)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [myDepartments.length, isMineSelected])
-
   if (myDepartments.length < 2) return null
 
   return (

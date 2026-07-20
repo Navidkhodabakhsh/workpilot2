@@ -1,6 +1,7 @@
 export type UserRole = "platform_admin" | "org_admin" | "project_manager" | "employee"
 export type ProjectStatus = "active" | "completed" | "archived"
 export type TaskPriority = "low" | "medium" | "high"
+export type TaskValue = "low" | "medium" | "high"
 export type TaskStatus = "todo" | "in_progress" | "completed" | "archived"
 export type ApprovalStatus = "pending" | "approved" | "rejected"
 
@@ -37,11 +38,14 @@ export type Task = {
   title: string
   description: string | null
   priority: TaskPriority
+  value: TaskValue
   status: TaskStatus
   approval_status: ApprovalStatus | null
   progress_percent: number
   estimated_hours: number | null
   actual_hours: number
+  pending_hours: number
+  total_logged_hours: number
   start_date: string | null
   deadline: string | null
   created_at: string

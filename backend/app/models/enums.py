@@ -20,6 +20,14 @@ class TaskPriority(str, enum.Enum):
     high = "high"
 
 
+class TaskValue(str, enum.Enum):
+    """Business value is deliberately separate from urgency/priority."""
+
+    low = "low"
+    medium = "medium"
+    high = "high"
+
+
 class TaskStatus(str, enum.Enum):
     todo = "todo"
     in_progress = "in_progress"
@@ -73,3 +81,8 @@ class ExportJobStatus(str, enum.Enum):
     processing = "processing"
     done = "done"
     failed = "failed"
+
+
+class FinanceEntryType(str, enum.Enum):
+    income = "income"
+    expense = "expense"

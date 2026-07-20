@@ -32,7 +32,15 @@ def test_dashboard_summary_reflects_real_data(client, signup_org_admin, create_o
     assert summary["project_count"] == 1
     assert summary["task_count"] == 1
     assert summary["total_approved_hours"] == 2.0
-    assert summary["team_hours"] == [{"user_id": emp["id"], "full_name": emp["full_name"], "approved_hours": 2.0}]
+    emp_hours = next(item for item in summary["team_hours"] if item["user_id"] == emp["id"])
+    assert emp_hours == {
+        "user_id": emp["id"],
+        "full_name": emp["full_name"],
+        "approved_hours": 2.0,
+        "percent": 100.0,
+    }
+    assert summary["project_hours"][0]["approved_hours"] == 2.0
+    assert summary["project_hours"][0]["percent"] == 100.0
 
 
 def test_dashboard_and_reports_are_isolated_per_organization(client, signup_org_admin, create_org_user):

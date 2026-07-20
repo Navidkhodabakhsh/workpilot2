@@ -6,7 +6,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base_class import Base, TimestampMixin, UUIDPKMixin
-from app.models.enums import ApprovalStatus, TaskPriority, TaskStatus
+from app.models.enums import ApprovalStatus, TaskPriority, TaskStatus, TaskValue
 
 
 class Task(UUIDPKMixin, TimestampMixin, Base):
@@ -36,6 +36,9 @@ class Task(UUIDPKMixin, TimestampMixin, Base):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     priority: Mapped[TaskPriority] = mapped_column(
         Enum(TaskPriority), nullable=False, default=TaskPriority.medium
+    )
+    value: Mapped[TaskValue] = mapped_column(
+        Enum(TaskValue, name="taskvalue"), nullable=False, default=TaskValue.medium
     )
     status: Mapped[TaskStatus] = mapped_column(Enum(TaskStatus), nullable=False, default=TaskStatus.todo)
     # Independent of `status` on purpose -- a task can be Completed but still

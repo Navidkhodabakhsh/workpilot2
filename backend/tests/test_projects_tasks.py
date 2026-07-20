@@ -44,7 +44,7 @@ def test_cross_org_project_access_returns_404_not_403(client, signup_org_admin):
     assert resp.status_code == 404  # not 403 -- org B shouldn't even learn the project exists
 
 
-def test_employee_can_only_change_status_of_their_own_task(client, signup_org_admin, create_org_user):
+def test_employee_can_update_working_details_of_their_own_task(client, signup_org_admin, create_org_user):
     admin_token, _ = signup_org_admin()
     pm_token, _ = create_org_user(admin_token, "project_manager", "pm")
     emp_token, emp = create_org_user(admin_token, "employee", "emp")
@@ -62,7 +62,8 @@ def test_employee_can_only_change_status_of_their_own_task(client, signup_org_ad
     assert resp.status_code == 200
 
     resp = client.patch(f"/api/v1/tasks/{task_id}", json={"priority": "high"}, headers=auth_headers(emp_token))
-    assert resp.status_code == 403
+    assert resp.status_code == 200
+    assert resp.json()["priority"] == "high"
 
 
 def test_list_tasks_without_project_id_returns_all_visible_tasks(client, signup_org_admin, create_org_user):

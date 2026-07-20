@@ -12,6 +12,14 @@ class TeamMemberHours(BaseModel):
     user_id: uuid.UUID
     full_name: str
     approved_hours: float
+    percent: float
+
+
+class ProjectHours(BaseModel):
+    project_id: uuid.UUID
+    project_name: str
+    approved_hours: float
+    percent: float
 
 
 class RecentActivityItem(BaseModel):
@@ -31,4 +39,5 @@ class DashboardSummary(BaseModel):
     tasks_by_status: list[StatusCount]
     total_approved_hours: float
     team_hours: list[TeamMemberHours]
+    project_hours: list[ProjectHours]
     recent_activity: list[RecentActivityItem]

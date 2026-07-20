@@ -37,6 +37,17 @@ def list_worklogs(
     return [WorkLogOut.model_validate(w) for w in worklogs]
 
 
+@router.get("/task/{task_id}", response_model=list[WorkLogOut])
+def list_task_worklogs(
+    task_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_current_org_id),
+    current_user: User = Depends(get_current_user),
+) -> list[WorkLogOut]:
+    worklogs = worklogs_service.list_task_worklogs(db, org_id, current_user, task_id)
+    return [WorkLogOut.model_validate(w) for w in worklogs]
+
+
 @router.get("/{worklog_id}", response_model=WorkLogOut)
 def get_worklog(
     worklog_id: uuid.UUID,

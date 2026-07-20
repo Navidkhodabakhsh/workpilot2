@@ -7,6 +7,7 @@ from app.models.collaboration import Attachment, Comment
 from app.models.department import Department
 from app.models.department_membership import DepartmentMembership
 from app.models.export_job import ExportJob
+from app.models.finance import FinanceCategory, FinanceEntry
 from app.models.leave_request import LeaveRequest
 from app.models.notification import Notification
 from app.models.organization import Organization
@@ -26,6 +27,8 @@ __all__ = [
     "Department",
     "DepartmentMembership",
     "ExportJob",
+    "FinanceCategory",
+    "FinanceEntry",
     "LeaveRequest",
     "Notification",
     "Organization",

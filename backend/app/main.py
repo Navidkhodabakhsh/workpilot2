@@ -10,6 +10,7 @@ from app.api.routers import (
     dashboard,
     departments,
     exports,
+    finance,
     health,
     leave_requests,
     notifications,
@@ -43,6 +44,7 @@ app.include_router(worklogs.router, prefix=settings.api_v1_prefix)
 app.include_router(dashboard.router, prefix=settings.api_v1_prefix)
 app.include_router(reports.router, prefix=settings.api_v1_prefix)
 app.include_router(exports.router, prefix=settings.api_v1_prefix)
+app.include_router(finance.router, prefix=settings.api_v1_prefix)
 app.include_router(notifications.router, prefix=settings.api_v1_prefix)
 app.include_router(audit.router, prefix=settings.api_v1_prefix)
 app.include_router(search.router, prefix=settings.api_v1_prefix)

@@ -1,7 +1,8 @@
 import { apiClient } from "@/lib/api-client"
 
 export type StatusCount = { status: string; count: number }
-export type TeamMemberHours = { user_id: string; full_name: string; approved_hours: number }
+export type TeamMemberHours = { user_id: string; full_name: string; approved_hours: number; percent: number }
+export type ProjectHours = { project_id: string; project_name: string; approved_hours: number; percent: number }
 export type RecentActivityItem = {
   worklog_id: string
   task_id: string
@@ -19,12 +20,17 @@ export type DashboardSummary = {
   tasks_by_status: StatusCount[]
   total_approved_hours: number
   team_hours: TeamMemberHours[]
+  project_hours: ProjectHours[]
   recent_activity: RecentActivityItem[]
 }
 
-export async function getDashboardSummary(departmentId?: string | null) {
+export async function getDashboardSummary(departmentId?: string | null, dateFrom?: string, dateTo?: string) {
   const { data } = await apiClient.get<DashboardSummary>("/api/v1/dashboard/summary", {
-    params: departmentId ? { department_id: departmentId } : undefined,
+    params: {
+      ...(departmentId ? { department_id: departmentId } : {}),
+      ...(dateFrom ? { date_from: dateFrom } : {}),
+      ...(dateTo ? { date_to: dateTo } : {}),
+    },
   })
   return data
 }
