@@ -27,7 +27,14 @@ SRC=$(dirname "$COMPOSE_FILE")
 command -v rsync &>/dev/null || { sudo apt-get update -qq && sudo apt-get install -y rsync; }
 
 mkdir -p "$DEST"
-rsync -a --delete --exclude ".venv" --exclude "node_modules" "$SRC"/ "$DEST"/
+# __pycache__/.pyc are written by the backend container (running as root)
+# into this bind-mounted dir -- excluding them means rsync never tries to
+# touch (and fails to delete, as a non-root user) those root-owned files.
+rsync -a --delete \
+  --exclude ".venv" --exclude "node_modules" \
+  --exclude "__pycache__" --exclude "*.pyc" \
+  --exclude ".pytest_cache" --exclude "dist" \
+  "$SRC"/ "$DEST"/
 cd "$DEST"
 chmod +x install.sh
 exec ./install.sh
