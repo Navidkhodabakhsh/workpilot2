@@ -170,6 +170,13 @@ def random_date_in_window():
 def main():
     db = SessionLocal()
     try:
+        # Idempotent: safe to run on every startup (e.g. from install.sh),
+        # including against a Postgres volume from a previous run that
+        # already has this same demo org in it.
+        if db.query(User).filter(User.email == "admin@test.local").first() is not None:
+            print("Demo org already seeded (admin@test.local exists) -- skipping.")
+            return
+
         org = Organization(name="شرکت نمونهٔ آزمایشی", slug=f"demo-org-{uuid.uuid4().hex[:8]}")
         db.add(org)
         db.flush()

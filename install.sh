@@ -56,6 +56,31 @@ fi
 
 $COMPOSE up -d --build
 
+# The initdb-based seed (backend/seed/demo_org_dump.sql) only loads on a
+# brand-new Postgres volume -- it's silently skipped if this machine ran
+# the stack before (even with an older compose file, before seeding
+# existed). So *also* run the seed script directly against whatever
+# database is actually live right now; it's idempotent (skips cleanly if
+# the demo org is already there), so this is safe to do on every run.
+echo "Waiting for the backend to be ready..."
+backend_ready=false
+for _ in $(seq 1 30); do
+  if $COMPOSE exec -T backend python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2)" &>/dev/null; then
+    backend_ready=true
+    break
+  fi
+  sleep 2
+done
+
+if [ "$backend_ready" = true ]; then
+  echo "Ensuring demo login data exists..."
+  $COMPOSE exec -T -e PYTHONPATH=. backend python scripts/seed_demo_org.py \
+    || echo "Seeding failed -- check '$COMPOSE logs backend' and see backend/seed/README.md."
+else
+  echo "Backend didn't come up in time -- skipping auto-seed. Once it's up, run:"
+  echo "  $COMPOSE exec -e PYTHONPATH=. backend python scripts/seed_demo_org.py"
+fi
+
 cat <<EOF
 
 Done. WorkPilot is starting up:
@@ -63,13 +88,8 @@ Done. WorkPilot is starting up:
   From Windows (or another machine on the network): http://${vm_ip:-<this-VM-IP>}:5173
   Backend docs:  http://${vm_ip:-localhost}:8000/docs
 
-A demo organization is auto-seeded on a brand-new database (see
-backend/seed/README.md for the full phone/password list -- every
-account's password is Test@1234). If you ran this stack before on this
-machine without seed data, the old database volume already exists and
-won't get reseeded automatically; run this once to force a clean, seeded
-database:
-  $COMPOSE down -v && $COMPOSE up -d --build
+Demo login (see backend/seed/README.md for the full list) -- password for
+every account is Test@1234, e.g. org_admin: 09100000001
 
 Check status with:    $COMPOSE ps
 Follow logs with:     $COMPOSE logs -f
