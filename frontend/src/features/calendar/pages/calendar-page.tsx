@@ -95,7 +95,7 @@ export function CalendarPage() {
       for (const t of tasks ?? []) {
         if (!t.deadline) continue
         if (projectFilter && t.project_id !== projectFilter) continue
-        items.push({ id: `task-${t.id}`, kind: "task", title: t.title, color: TASK_EVENT_COLOR, time: null, task: t })
+        items.push({ id: `task-${t.id}`, kind: "task", title: t.title, time: null, task: t })
       }
     }
 
@@ -106,7 +106,6 @@ export function CalendarPage() {
         id: e.id,
         kind: "event",
         title: e.title,
-        color: EVENT_TYPE_COLOR[e.event_type],
         time: e.all_day ? null : timeLabel(e.start_at),
         event: e,
       })

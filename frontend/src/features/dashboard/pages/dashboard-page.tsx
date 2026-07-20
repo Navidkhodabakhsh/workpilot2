@@ -12,10 +12,8 @@ import { EmptyState } from "@/components/ui/empty-state"
 import { Skeleton } from "@/components/ui/skeleton"
 import { getDashboardSummary } from "@/features/dashboard/api"
 import type { StatusCount } from "@/features/dashboard/api"
-import { hoursByProject, projectProgress } from "@/features/dashboard/chart-utils"
-import { ProjectRoadmap } from "@/features/dashboard/components/project-roadmap"
+import { hoursByProject } from "@/features/dashboard/chart-utils"
 import { listOrgUsers } from "@/features/users/api"
-import { listProjects } from "@/features/projects/api"
 import { listAllTasks } from "@/features/tasks/api"
 import { getWorklogReport } from "@/features/reports/api"
 import { PRIORITY_LABEL, PRIORITY_VARIANT } from "@/features/tasks/constants"
@@ -250,7 +248,6 @@ export function DashboardPage() {
     queryFn: () => getDashboardSummary(selectedDepartmentId),
   })
   const { data: orgUsers } = useQuery({ queryKey: ["org-users"], queryFn: listOrgUsers })
-  const { data: projects } = useQuery({ queryKey: ["projects", "dashboard"], queryFn: listProjects })
   const { data: tasks } = useQuery({ queryKey: ["tasks", "dashboard-all"], queryFn: () => listAllTasks() })
   const { data: worklogReport, isLoading: isReportLoading } = useQuery({
     queryKey: ["worklog-report", "dashboard"],
@@ -285,8 +282,6 @@ export function DashboardPage() {
   const chartData = taskStatusChartData(data.tasks_by_status)
   const teamHoursData = [...data.team_hours].sort((a, b) => b.approved_hours - a.approved_hours).slice(0, 8)
   const projectHours = worklogReport ? hoursByProject(worklogReport.items) : []
-  const progress = tasks && projects ? projectProgress(tasks, projects).slice(0, 6) : []
-  const roadmapItems = progress.map((p) => ({ id: p.project_id, name: p.project_name, percent: p.percent }))
 
   const now = new Date()
   const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
@@ -317,16 +312,6 @@ export function DashboardPage() {
 
       <div className="flex flex-col gap-4">
         <SectionLabel>نمودارها</SectionLabel>
-
-        <ChartCard
-          title="نقشهٔ راه پروژه‌ها"
-          isLoading={false}
-          isEmpty={roadmapItems.length === 0}
-          emptyMessage="هنوز داده‌ای برای نقشهٔ راه پروژه‌ها وجود ندارد."
-          plain
-        >
-          <ProjectRoadmap items={roadmapItems} />
-        </ChartCard>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <ChartCard
