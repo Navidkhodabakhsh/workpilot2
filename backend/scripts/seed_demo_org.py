@@ -22,11 +22,21 @@ from app.models.enums import (
     TaskPriority,
     TaskStatus,
     UserRole,
+    WorkLogStatus,
 )
 from app.models.organization import Organization
 from app.models.project import Project, ProjectMember
 from app.models.task import Task
 from app.models.user import User
+from app.models.worklog import WorkLog
+
+WORK_ACTIVITY_DESCRIPTIONS = [
+    "پیشرفت اولیه و بررسی نیازمندی‌ها",
+    "پیاده‌سازی بخش اصلی",
+    "رفع اشکالات و بازبینی",
+    "تست و اطمینان از عملکرد صحیح",
+    "مستندسازی و نهایی‌سازی",
+]
 
 random.seed(42)
 
@@ -265,15 +275,49 @@ def main():
                 )
 
             seq = 1
+            dept_tasks = []
             for project in projects:
                 for _ in range(18):
                     assignee = random.choice(members_pool)
-                    db.add(make_task(project, assignee, manager, seq))
+                    task = make_task(project, assignee, manager, seq)
+                    db.add(task)
+                    dept_tasks.append(task)
                     seq += 1
             for _ in range(15):
                 person = random.choice(members_pool)
-                db.add(make_task(None, person, person, seq))
+                task = make_task(None, person, person, seq)
+                db.add(task)
+                dept_tasks.append(task)
                 seq += 1
+            db.flush()
+
+            # --- Work logs: real logged hours for anything past "todo", so
+            # Task.actual_hours (summed from approved logs) isn't zero
+            # everywhere -- most are approved, some left pending to also
+            # show the manager approval queue with real data in it.
+            for task in dept_tasks:
+                if task.status == TaskStatus.todo:
+                    continue
+                for i in range(random.randint(1, 4)):
+                    log_dt = min(task.start_date + timedelta(days=i * random.randint(1, 4)), TODAY)
+                    worklog_status = (
+                        WorkLogStatus.approved
+                        if task.status in (TaskStatus.completed, TaskStatus.archived)
+                        else random.choices([WorkLogStatus.approved, WorkLogStatus.submitted], weights=[70, 30])[0]
+                    )
+                    db.add(
+                        WorkLog(
+                            organization_id=org.id,
+                            task_id=task.id,
+                            user_id=task.assignee_id,
+                            activity_description=random.choice(WORK_ACTIVITY_DESCRIPTIONS),
+                            time_spent_minutes=random.randint(30, 240),
+                            progress_percent=min(100, (i + 1) * random.randint(20, 40)),
+                            log_date=log_dt,
+                            status=worklog_status,
+                            reviewed_by_id=manager.id if worklog_status == WorkLogStatus.approved else None,
+                        )
+                    )
             db.flush()
 
             # --- Calendar events: ~24 across the 2-month window ---
