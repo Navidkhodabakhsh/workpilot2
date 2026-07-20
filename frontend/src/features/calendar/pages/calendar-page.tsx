@@ -7,26 +7,16 @@ import { Select } from "@/components/ui/select"
 import { listCalendarEvents, type CalendarEvent, type CalendarEventType } from "@/features/calendar/api"
 import { EVENT_TYPE_COLOR, EVENT_TYPE_LABEL, TASK_EVENT_COLOR } from "@/features/calendar/constants"
 import { EventFormDialog } from "@/features/calendar/components/event-form-dialog"
-import { MonthView } from "@/features/calendar/components/month-view"
 import { AgendaView } from "@/features/calendar/components/agenda-view"
-import { DayEventsDialog } from "@/features/calendar/components/day-events-dialog"
 import { TaskDetailDialog } from "@/features/tasks/components/task-detail-dialog"
 import { listAllTasks } from "@/features/tasks/api"
 import { listProjects } from "@/features/projects/api"
 import { useAuthStore } from "@/features/auth/auth-store"
 import type { Task } from "@/lib/types"
 import type { CalendarItem } from "@/features/calendar/types"
-import {
-  addDays,
-  dateKey,
-  daysInRange,
-  groupByDateKey,
-  jalaliMonthDays,
-  startOfWeek,
-} from "@/features/calendar/calendar-utils"
-import { JALALI_MONTH_NAMES, fromJalali, getJalaliMonthGrid, parseIsoDate, toJalali, toPersianDigits } from "@/lib/jalali"
+import { addDays, dateKey, daysInRange, groupByDateKey, jalaliMonthDays, startOfWeek } from "@/features/calendar/calendar-utils"
+import { JALALI_MONTH_NAMES, fromJalali, toJalali, toPersianDigits } from "@/lib/jalali"
 
-type ViewMode = "month" | "agenda"
 type AgendaRange = "week" | "month"
 
 // "leave" is deliberately excluded: leave is now handled by the dedicated
@@ -64,7 +54,6 @@ export function CalendarPage() {
   const canManageOrgWide = role === "org_admin" || role === "project_manager"
 
   const today = new Date()
-  const [view, setView] = useState<ViewMode>("month")
   const [agendaRange, setAgendaRange] = useState<AgendaRange>("week")
   const [jalaliCursor, setJalaliCursor] = useState(() => {
     const { jy, jm } = toJalali(today)
@@ -78,17 +67,15 @@ export function CalendarPage() {
   const [draft, setDraft] = useState<{ start: Date; end: Date; allDay: boolean } | null>(null)
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null)
   const [viewingTask, setViewingTask] = useState<Task | null>(null)
-  const [viewingDayKey, setViewingDayKey] = useState<string | null>(null)
   const [formOpen, setFormOpen] = useState(false)
 
-  // The set of Gregorian days actually rendered by the active view --
-  // drives both the fetch range and the day grouping below.
+  // The set of Gregorian days actually rendered by the agenda -- drives
+  // both the fetch range and the day grouping below.
   const displayDays = useMemo(() => {
-    if (view === "month") return getJalaliMonthGrid(jalaliCursor.jy, jalaliCursor.jm)
     if (agendaRange === "week") return daysInRange(weekAnchor, 7)
     return jalaliMonthDays(jalaliCursor.jy, jalaliCursor.jm)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view, agendaRange, jalaliCursor.jy, jalaliCursor.jm, weekAnchor])
+  }, [agendaRange, jalaliCursor.jy, jalaliCursor.jm, weekAnchor])
 
   const rangeStart = displayDays[0]
   const rangeEnd = addDays(displayDays[displayDays.length - 1], 1)
@@ -148,7 +135,7 @@ export function CalendarPage() {
   }
 
   function navigate(direction: 1 | -1) {
-    if (view === "agenda" && agendaRange === "week") {
+    if (agendaRange === "week") {
       setWeekAnchor((prev) => addDays(prev, direction * 7))
       return
     }
@@ -188,7 +175,6 @@ export function CalendarPage() {
   }
 
   function handleSelectItem(item: CalendarItem) {
-    setViewingDayKey(null)
     if (item.kind === "task") {
       setViewingTask(item.task)
     } else {
@@ -199,7 +185,7 @@ export function CalendarPage() {
   }
 
   const title =
-    view === "agenda" && agendaRange === "week"
+    agendaRange === "week"
       ? weekRangeLabel(weekAnchor)
       : `${JALALI_MONTH_NAMES[jalaliCursor.jm - 1]} ${toPersianDigits(jalaliCursor.jy)}`
 
@@ -255,25 +241,13 @@ export function CalendarPage() {
             </Select>
           </div>
 
-          <div className="flex items-center gap-2">
-            {view === "agenda" && (
-              <div className="flex gap-1 rounded-lg bg-muted p-1">
-                <button type="button" onClick={() => setAgendaRange("week")} className={tabClass(agendaRange === "week")}>
-                  هفته
-                </button>
-                <button type="button" onClick={() => setAgendaRange("month")} className={tabClass(agendaRange === "month")}>
-                  ماه
-                </button>
-              </div>
-            )}
-            <div className="flex gap-1 rounded-lg bg-muted p-1">
-              <button type="button" onClick={() => setView("month")} className={tabClass(view === "month")}>
-                ماه
-              </button>
-              <button type="button" onClick={() => setView("agenda")} className={tabClass(view === "agenda")}>
-                برنامه
-              </button>
-            </div>
+          <div className="flex gap-1 rounded-lg bg-muted p-1">
+            <button type="button" onClick={() => setAgendaRange("week")} className={tabClass(agendaRange === "week")}>
+              هفته
+            </button>
+            <button type="button" onClick={() => setAgendaRange("month")} className={tabClass(agendaRange === "month")}>
+              ماه
+            </button>
           </div>
         </div>
         <p className="text-sm font-medium">{title}</p>
@@ -313,19 +287,9 @@ export function CalendarPage() {
         )}
       </div>
 
-      {view === "month" ? (
-        <MonthView
-          jy={jalaliCursor.jy}
-          jm={jalaliCursor.jm}
-          today={today}
-          itemsByDay={itemsByDay}
-          onSelectDay={setViewingDayKey}
-        />
-      ) : (
-        <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
-          <AgendaView days={displayDays} today={today} itemsByDay={itemsByDay} onSelectItem={handleSelectItem} />
-        </div>
-      )}
+      <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
+        <AgendaView days={displayDays} today={today} itemsByDay={itemsByDay} onSelectItem={handleSelectItem} />
+      </div>
 
       <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
         {FILTERABLE_TYPES.map((t) => (
@@ -343,19 +307,6 @@ export function CalendarPage() {
         editingEvent={editingEvent}
         canManageOrgWide={canManageOrgWide}
         projects={projects ?? []}
-      />
-
-      <DayEventsDialog
-        open={viewingDayKey !== null}
-        onOpenChange={(next) => {
-          if (!next) setViewingDayKey(null)
-        }}
-        dateKey={viewingDayKey}
-        items={viewingDayKey ? itemsByDay[viewingDayKey] ?? [] : []}
-        onSelectItem={handleSelectItem}
-        onCreateEvent={() => {
-          if (viewingDayKey) openNewEventForm(parseIsoDate(viewingDayKey))
-        }}
       />
 
       {viewingTask && (

@@ -74,9 +74,11 @@ describe("projectProgress", () => {
       makeTask({ id: "t2", project_id: "p1", status: "todo" }),
     ]
     const projects = [
-      { id: "p1", name: "Alpha" },
-      { id: "p2", name: "Beta" },
+      { id: "p1", name: "Alpha", start_date: "2026-01-01", end_date: "2026-03-01" },
+      { id: "p2", name: "Beta", start_date: "2026-01-01", end_date: "2026-03-01" },
     ]
-    expect(projectProgress(tasks, projects)).toEqual([{ project_id: "p1", project_name: "Alpha", percent: 50 }])
+    expect(projectProgress(tasks, projects)).toEqual([
+      { project_id: "p1", project_name: "Alpha", percent: 50, start_date: "2026-01-01", end_date: "2026-03-01" },
+    ])
   })
 })

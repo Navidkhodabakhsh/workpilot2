@@ -227,13 +227,18 @@ def main():
             projects = []
             for p_idx, project_name in enumerate(dept_data["project_names"]):
                 project_members_subset = random.sample(employees, k=3)
+                # Staggered, varied-length windows (not all sharing WINDOW_START/END)
+                # so a roadmap/Gantt view of projects actually shows a spread
+                # instead of every bar being identical.
+                project_start = TODAY - timedelta(days=random.randint(10, 90))
+                project_end = project_start + timedelta(days=random.randint(45, 150))
                 project = Project(
                     organization_id=org.id,
                     name=project_name,
                     description=f"پروژهٔ {dept.name} شماره {p_idx + 1}",
-                    cooperation_start_date=WINDOW_START,
-                    start_date=WINDOW_START,
-                    end_date=WINDOW_END + timedelta(days=60),
+                    cooperation_start_date=project_start,
+                    start_date=project_start,
+                    end_date=project_end,
                     status=ProjectStatus.active,
                     created_by_id=admin.id,
                     manager_id=manager.id,

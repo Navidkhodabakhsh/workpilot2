@@ -21,9 +21,18 @@ export function hoursByProject(rows: WorkLogReportRow[], limit = 8): HoursByProj
     .slice(0, limit)
 }
 
-export type ProjectProgressPoint = { project_id: string; project_name: string; percent: number }
+export type ProjectProgressPoint = {
+  project_id: string
+  project_name: string
+  percent: number
+  start_date: string | null
+  end_date: string | null
+}
 
-export function projectProgress(tasks: Task[], projects: { id: string; name: string }[]): ProjectProgressPoint[] {
+export function projectProgress(
+  tasks: Task[],
+  projects: { id: string; name: string; start_date: string | null; end_date: string | null }[]
+): ProjectProgressPoint[] {
   const tasksByProject = new Map<string, Task[]>()
   for (const task of tasks) {
     if (!task.project_id) continue
@@ -40,6 +49,8 @@ export function projectProgress(tasks: Task[], projects: { id: string; name: str
         project_id: p.id,
         project_name: p.name,
         percent: Math.round((completed / list.length) * 100),
+        start_date: p.start_date,
+        end_date: p.end_date,
       }
     })
     .sort((a, b) => b.percent - a.percent)

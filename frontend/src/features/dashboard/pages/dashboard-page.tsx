@@ -1,23 +1,26 @@
 import type { ReactElement, ReactNode } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Link } from "react-router-dom"
-import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
-import { CheckCircle2, ClipboardList, Clock, FolderKanban, Users } from "lucide-react"
+import { Area, AreaChart, Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
+import { CheckCircle2, ClipboardList, Clock, FolderKanban, ListChecks, Users } from "lucide-react"
 
 import { AnimatedNumber } from "@/components/ui/animated-number"
+import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Skeleton } from "@/components/ui/skeleton"
 import { getDashboardSummary } from "@/features/dashboard/api"
 import type { StatusCount } from "@/features/dashboard/api"
 import { hoursByProject, projectProgress } from "@/features/dashboard/chart-utils"
-import { HorizontalBarList } from "@/features/dashboard/components/horizontal-bar-list"
+import { ProjectRoadmap } from "@/features/dashboard/components/project-roadmap"
 import { listOrgUsers } from "@/features/users/api"
 import { listProjects } from "@/features/projects/api"
 import { listAllTasks } from "@/features/tasks/api"
 import { getWorklogReport } from "@/features/reports/api"
+import { PRIORITY_LABEL, PRIORITY_VARIANT } from "@/features/tasks/constants"
 import { useAuthStore } from "@/features/auth/auth-store"
 import { useDepartmentStore } from "@/features/departments/department-store"
+import { toPersianDigits } from "@/lib/jalali"
 
 const STATUS_LABEL: Record<string, string> = {
   todo: "برای انجام",
@@ -37,6 +40,18 @@ const WORKLOG_STATUS_LABEL: Record<string, string> = {
   approved: "تأییدشده",
   rejected: "ردشده",
 }
+
+// Same fixed, validated categorical order used across the dashboard's
+// per-item colored charts (roadmap, project-hours bars) -- validated with
+// the dataviz skill's CVD checker; every row also carries a direct label
+// (name + value), so identity never depends on color alone.
+const CATEGORICAL_COLORS = [
+  "var(--color-primary)",
+  "var(--color-success)",
+  "var(--color-leave)",
+  "var(--color-warning)",
+  "var(--color-danger)",
+]
 
 const STAT_TONE_CLASS: Record<string, string> = {
   primary: "bg-primary/10 text-primary",
@@ -166,6 +181,66 @@ function ChartCard({
   )
 }
 
+function TaskStatusDonut({ data }: { data: { name: string; value: number; color: string }[] }) {
+  const total = data.reduce((sum, d) => sum + d.value, 0)
+  return (
+    <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+      <div className="relative h-[190px] w-[190px] shrink-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={data}
+              dataKey="value"
+              nameKey="name"
+              innerRadius="64%"
+              outerRadius="100%"
+              paddingAngle={3}
+              cornerRadius={8}
+              stroke="none"
+              animationDuration={700}
+            >
+              {data.map((d) => (
+                <Cell key={d.name} fill={d.color} />
+              ))}
+            </Pie>
+            <Tooltip formatter={(value: any, name: any) => [toPersianDigits(value), name]} />
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-2xl font-bold tabular-nums">
+            <AnimatedNumber value={total} />
+          </span>
+          <span className="text-xs text-muted-foreground">کل وظایف</span>
+        </div>
+      </div>
+      <div className="flex flex-col gap-2 self-stretch justify-center">
+        {data.map((d) => (
+          <div key={d.name} className="flex items-center gap-2 text-sm">
+            <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: d.color }} />
+            <span className="text-muted-foreground">{d.name}</span>
+            <span className="ms-auto font-medium tabular-nums">{toPersianDigits(d.value)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function TeamHoursTooltip({ active, payload }: any) {
+  if (!active || !payload?.length) return null
+  const p = payload[0].payload
+  return (
+    <div className="rounded-lg border border-border bg-card px-3 py-2 text-xs shadow-md">
+      <p className="mb-1 font-medium">{p.full_name}</p>
+      <p className="tabular-nums">{toPersianDigits(p.approved_hours)} ساعت</p>
+    </div>
+  )
+}
+
+function firstName(fullName: string): string {
+  return fullName.trim().split(" ")[0] ?? fullName
+}
+
 export function DashboardPage() {
   const isOrgAdmin = useAuthStore((s) => s.user?.role === "org_admin")
   const selectedDepartmentId = useDepartmentStore((s) => s.selectedDepartmentId)
@@ -207,9 +282,25 @@ export function DashboardPage() {
 
   const doneCount = data.tasks_by_status.find((s) => s.status === "completed")?.count ?? 0
   const chartData = taskStatusChartData(data.tasks_by_status)
-  const teamHoursData = [...data.team_hours].sort((a, b) => b.approved_hours - a.approved_hours)
+  const teamHoursData = [...data.team_hours].sort((a, b) => b.approved_hours - a.approved_hours).slice(0, 8)
   const projectHours = worklogReport ? hoursByProject(worklogReport.items) : []
-  const progress = tasks && projects ? projectProgress(tasks, projects).slice(0, 8) : []
+  const progress = tasks && projects ? projectProgress(tasks, projects).slice(0, 6) : []
+  const roadmapItems = progress
+    .filter((p) => p.start_date && p.end_date)
+    .map((p) => ({
+      id: p.project_id,
+      name: p.project_name,
+      start: new Date(p.start_date!),
+      end: new Date(p.end_date!),
+      percent: p.percent,
+    }))
+
+  const now = new Date()
+  const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
+  const todayTasks = (tasks ?? [])
+    .filter((t) => t.deadline && t.deadline <= todayIso && t.status !== "completed" && t.status !== "archived")
+    .sort((a, b) => (a.deadline! < b.deadline! ? -1 : 1))
+    .slice(0, 5)
 
   return (
     <div className="flex flex-col gap-6">
@@ -237,41 +328,95 @@ export function DashboardPage() {
       <div className="flex flex-col gap-4">
         <SectionLabel>نمودارها</SectionLabel>
 
+        <ChartCard
+          title="نقشهٔ راه پروژه‌ها"
+          isLoading={false}
+          isEmpty={roadmapItems.length === 0}
+          emptyMessage="هنوز داده‌ای برای نقشهٔ راه پروژه‌ها وجود ندارد."
+          plain
+        >
+          <ProjectRoadmap items={roadmapItems} />
+        </ChartCard>
+
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <ChartCard
             title="وضعیت وظایف"
             isLoading={false}
             isEmpty={chartData.length === 0}
             emptyMessage="هنوز وظیفه‌ای ثبت نشده است."
-            height={240}
+            plain
           >
-            <BarChart data={chartData}>
-              <XAxis dataKey="name" hide />
-              <YAxis allowDecimals={false} hide />
-              <Tooltip />
-              <Bar dataKey="value" radius={[6, 6, 0, 0]} animationDuration={700}>
-                {chartData.map((entry) => (
-                  <Cell key={entry.name} fill={entry.color} />
-                ))}
-              </Bar>
-            </BarChart>
+            <TaskStatusDonut data={chartData} />
           </ChartCard>
+
+          <Card className="overflow-hidden">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <ListChecks className="size-4 text-primary" aria-hidden="true" />
+                تسک‌های کلیدی امروز
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {todayTasks.length === 0 && <EmptyState className="h-[190px]" message="کاری برای امروز باقی نمانده است." />}
+              {todayTasks.length > 0 && (
+                <div className="flex flex-col gap-2.5">
+                  {todayTasks.map((t) => {
+                    const overdue = t.deadline! < todayIso
+                    return (
+                      <Link
+                        key={t.id}
+                        to="/tasks"
+                        className="flex items-center gap-2.5 rounded-lg border border-border/70 p-2.5 text-sm transition-colors hover:bg-muted/50"
+                      >
+                        <span
+                          className={`size-2 shrink-0 rounded-full ${overdue ? "bg-danger" : "bg-warning"}`}
+                          aria-hidden="true"
+                        />
+                        <span className="flex-1 truncate font-medium">{t.title}</span>
+                        <Badge variant={PRIORITY_VARIANT[t.priority]}>{PRIORITY_LABEL[t.priority]}</Badge>
+                      </Link>
+                    )
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           <ChartCard
             title="مقایسهٔ ساعات کاری اعضای تیم"
             isLoading={false}
             isEmpty={teamHoursData.length === 0}
             emptyMessage="هنوز گزارش کاری تأییدشده‌ای وجود ندارد."
-            plain
+            height={260}
           >
-            <HorizontalBarList
-              items={teamHoursData.map((t) => ({
-                id: t.user_id,
-                label: t.full_name,
-                value: t.approved_hours,
-                displayValue: String(t.approved_hours),
-              }))}
-            />
+            <AreaChart data={teamHoursData} margin={{ top: 8, left: 0, right: 8 }}>
+              <defs>
+                <linearGradient id="teamHoursGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.4} />
+                  <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
+              <XAxis
+                dataKey="full_name"
+                tickFormatter={firstName}
+                tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
+                axisLine={false}
+                tickLine={false}
+                interval={0}
+              />
+              <YAxis hide />
+              <Tooltip content={<TeamHoursTooltip />} />
+              <Area
+                type="monotone"
+                dataKey="approved_hours"
+                stroke="var(--color-primary)"
+                strokeWidth={2.5}
+                fill="url(#teamHoursGradient)"
+                dot={{ r: 3, fill: "var(--color-primary)", strokeWidth: 0 }}
+                activeDot={{ r: 5 }}
+                animationDuration={700}
+              />
+            </AreaChart>
           </ChartCard>
 
           <ChartCard
@@ -279,33 +424,33 @@ export function DashboardPage() {
             isLoading={isReportLoading}
             isEmpty={projectHours.length === 0}
             emptyMessage="هنوز گزارش کاری تأییدشده‌ای وجود ندارد."
-            plain
+            height={260}
           >
-            <HorizontalBarList
-              items={projectHours.map((p) => ({
-                id: p.project_id,
-                label: p.project_name,
-                value: p.hours,
-                displayValue: String(p.hours),
-              }))}
-            />
-          </ChartCard>
-
-          <ChartCard
-            title="روند پیشرفت پروژه‌ها"
-            isLoading={false}
-            isEmpty={progress.length === 0}
-            emptyMessage="هنوز داده‌ای برای پیشرفت پروژه‌ها وجود ندارد."
-            plain
-          >
-            <HorizontalBarList
-              items={progress.map((p) => ({
-                id: p.project_id,
-                label: p.project_name,
-                value: p.percent,
-                displayValue: `${p.percent}٪`,
-              }))}
-            />
+            <BarChart data={projectHours} margin={{ top: 8, left: 0, right: 8 }}>
+              <defs>
+                {projectHours.map((p, i) => (
+                  <linearGradient key={p.project_id} id={`projectHoursGradient-${i}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={CATEGORICAL_COLORS[i % CATEGORICAL_COLORS.length]} stopOpacity={0.95} />
+                    <stop offset="100%" stopColor={CATEGORICAL_COLORS[i % CATEGORICAL_COLORS.length]} stopOpacity={0.55} />
+                  </linearGradient>
+                ))}
+              </defs>
+              <XAxis
+                dataKey="project_name"
+                tickFormatter={(v: string) => (v.length > 8 ? `${v.slice(0, 8)}…` : v)}
+                tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
+                axisLine={false}
+                tickLine={false}
+                interval={0}
+              />
+              <YAxis hide />
+              <Tooltip formatter={(v: any) => [`${toPersianDigits(v)} ساعت`, ""]} />
+              <Bar dataKey="hours" radius={[8, 8, 0, 0]} animationDuration={700}>
+                {projectHours.map((p, i) => (
+                  <Cell key={p.project_id} fill={`url(#projectHoursGradient-${i})`} />
+                ))}
+              </Bar>
+            </BarChart>
           </ChartCard>
         </div>
       </div>
