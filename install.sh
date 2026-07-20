@@ -41,13 +41,27 @@ if [ ! -f backend/.env ]; then
   echo "Created backend/.env (with a random SECRET_KEY)."
 fi
 
+# Regenerated every run (cheap, no secrets in it) so the frontend/backend
+# stay reachable from outside this machine -- e.g. a Windows host browsing
+# into this VM -- where "localhost" would otherwise point at Windows
+# itself instead of here. docker-compose.yml reads these via ${VAR:-...}.
+vm_ip=$(ip route get 1.1.1.1 2>/dev/null | awk '{print $7; exit}')
+vm_ip=${vm_ip:-$(hostname -I 2>/dev/null | awk '{print $1}')}
+if [ -n "${vm_ip:-}" ]; then
+  cat > .env <<ENVEOF
+VITE_API_BASE_URL=http://${vm_ip}:8000
+CORS_ORIGINS=["http://localhost:5173","http://127.0.0.1:5173","http://${vm_ip}:5173"]
+ENVEOF
+fi
+
 $COMPOSE up -d --build
 
 cat <<EOF
 
 Done. WorkPilot is starting up:
-  Frontend:      http://localhost:5173
-  Backend docs:  http://localhost:8000/docs
+  From inside this machine:  http://localhost:5173
+  From Windows (or another machine on the network): http://${vm_ip:-<this-VM-IP>}:5173
+  Backend docs:  http://${vm_ip:-localhost}:8000/docs
 
 A demo organization is auto-seeded on a brand-new database (see
 backend/seed/README.md for the full phone/password list -- every

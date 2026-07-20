@@ -42,6 +42,12 @@ services:
       # docker-entrypoint.sh) so worker/beat don't race it with concurrent
       # migration attempts against a fresh database.
       RUN_MIGRATIONS: "true"
+      # CORS is credentialed (see app/main.py), so the frontend's exact
+      # origin must be listed -- install.sh regenerates the root .env this
+      # reads from with the host's actual LAN IP, so this also works when
+      # browsing in from outside the VM (e.g. from Windows to a VMware
+      # guest), not just from localhost.
+      CORS_ORIGINS: '${CORS_ORIGINS:-["http://localhost:5173","http://127.0.0.1:5173"]}'
     ports:
       - "8000:8000"
     volumes:
@@ -98,7 +104,9 @@ services:
       - ./frontend:/app
       - /app/node_modules
     environment:
-      VITE_API_BASE_URL: http://localhost:8000
+      # See the CORS_ORIGINS comment on the backend service -- both are
+      # generated together by install.sh into the root .env file.
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
     depends_on:
       - backend
 

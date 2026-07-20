@@ -14,6 +14,7 @@ type Mode = "password" | "otp"
 type OtpStep = "phone" | "code"
 
 const RATE_LIMIT_MESSAGE = "تعداد تلاش‌های ورود بیش از حد مجاز است؛ چند دقیقه دیگر دوباره امتحان کنید."
+const NETWORK_ERROR_MESSAGE = "اتصال به سرور برقرار نشد. مطمئن شوید سرور در حال اجراست و آدرسش درست تنظیم شده."
 
 export function LoginPage() {
   const navigate = useNavigate()
@@ -117,6 +118,8 @@ function PasswordLoginForm({ onSuccess }: { onSuccess: (accessToken: string) => 
     } catch (err: any) {
       if (err?.response?.status === 429) {
         setServerError(RATE_LIMIT_MESSAGE)
+      } else if (!err?.response) {
+        setServerError(NETWORK_ERROR_MESSAGE)
       } else {
         setServerError("شماره موبایل یا رمز عبور اشتباه است")
       }
@@ -188,6 +191,8 @@ function OtpLoginForm({ onSuccess }: { onSuccess: (accessToken: string) => Promi
         setServerError("حسابی با این شماره موبایل ثبت نشده است")
       } else if (err?.response?.status === 429) {
         setServerError("تعداد درخواست‌های کد بیش از حد مجاز است؛ کمی بعد دوباره تلاش کنید.")
+      } else if (!err?.response) {
+        setServerError(NETWORK_ERROR_MESSAGE)
       } else {
         setServerError("خطایی رخ داد؛ دوباره تلاش کنید")
       }
@@ -229,6 +234,8 @@ function OtpLoginForm({ onSuccess }: { onSuccess: (accessToken: string) => Promi
         setServerError("کد وارد شده اشتباه یا منقضی شده است")
       } else if (err?.response?.status === 429) {
         setServerError(RATE_LIMIT_MESSAGE)
+      } else if (!err?.response) {
+        setServerError(NETWORK_ERROR_MESSAGE)
       } else {
         setServerError("خطایی رخ داد؛ دوباره تلاش کنید")
       }
