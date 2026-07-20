@@ -29,7 +29,7 @@ export function TaskCard({
 }: {
   task: Task
   users: OrgUser[]
-  /** Shown as a badge when the card appears in a cross-project context (Workflow board). */
+  /** Shown as a badge when the card appears in a cross-project context (e.g. the Tasks list, not scoped to one project's page). */
   projectName?: string
 }) {
   const queryClient = useQueryClient()

@@ -4,9 +4,8 @@ import { Controller, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useSearchParams } from "react-router-dom"
-import { ChevronDown, ChevronLeft, MessageSquare, Plus, Search } from "lucide-react"
+import { Plus, Search } from "lucide-react"
 
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -23,32 +22,17 @@ import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { createTask, getTask, listAllTasks } from "@/features/tasks/api"
 import type { TaskFilters } from "@/features/tasks/api"
-import {
-  APPROVAL_LABEL,
-  APPROVAL_VARIANT,
-  PRIORITY_LABEL,
-  PRIORITY_VARIANT,
-  STATUS_LABEL,
-  STATUS_VARIANT,
-} from "@/features/tasks/constants"
+import { PRIORITY_LABEL, STATUS_COLUMNS } from "@/features/tasks/constants"
+import { TaskCard } from "@/features/tasks/components/task-card"
 import { TaskDetailDialog } from "@/features/tasks/components/task-detail-dialog"
-import { buildTaskTree, flattenTaskTree, type TaskTreeNode } from "@/features/tasks/task-tree"
+import { buildTaskTree, flattenTaskTree } from "@/features/tasks/task-tree"
 import { listProjects } from "@/features/projects/api"
 import { listOrgUsers } from "@/features/users/api"
 import { useDepartmentStore } from "@/features/departments/department-store"
 import { useAuthStore } from "@/features/auth/auth-store"
-import type { OrgUser, Project, Task } from "@/lib/types"
+import type { OrgUser, Project, TaskStatus } from "@/lib/types"
 
-type TabKey = "assigned" | "personal" | "pending_approval" | "completed" | "rejected" | "overdue"
-
-const TABS: { key: TabKey; label: string }[] = [
-  { key: "assigned", label: "به من محول‌شده" },
-  { key: "personal", label: "تسک‌های شخصی من" },
-  { key: "pending_approval", label: "در انتظار تأیید" },
-  { key: "completed", label: "تکمیل‌شده" },
-  { key: "rejected", label: "ردشده" },
-  { key: "overdue", label: "سررسیدگذشته" },
-]
+type MainTab = "mine" | "assigned_by_me" | "pending_approval"
 
 const createSchema = z.object({
   title: z.string().min(2, "عنوان وظیفه را وارد کنید"),
@@ -67,12 +51,17 @@ function CreateTaskDialog({
   parentTaskId,
   projects,
   users,
+  canAssignOthers,
 }: {
   trigger: React.ReactNode
   defaultProjectId?: string
   parentTaskId?: string
   projects: Project[]
   users: OrgUser[]
+  /** Employees can only ever open personal tasks for themselves -- everyone
+   * managing a project (org_admin, or a project_manager who's a member)
+   * can hand work to whoever's below them there. */
+  canAssignOthers: boolean
 }) {
   const [open, setOpen] = useState(false)
   const queryClient = useQueryClient()
@@ -116,7 +105,9 @@ function CreateTaskDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{parentTaskId ? "افزودن زیروظیفه" : "وظیفهٔ جدید"}</DialogTitle>
-          <DialogDescription>اطلاعات وظیفه را وارد کنید</DialogDescription>
+          <DialogDescription>
+            {canAssignOthers ? "اطلاعات وظیفه را وارد کنید" : "وظیفهٔ شخصی جدید برای خودتان بسازید"}
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={form.handleSubmit((v) => mutation.mutate(v))} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
@@ -126,18 +117,20 @@ function CreateTaskDialog({
               <p className="text-sm text-danger">{form.formState.errors.title.message}</p>
             )}
           </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="project_id">پروژه</Label>
-            <Select id="project_id" {...form.register("project_id")} disabled={!!defaultProjectId}>
-              <option value="">شخصی (بدون پروژه)</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </Select>
-          </div>
-          {selectedProject && (
+          {canAssignOthers && (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="project_id">پروژه</Label>
+              <Select id="project_id" {...form.register("project_id")} disabled={!!defaultProjectId}>
+                <option value="">شخصی (بدون پروژه)</option>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          )}
+          {canAssignOthers && selectedProject && (
             <div className="flex flex-col gap-2">
               <Label htmlFor="assignee_id">مسئول (اختیاری)</Label>
               <Select id="assignee_id" {...form.register("assignee_id")}>
@@ -151,11 +144,11 @@ function CreateTaskDialog({
             </div>
           )}
           <div className="flex flex-col gap-2">
-            <Label htmlFor="priority">اولویت</Label>
+            <Label htmlFor="priority">ارزش وظیفه</Label>
             <Select id="priority" {...form.register("priority")}>
               <option value="low">کم</option>
               <option value="medium">متوسط</option>
-              <option value="high">بالا</option>
+              <option value="high">زیاد</option>
             </Select>
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -189,25 +182,12 @@ function CreateTaskDialog({
   )
 }
 
-/** Depth-first rows, skipping the subtree of any id in `collapsedIds`. */
-function visibleRows(rows: TaskTreeNode[], collapsedIds: Set<string>): TaskTreeNode[] {
-  const out: TaskTreeNode[] = []
-  let hideUntilDepth: number | null = null
-  for (const row of rows) {
-    if (hideUntilDepth !== null) {
-      if (row.depth > hideUntilDepth) continue
-      hideUntilDepth = null
-    }
-    out.push(row)
-    if (collapsedIds.has(row.id) && row.children.length > 0) {
-      hideUntilDepth = row.depth
-    }
-  }
-  return out
-}
-
 export function TasksListPage() {
   const currentUserId = useAuthStore((s) => s.user?.id)
+  const role = useAuthStore((s) => s.user?.role)
+  const canAssignOthers = role === "org_admin" || role === "project_manager"
+  const canApprove = role === "org_admin" || role === "project_manager"
+
   const [searchParams, setSearchParams] = useSearchParams()
   const linkedTaskId = searchParams.get("task")
   const { data: linkedTask } = useQuery({
@@ -215,48 +195,39 @@ export function TasksListPage() {
     queryFn: () => getTask(linkedTaskId!),
     enabled: !!linkedTaskId,
   })
-  const [tab, setTab] = useState<TabKey>("assigned")
+
+  const [tab, setTab] = useState<MainTab>("mine")
+  const [statusFilter, setStatusFilter] = useState<"all" | TaskStatus>("all")
   const [search, setSearch] = useState("")
   const [projectFilter, setProjectFilter] = useState("")
   const [priorityFilter, setPriorityFilter] = useState("")
   const [sortBy, setSortBy] = useState<"deadline" | "priority" | "created_at">("deadline")
-  const [groupByProject, setGroupByProject] = useState(false)
-  const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set())
 
   const filters = useMemo<TaskFilters>(() => {
-    switch (tab) {
-      case "assigned":
-        return currentUserId ? { assignee_id: currentUserId } : {}
-      case "personal":
-        return { personal_only: true }
-      case "pending_approval":
-        return { approval_status: "pending" }
-      case "completed":
-        return { status: "completed" }
-      case "rejected":
-        return { approval_status: "rejected" }
-      case "overdue":
-        return { overdue: true }
-    }
-  }, [tab, currentUserId])
+    if (tab === "pending_approval") return { approval_status: "pending" }
+    return {}
+    // "mine" and "assigned_by_me" both need the unfiltered set so we can
+    // slice it two different ways client-side (assignee vs creator) without
+    // two round-trips.
+  }, [tab])
 
   const { data: rawTasks, isLoading } = useQuery({
-    queryKey: ["tasks", "list", tab, currentUserId],
+    queryKey: ["tasks", "list", tab],
     queryFn: () => listAllTasks(filters),
-    enabled: tab !== "assigned" || !!currentUserId,
   })
   const { data: projects } = useQuery({ queryKey: ["projects"], queryFn: listProjects })
   const { data: users } = useQuery({ queryKey: ["org-users"], queryFn: listOrgUsers })
   const selectedDepartmentId = useDepartmentStore((s) => s.selectedDepartmentId)
 
-  const projectName = (id: string | null) => (id ? (projects?.find((p) => p.id === id)?.name ?? "—") : "شخصی")
-  const assigneeName = (id: string | null) => (id ? (users?.find((u) => u.id === id)?.full_name ?? "—") : "بدون مسئول")
+  const byTab = useMemo(() => {
+    const all = rawTasks ?? []
+    if (tab === "mine") return all.filter((t) => t.assignee_id === currentUserId)
+    if (tab === "assigned_by_me") return all.filter((t) => t.created_by_id === currentUserId && t.assignee_id !== currentUserId)
+    return all
+  }, [rawTasks, tab, currentUserId])
 
-  // "Assigned to me" also matches personal tasks (they're self-assigned too)
-  // -- exclude those here so the tab stays about project work specifically.
-  const tasks = tab === "assigned" ? (rawTasks ?? []).filter((t) => t.project_id !== null) : (rawTasks ?? [])
-
-  const filtered = tasks
+  const filtered = byTab
+    .filter((t) => statusFilter === "all" || t.status === statusFilter)
     .filter((t) => !projectFilter || t.project_id === projectFilter)
     .filter((t) => !priorityFilter || t.priority === priorityFilter)
     .filter((t) => !search.trim() || t.title.toLowerCase().includes(search.trim().toLowerCase()))
@@ -277,34 +248,15 @@ export function TasksListPage() {
     }
     return b.created_at.localeCompare(a.created_at)
   })
+  // Parent-before-children order (and a bit of visual indent for subtasks
+  // below) without a collapsible tree -- keeps related work grouped while
+  // every card stays a full, independently-actionable TaskCard.
+  const ordered = flattenTaskTree(buildTaskTree(sorted))
 
-  const groups = useMemo(() => {
-    if (!groupByProject) {
-      return [{ key: "all", label: null as string | null, rows: flattenTaskTree(buildTaskTree(sorted)) }]
-    }
-    const byProject = new Map<string, Task[]>()
-    for (const t of sorted) {
-      const key = t.project_id ?? "__personal__"
-      const arr = byProject.get(key) ?? []
-      arr.push(t)
-      byProject.set(key, arr)
-    }
-    return Array.from(byProject.entries()).map(([key, list]) => ({
-      key,
-      label: key === "__personal__" ? "شخصی" : projectName(key),
-      rows: flattenTaskTree(buildTaskTree(list)),
-    }))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sorted, groupByProject, projects])
-
-  function toggleCollapse(id: string) {
-    setCollapsedIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
+  const statusCounts = STATUS_COLUMNS.reduce<Record<string, number>>((acc, col) => {
+    acc[col.value] = byTab.filter((t) => t.status === col.value).length
+    return acc
+  }, {})
 
   return (
     <div className="flex flex-col gap-4">
@@ -329,6 +281,7 @@ export function TasksListPage() {
           <CreateTaskDialog
             projects={projects}
             users={users}
+            canAssignOthers={canAssignOthers}
             trigger={
               <Button>
                 <Plus className="size-4" />
@@ -339,22 +292,70 @@ export function TasksListPage() {
         )}
       </div>
 
-      <div className="flex gap-1 overflow-x-auto border-b border-border">
-        {TABS.map((t) => (
+      {/* Two ways a task lands with you: you opened it yourself, or someone
+          handed it to you -- plus a manager-only queue for the approvals
+          waiting on them specifically. */}
+      <div className="grid grid-cols-2 gap-2 sm:inline-flex sm:w-fit sm:gap-1 sm:rounded-lg sm:bg-muted sm:p-1 sm:[grid-template-columns:none]">
+        <button
+          onClick={() => setTab("mine")}
+          className={
+            "rounded-md px-4 py-2 text-sm font-medium transition-colors " +
+            (tab === "mine" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")
+          }
+        >
+          تسک‌های من
+        </button>
+        <button
+          onClick={() => setTab("assigned_by_me")}
+          className={
+            "rounded-md px-4 py-2 text-sm font-medium transition-colors " +
+            (tab === "assigned_by_me" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")
+          }
+        >
+          تسک‌هایی که محول کرده‌ام
+        </button>
+        {canApprove && (
           <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
+            onClick={() => setTab("pending_approval")}
             className={
-              "shrink-0 border-b-2 px-3 py-2 text-sm font-medium transition-colors " +
-              (tab === t.key
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground")
+              "col-span-2 rounded-md px-4 py-2 text-sm font-medium transition-colors sm:col-span-1 " +
+              (tab === "pending_approval" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")
             }
           >
-            {t.label}
+            در انتظار تأیید من
           </button>
-        ))}
+        )}
       </div>
+
+      {tab !== "pending_approval" && (
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setStatusFilter("all")}
+            className={
+              "rounded-full border px-3 py-1 text-xs font-medium transition-colors " +
+              (statusFilter === "all"
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border text-muted-foreground hover:border-foreground/30")
+            }
+          >
+            همه ({byTab.length})
+          </button>
+          {STATUS_COLUMNS.map((col) => (
+            <button
+              key={col.value}
+              onClick={() => setStatusFilter(col.value)}
+              className={
+                "rounded-full border px-3 py-1 text-xs font-medium transition-colors " +
+                (statusFilter === col.value
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground hover:border-foreground/30")
+              }
+            >
+              {col.label} ({statusCounts[col.value] ?? 0})
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <div className="relative min-w-0 flex-1 lg:max-w-xs">
@@ -375,128 +376,57 @@ export function TasksListPage() {
           ))}
         </Select>
         <Select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)} className="lg:max-w-40">
-          <option value="">همهٔ اولویت‌ها</option>
-          <option value="high">بالا</option>
-          <option value="medium">متوسط</option>
-          <option value="low">کم</option>
+          <option value="">همهٔ ارزش‌ها</option>
+          <option value="high">{PRIORITY_LABEL.high}</option>
+          <option value="medium">{PRIORITY_LABEL.medium}</option>
+          <option value="low">{PRIORITY_LABEL.low}</option>
         </Select>
         <Select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} className="lg:max-w-40">
           <option value="deadline">مرتب‌سازی: مهلت</option>
-          <option value="priority">مرتب‌سازی: اولویت</option>
+          <option value="priority">مرتب‌سازی: ارزش</option>
           <option value="created_at">مرتب‌سازی: تاریخ ایجاد</option>
         </Select>
-        <label className="flex shrink-0 items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={groupByProject}
-            onChange={(e) => setGroupByProject(e.target.checked)}
-            className="size-4"
-          />
-          گروه‌بندی بر اساس پروژه
-        </label>
       </div>
 
       {isLoading && <p className="text-muted-foreground">در حال بارگذاری...</p>}
 
-      {!isLoading && sorted.length === 0 && <EmptyState message="وظیفه‌ای در این بخش یافت نشد." />}
+      {!isLoading && ordered.length === 0 && (
+        <EmptyState
+          message={
+            tab === "pending_approval"
+              ? "هیچ وظیفه‌ای در انتظار تأیید شما نیست."
+              : tab === "assigned_by_me"
+                ? "هنوز وظیفه‌ای به کس دیگری محول نکرده‌اید."
+                : "وظیفه‌ای در این بخش یافت نشد."
+          }
+        />
+      )}
 
-      {!isLoading &&
-        sorted.length > 0 &&
-        groups.map((group) => (
-          <div key={group.key} className="flex flex-col gap-2">
-            {group.label && <h2 className="font-semibold">{group.label}</h2>}
-            <div className="flex flex-col gap-2">
-              {visibleRows(group.rows, collapsedIds).map((task) => (
-                <div
-                  key={task.id}
-                  className="flex flex-col gap-2.5 rounded-lg border border-border/70 bg-card p-3 transition-shadow hover:shadow-sm sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div className="flex min-w-0 items-start gap-1.5" style={{ paddingInlineStart: task.depth * 20 }}>
-                    {task.children.length > 0 ? (
-                      <button
-                        onClick={() => toggleCollapse(task.id)}
-                        aria-label={collapsedIds.has(task.id) ? "باز کردن زیروظایف" : "بستن زیروظایف"}
-                        className="mt-0.5 shrink-0 text-muted-foreground hover:text-foreground"
-                      >
-                        {collapsedIds.has(task.id) ? (
-                          <ChevronLeft className="size-4" />
-                        ) : (
-                          <ChevronDown className="size-4" />
-                        )}
-                      </button>
-                    ) : (
-                      <span className="mt-0.5 inline-block size-4 shrink-0" />
-                    )}
-                    <div className="flex min-w-0 flex-col gap-1.5">
-                      <p className="truncate font-medium">{task.title}</p>
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        {!groupByProject &&
-                          (task.project_id ? (
-                            <Badge variant="info">{projectName(task.project_id)}</Badge>
-                          ) : (
-                            <Badge variant="secondary">شخصی</Badge>
-                          ))}
-                        <Badge variant={PRIORITY_VARIANT[task.priority]}>{PRIORITY_LABEL[task.priority]}</Badge>
-                        <Badge variant={STATUS_VARIANT[task.status]}>{STATUS_LABEL[task.status]}</Badge>
-                        {task.approval_status && (
-                          <Badge variant={APPROVAL_VARIANT[task.approval_status]}>
-                            {APPROVAL_LABEL[task.approval_status]}
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
-                        <span>مسئول: {assigneeName(task.assignee_id)}</span>
-                        {task.created_by_full_name && <span>ثبت‌کننده: {task.created_by_full_name}</span>}
-                        {(task.start_date || task.deadline) && (
-                          <span>
-                            {task.start_date ? new Date(task.start_date).toLocaleDateString("fa-IR") : "—"}
-                            {" تا "}
-                            {task.deadline ? new Date(task.deadline).toLocaleDateString("fa-IR") : "—"}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex shrink-0 items-center gap-3 ps-6 sm:ps-0">
-                    <div className="flex items-center gap-2">
-                      <div className="h-1.5 w-14 overflow-hidden rounded-full bg-muted">
-                        <div
-                          className="h-full rounded-full bg-primary"
-                          style={{ width: `${task.progress_percent}%` }}
-                        />
-                      </div>
-                      <span className="text-xs text-muted-foreground">{task.progress_percent}%</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <TaskDetailDialog
-                        task={task}
-                        trigger={
-                          <Button variant="ghost" size="icon" aria-label="نظرات و فایل‌ها">
-                            <MessageSquare className="size-4" />
-                          </Button>
-                        }
-                      />
-                      {projects && users && (
-                        <CreateTaskDialog
-                          projects={projects}
-                          users={users}
-                          defaultProjectId={task.project_id ?? undefined}
-                          parentTaskId={task.id}
-                          trigger={
-                            <Button variant="ghost" size="icon" aria-label="افزودن زیروظیفه">
-                              <Plus className="size-4" />
-                            </Button>
-                          }
-                        />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
+      {!isLoading && ordered.length > 0 && users && (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {ordered.map((task) => (
+            <div key={task.id} style={{ marginInlineStart: task.depth * 16 }} className="flex flex-col gap-1.5">
+              {task.parent_task_id && <p className="ps-1 text-xs text-muted-foreground">زیروظیفه</p>}
+              <TaskCard task={task} users={users} projectName={projects?.find((p) => p.id === task.project_id)?.name} />
+              {canAssignOthers && (
+                <CreateTaskDialog
+                  projects={projects ?? []}
+                  users={users}
+                  canAssignOthers={canAssignOthers}
+                  defaultProjectId={task.project_id ?? undefined}
+                  parentTaskId={task.id}
+                  trigger={
+                    <Button variant="ghost" size="sm" className="w-fit self-end text-xs text-muted-foreground">
+                      <Plus className="size-3.5" />
+                      افزودن زیروظیفه
+                    </Button>
+                  }
+                />
+              )}
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
+      )}
     </div>
   )
 }
