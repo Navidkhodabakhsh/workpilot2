@@ -14,9 +14,10 @@ router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
 @router.get("/summary", response_model=DashboardSummary)
 def get_summary(
+    department_id: uuid.UUID | None = None,
     db: Session = Depends(get_db),
     org_id: uuid.UUID = Depends(get_current_org_id),
     current_user: User = Depends(get_current_user),
 ) -> DashboardSummary:
-    data = dashboard_service.get_summary(db, org_id, current_user)
+    data = dashboard_service.get_summary(db, org_id, current_user, department_id=department_id)
     return DashboardSummary.model_validate(data)

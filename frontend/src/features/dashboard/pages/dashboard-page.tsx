@@ -26,6 +26,7 @@ import { listProjects } from "@/features/projects/api"
 import { listAllTasks } from "@/features/tasks/api"
 import { getWorklogReport } from "@/features/reports/api"
 import { useAuthStore } from "@/features/auth/auth-store"
+import { useDepartmentStore } from "@/features/departments/department-store"
 
 const TEAM_MEMBER_COLORS = [
   "var(--color-primary)",
@@ -158,7 +159,11 @@ function ProductivityTooltip({ active, payload }: any) {
 
 export function DashboardPage() {
   const isOrgAdmin = useAuthStore((s) => s.user?.role === "org_admin")
-  const { data, isLoading, isError } = useQuery({ queryKey: ["dashboard-summary"], queryFn: getDashboardSummary })
+  const selectedDepartmentId = useDepartmentStore((s) => s.selectedDepartmentId)
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["dashboard-summary", selectedDepartmentId],
+    queryFn: () => getDashboardSummary(selectedDepartmentId),
+  })
   const { data: orgUsers } = useQuery({ queryKey: ["org-users"], queryFn: listOrgUsers })
   const { data: projects } = useQuery({ queryKey: ["projects", "dashboard"], queryFn: listProjects })
   const { data: tasks } = useQuery({ queryKey: ["tasks", "dashboard-all"], queryFn: () => listAllTasks() })

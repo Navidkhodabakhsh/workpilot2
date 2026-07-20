@@ -3,6 +3,7 @@ import uuid
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
 from app.models.enums import OtpPurpose, UserRole
+from app.schemas.user import DepartmentMembershipOut
 from app.schemas.validators import validate_password_strength
 
 
@@ -52,6 +53,7 @@ class UserOut(BaseModel):
     is_active: bool
     has_password: bool
     department_id: uuid.UUID | None
+    department_memberships: list[DepartmentMembershipOut] = []
 
     model_config = {"from_attributes": True}
 

@@ -19,7 +19,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { createOrgUser, listOrgUsers, updateOrgUser } from "@/features/users/api"
+import {
+  createOrgUser,
+  listOrgUsers,
+  setUserDepartments,
+  updateOrgUser,
+  type DepartmentMembershipInput,
+} from "@/features/users/api"
 import { listDepartments } from "@/features/departments/api"
 import { useDepartmentStore } from "@/features/departments/department-store"
 import { useAuthStore } from "@/features/auth/auth-store"
@@ -94,16 +100,23 @@ export function UsersListPage() {
 
   const [editingUser, setEditingUser] = useState<OrgUser | null>(null)
   const [editError, setEditError] = useState<string | null>(null)
+  const [editMemberships, setEditMemberships] = useState<DepartmentMembershipInput[]>([])
   const editForm = useForm<EditFormValues>({ resolver: zodResolver(editSchema) })
 
   const updateMutation = useMutation({
-    mutationFn: (values: EditFormValues) =>
-      updateOrgUser(editingUser!.id, {
+    mutationFn: async (values: EditFormValues) => {
+      await updateOrgUser(editingUser!.id, {
         role: values.role,
         is_active: values.is_active === "true",
         ...(values.phone_number ? { phone_number: values.phone_number } : {}),
         ...(values.department_id ? { department_id: values.department_id } : {}),
-      }),
+      })
+      // Only project_manager/employee have department memberships -- an
+      // org_admin edit skips this call (the backend would reject it anyway).
+      if (values.role !== "org_admin") {
+        await setUserDepartments(editingUser!.id, editMemberships)
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["org-users"] })
       setEditingUser(null)
@@ -121,6 +134,7 @@ export function UsersListPage() {
   function openEdit(u: OrgUser) {
     setEditError(null)
     setEditingUser(u)
+    setEditMemberships(u.department_memberships.map((m) => ({ department_id: m.department_id, role: m.role as "project_manager" | "employee" })))
     // Org-scoped users are never platform_admin (that role has no organization),
     // so this narrowing always holds in practice.
     editForm.reset({
@@ -317,6 +331,57 @@ export function UsersListPage() {
                     </option>
                   ))}
                 </Select>
+              </div>
+            )}
+            {departments && departments.length > 0 && editForm.watch("role") !== "org_admin" && (
+              <div className="flex flex-col gap-2">
+                <Label>عضویت در دپارتمان‌های دیگر (اختیاری)</Label>
+                <p className="text-xs text-muted-foreground">
+                  علاوه بر دپارتمان اصلی بالا، این کاربر می‌تواند در دپارتمان‌های دیگر هم عضو باشد -- با نقشی
+                  مستقل در هرکدام. اگر بیش از یکی انتخاب شود، خودِ کاربر می‌تواند بین آن‌ها جابه‌جا شود.
+                </p>
+                <div className="flex max-h-48 flex-col gap-2 overflow-y-auto rounded-md border p-2">
+                  {departments.map((d) => {
+                    const current = editMemberships.find((m) => m.department_id === d.id)
+                    return (
+                      <div key={d.id} className="flex items-center gap-2">
+                        <label className="flex flex-1 items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={!!current}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setEditMemberships((prev) => [...prev, { department_id: d.id, role: "employee" }])
+                              } else {
+                                setEditMemberships((prev) => prev.filter((m) => m.department_id !== d.id))
+                              }
+                            }}
+                          />
+                          {d.name}
+                        </label>
+                        {current && (
+                          <Select
+                            aria-label={`نقش در ${d.name}`}
+                            className="h-8 w-32"
+                            value={current.role}
+                            onChange={(e) =>
+                              setEditMemberships((prev) =>
+                                prev.map((m) =>
+                                  m.department_id === d.id
+                                    ? { ...m, role: e.target.value as "project_manager" | "employee" }
+                                    : m
+                                )
+                              )
+                            }
+                          >
+                            <option value="employee">کارمند</option>
+                            <option value="project_manager">مدیر پروژه</option>
+                          </Select>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
             )}
             {editError && <p className="text-sm text-danger">{editError}</p>}

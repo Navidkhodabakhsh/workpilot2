@@ -9,6 +9,7 @@ const user: CurrentUser = {
   role: "org_admin",
   is_active: true,
   department_id: null,
+  department_memberships: [],
 }
 
 describe("useAuthStore", () => {

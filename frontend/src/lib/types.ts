@@ -57,6 +57,12 @@ export type TaskActivity = {
   created_at: string
 }
 
+export type DepartmentMembership = {
+  department_id: string
+  department_name: string
+  role: UserRole
+}
+
 export type OrgUser = {
   id: string
   organization_id: string | null
@@ -67,6 +73,7 @@ export type OrgUser = {
   is_active: boolean
   has_password: boolean
   department_id: string | null
+  department_memberships: DepartmentMembership[]
 }
 
 export type ProjectMember = {

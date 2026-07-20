@@ -25,10 +25,16 @@ class User(UUIDPKMixin, TimestampMixin, Base):
     full_name: Mapped[str] = mapped_column(String(200), nullable=False)
     role: Mapped[UserRole] = mapped_column(Enum(UserRole), nullable=False, default=UserRole.employee)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    # Logical grouping only (see models/department.py) -- nullable since
-    # existing users predate this field and platform_admin has none.
+    # Primary/default department -- still used everywhere it already was
+    # (user creation default, list filtering). A user can additionally
+    # belong to other departments via department_memberships below, each
+    # with its own role; this column doesn't attempt to stay in sync with
+    # that table beyond both being set at creation time.
     department_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("departments.id", ondelete="SET NULL"), nullable=True
     )
 
     organization: Mapped["Organization"] = relationship(back_populates="users")
+    department_memberships: Mapped[list["DepartmentMembership"]] = relationship(
+        cascade="all, delete-orphan", order_by="DepartmentMembership.created_at"
+    )

@@ -1,6 +1,6 @@
 import uuid
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
 from app.models.enums import UserRole
 from app.schemas.validators import validate_password_strength
@@ -42,3 +42,35 @@ class UserUpdate(BaseModel):
         if value == UserRole.platform_admin:
             raise ValueError("platform_admin cannot be assigned within an organization")
         return value
+
+
+class DepartmentMembershipIn(BaseModel):
+    department_id: uuid.UUID
+    # org_admin/platform_admin aren't department-scoped roles (see
+    # models/department_membership.py) -- only these two make sense here.
+    role: UserRole = UserRole.employee
+
+    @field_validator("role")
+    @classmethod
+    def _department_role_only(cls, value: UserRole) -> UserRole:
+        if value not in (UserRole.project_manager, UserRole.employee):
+            raise ValueError("Department membership role must be project_manager or employee")
+        return value
+
+
+class DepartmentMembershipOut(BaseModel):
+    department_id: uuid.UUID
+    department_name: str
+    role: UserRole
+
+    model_config = {"from_attributes": True}
+
+    @model_validator(mode="before")
+    @classmethod
+    def _flatten_department_name(cls, data):
+        # Same "ghost field" pattern as UserOut.has_password / Task.actual_hours
+        # -- department_name isn't a real column, it comes from the related
+        # Department via the ORM relationship.
+        if hasattr(data, "department"):
+            data.department_name = data.department.name
+        return data

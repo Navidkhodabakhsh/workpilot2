@@ -5,6 +5,7 @@ from app.models.audit_log import AuditLog
 from app.models.calendar_event import CalendarEvent
 from app.models.collaboration import Attachment, Comment
 from app.models.department import Department
+from app.models.department_membership import DepartmentMembership
 from app.models.export_job import ExportJob
 from app.models.leave_request import LeaveRequest
 from app.models.notification import Notification
@@ -23,6 +24,7 @@ __all__ = [
     "Attachment",
     "Comment",
     "Department",
+    "DepartmentMembership",
     "ExportJob",
     "LeaveRequest",
     "Notification",

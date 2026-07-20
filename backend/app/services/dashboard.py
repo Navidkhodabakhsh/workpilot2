@@ -15,8 +15,15 @@ def get_visible_project_ids(db: Session, org_id: uuid.UUID, current_user: User) 
     return [p.id for p in list_projects(db, org_id, current_user)]
 
 
-def get_summary(db: Session, org_id: uuid.UUID, current_user: User) -> dict:
+def get_summary(db: Session, org_id: uuid.UUID, current_user: User, department_id: uuid.UUID | None = None) -> dict:
     project_ids = get_visible_project_ids(db, org_id, current_user)
+    if department_id is not None:
+        rows = (
+            db.query(Project.id)
+            .filter(Project.id.in_(project_ids), Project.department_id == department_id)
+            .all()
+        )
+        project_ids = [pid for (pid,) in rows]
 
     if not project_ids:
         return {

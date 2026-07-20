@@ -15,6 +15,7 @@ from app.core.security import hash_password
 from app.db.session import SessionLocal
 from app.models.calendar_event import CalendarEvent
 from app.models.department import Department
+from app.models.department_membership import DepartmentMembership
 from app.models.enums import (
     ApprovalStatus,
     CalendarEventType,
@@ -153,6 +154,7 @@ def make_users_for_department(db, org, dept, dept_data, index_offset):
     )
     db.add(manager)
     db.flush()
+    db.add(DepartmentMembership(organization_id=org.id, user_id=manager.id, department_id=dept.id, role=manager.role))
 
     employees = []
     for i in range(1, 7):
@@ -168,6 +170,8 @@ def make_users_for_department(db, org, dept, dept_data, index_offset):
         )
         db.add(emp)
         employees.append(emp)
+        db.flush()
+        db.add(DepartmentMembership(organization_id=org.id, user_id=emp.id, department_id=dept.id, role=emp.role))
     db.flush()
     return manager, employees
 
@@ -203,6 +207,7 @@ def main():
         db.flush()
 
         credentials = [("مدیر سازمان (org_admin)", admin.email, admin.phone_number, PASSWORD)]
+        all_dept_records = []  # [(dept, manager, employees), ...] -- used below for cross-department memberships
 
         for dept_idx, dept_data in enumerate(DEPARTMENTS):
             dept = Department(organization_id=org.id, name=dept_data["name"])
@@ -212,6 +217,7 @@ def main():
                 admin.department_id = dept.id
 
             manager, employees = make_users_for_department(db, org, dept, dept_data, dept_idx * 100)
+            all_dept_records.append((dept, manager, employees))
             credentials.append((f"مدیر پروژهٔ {dept.name}", manager.email, manager.phone_number, PASSWORD))
             for i, emp in enumerate(employees, start=1):
                 credentials.append((f"کارمند {i} - {dept.name}", emp.email, emp.phone_number, PASSWORD))
@@ -365,6 +371,29 @@ def main():
                         )
                     )
             db.flush()
+
+        # --- A few cross-department memberships, so the demo actually shows
+        # a user who belongs to more than one department (the HR manager
+        # also helps out in Engineering; one Engineering employee is also
+        # in Accounting) -- exercises the department switcher in the UI.
+        (eng_dept, eng_manager, eng_employees) = all_dept_records[0]
+        (fin_dept, fin_manager, fin_employees) = all_dept_records[1]
+        (hr_dept, hr_manager, hr_employees) = all_dept_records[2]
+
+        db.add(
+            DepartmentMembership(
+                organization_id=org.id, user_id=hr_manager.id, department_id=eng_dept.id, role=UserRole.employee
+            )
+        )
+        db.add(
+            DepartmentMembership(
+                organization_id=org.id,
+                user_id=eng_employees[0].id,
+                department_id=fin_dept.id,
+                role=UserRole.employee,
+            )
+        )
+        db.flush()
 
         db.commit()
 

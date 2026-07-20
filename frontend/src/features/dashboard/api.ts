@@ -22,7 +22,9 @@ export type DashboardSummary = {
   recent_activity: RecentActivityItem[]
 }
 
-export async function getDashboardSummary() {
-  const { data } = await apiClient.get<DashboardSummary>("/api/v1/dashboard/summary")
+export async function getDashboardSummary(departmentId?: string | null) {
+  const { data } = await apiClient.get<DashboardSummary>("/api/v1/dashboard/summary", {
+    params: departmentId ? { department_id: departmentId } : undefined,
+  })
   return data
 }
