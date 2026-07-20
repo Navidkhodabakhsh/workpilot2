@@ -95,7 +95,7 @@ export function ForgotPasswordPage() {
 
   return (
     <AuthLayout>
-      <Card className="w-full shadow-lg">
+      <Card className="w-full rounded-2xl border-border/60 py-7 shadow-xl">
         <CardHeader>
           <CardTitle className="text-2xl">فراموشی رمز عبور</CardTitle>
           <CardDescription>

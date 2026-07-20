@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react"
 import { Link, useNavigate } from "react-router-dom"
+import { KeyRound, MessageSquareText } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -24,7 +25,7 @@ export function LoginPage() {
 
   return (
     <AuthLayout>
-      <Card className="w-full shadow-lg">
+      <Card className="w-full rounded-2xl border-border/60 py-7 shadow-xl">
         <CardHeader>
           <CardTitle className="text-2xl">ورود به Tadvin</CardTitle>
           <CardDescription>
@@ -38,19 +39,21 @@ export function LoginPage() {
             <button
               type="button"
               onClick={() => setMode("password")}
-              className={`rounded-md py-1.5 text-sm font-medium transition-colors ${
-                mode === "password" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+              className={`flex items-center justify-center gap-1.5 rounded-md py-1.5 text-sm font-medium transition-all duration-200 ${
+                mode === "password" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
               }`}
             >
+              <KeyRound className="size-3.5" aria-hidden="true" />
               ورود با رمز عبور
             </button>
             <button
               type="button"
               onClick={() => setMode("otp")}
-              className={`rounded-md py-1.5 text-sm font-medium transition-colors ${
-                mode === "otp" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+              className={`flex items-center justify-center gap-1.5 rounded-md py-1.5 text-sm font-medium transition-all duration-200 ${
+                mode === "otp" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
               }`}
             >
+              <MessageSquareText className="size-3.5" aria-hidden="true" />
               ورود با کد یکبار مصرف
             </button>
           </div>

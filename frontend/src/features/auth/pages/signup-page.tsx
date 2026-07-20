@@ -63,7 +63,7 @@ export function SignupPage() {
 
   return (
     <AuthLayout>
-      <Card className="w-full shadow-lg">
+      <Card className="w-full rounded-2xl border-border/60 py-7 shadow-xl">
         <CardHeader>
           <CardTitle className="text-2xl">ساخت سازمان جدید در Tadvin</CardTitle>
           <CardDescription>یک فضای کاری جدید برای سازمان خود بسازید</CardDescription>

@@ -70,7 +70,7 @@ export function AppShell() {
             collapsed && "justify-center px-0"
           )}
         >
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm">
             <LogoMark className="size-5" />
           </div>
           <span
@@ -157,7 +157,7 @@ export function AppShell() {
         >
           <div className="flex items-center justify-between px-4 pb-4">
             <div className="flex items-center gap-3">
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm">
                 <LogoMark className="size-5" />
               </div>
               <span className="text-xl font-bold text-sidebar-foreground">Tadvin</span>
