@@ -9,6 +9,11 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      # Only runs on a brand-new (empty) volume -- seeds a demo org with
+      # working phone/password logins (see backend/seed/README.md). If
+      # you've already run this stack before, `docker compose down -v`
+      # first so postgres_data is empty and this actually gets picked up.
+      - ./backend/seed/demo_org_dump.sql:/docker-entrypoint-initdb.d/demo_org_dump.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U workpilot"]
       interval: 5s

@@ -38,6 +38,14 @@ Done. WorkPilot is starting up:
   Frontend:      http://localhost:5173
   Backend docs:  http://localhost:8000/docs
 
+A demo organization is auto-seeded on a brand-new database (see
+backend/seed/README.md for the full phone/password list -- every
+account's password is Test@1234). If you ran this stack before on this
+machine without seed data, the old database volume already exists and
+won't get reseeded automatically; run this once to force a clean, seeded
+database:
+  docker compose down -v && docker compose up -d --build
+
 Check status with:   docker compose ps
 Follow logs with:    docker compose logs -f
 Stop everything with: docker compose down
