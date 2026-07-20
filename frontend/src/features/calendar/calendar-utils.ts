@@ -1,33 +1,42 @@
-// The grid itself is computed on the Gregorian calendar (native Date math),
-// but every label shown to the user goes through Intl with the Persian
-// (Jalali) calendar -- see calendar-page.tsx -- so the UI reads as a
-// familiar Iranian calendar without needing a Jalali date-math dependency.
+import { fromJalali, jalaliMonthLength, toIsoDateString } from "@/lib/jalali"
 
-export function toDateKey(date: Date): string {
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, "0")
-  const d = String(date.getDate()).padStart(2, "0")
-  return `${y}-${m}-${d}`
-}
-
-export function groupTasksByDate<T extends { deadline: string | null }>(tasks: T[]): Record<string, T[]> {
+export function groupByDateKey<T>(items: T[], keyOf: (item: T) => string): Record<string, T[]> {
   const map: Record<string, T[]> = {}
-  for (const task of tasks) {
-    if (!task.deadline) continue
-    ;(map[task.deadline] ??= []).push(task)
+  for (const item of items) {
+    const key = keyOf(item)
+    ;(map[key] ??= []).push(item)
   }
   return map
 }
 
-/** 42-cell (6-week) grid covering the given Gregorian month, starting on
- * Saturday (the first day of the week in the Iranian calendar). */
-export function getMonthGridDates(year: number, month: number): Date[] {
-  const firstOfMonth = new Date(year, month, 1)
-  const startOffset = (firstOfMonth.getDay() + 1) % 7
-  const gridStart = new Date(year, month, 1 - startOffset)
-  return Array.from({ length: 42 }, (_, i) => {
-    const d = new Date(gridStart)
-    d.setDate(gridStart.getDate() + i)
-    return d
-  })
+/** Saturday on/before the given date, at UTC midnight -- consistent with the
+ * UTC-anchored Date objects the Jalali grid helpers hand back (see
+ * `@/lib/jalali`), so day keys built from either source always line up. */
+export function startOfWeek(date: Date): Date {
+  const start = new Date(date)
+  const offset = (start.getUTCDay() + 1) % 7
+  start.setUTCDate(start.getUTCDate() - offset)
+  start.setUTCHours(0, 0, 0, 0)
+  return start
+}
+
+export function addDays(date: Date, amount: number): Date {
+  const d = new Date(date)
+  d.setUTCDate(d.getUTCDate() + amount)
+  return d
+}
+
+export function daysInRange(start: Date, count: number): Date[] {
+  return Array.from({ length: count }, (_, i) => addDays(start, i))
+}
+
+/** The real Jalali-calendar days of a given month (no leading/trailing
+ * padding from adjacent months), as UTC-anchored Dates. */
+export function jalaliMonthDays(jy: number, jm: number): Date[] {
+  const start = fromJalali(jy, jm, 1)
+  return daysInRange(start, jalaliMonthLength(jy, jm))
+}
+
+export function dateKey(date: Date): string {
+  return toIsoDateString(date)
 }

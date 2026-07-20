@@ -356,21 +356,30 @@ def main():
                         all_day=True,
                     )
                 )
-                if w % 4 == 0:
-                    holiday_dt = datetime.combine(week_start + timedelta(days=2), datetime.min.time(), tzinfo=timezone.utc)
-                    db.add(
-                        CalendarEvent(
-                            organization_id=org.id,
-                            created_by_id=admin.id,
-                            project_id=None,
-                            title=random.choice(HOLIDAY_TITLES),
-                            event_type=CalendarEventType.holiday,
-                            start_at=holiday_dt,
-                            end_at=holiday_dt + timedelta(hours=1),
-                            all_day=True,
-                        )
-                    )
             db.flush()
+
+        # --- Official holidays: org-wide, generated once (not per
+        # department) -- these used to be created inside the department
+        # loop above, so the same date got one duplicate "تعطیلی رسمی"
+        # event per department instead of a single org-wide one.
+        for w in range(9):
+            if w % 4 != 0:
+                continue
+            week_start = WINDOW_START + timedelta(days=w * 7)
+            holiday_dt = datetime.combine(week_start + timedelta(days=2), datetime.min.time(), tzinfo=timezone.utc)
+            db.add(
+                CalendarEvent(
+                    organization_id=org.id,
+                    created_by_id=admin.id,
+                    project_id=None,
+                    title=random.choice(HOLIDAY_TITLES),
+                    event_type=CalendarEventType.holiday,
+                    start_at=holiday_dt,
+                    end_at=holiday_dt + timedelta(hours=1),
+                    all_day=True,
+                )
+            )
+        db.flush()
 
         # --- A few cross-department memberships, so the demo actually shows
         # a user who belongs to more than one department (the HR manager

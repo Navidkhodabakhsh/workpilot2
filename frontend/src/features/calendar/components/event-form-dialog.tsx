@@ -28,7 +28,18 @@ function toDateInput(d: Date): string {
 function toTimeInput(d: Date): string {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`
 }
-function combine(date: string, time: string): string {
+// All-day events are anchored at UTC midnight of the picked date rather than
+// local midnight -- the calendar grid buckets events by UTC-field date keys
+// (see calendar-utils.ts), so an all-day event must round-trip through the
+// exact same UTC day or it lands on the wrong cell for viewers ahead of UTC.
+// Timed events keep local-time construction: the picked "HH:MM" is a real
+// wall-clock time that should convert through the browser's own timezone.
+function combine(date: string, time: string, allDay: boolean): string {
+  if (allDay) {
+    const [y, m, d] = date.split("-").map(Number)
+    const [hh, mm] = (time || "00:00").split(":").map(Number)
+    return new Date(Date.UTC(y, m - 1, d, hh, mm)).toISOString()
+  }
   return new Date(`${date}T${time || "00:00"}:00`).toISOString()
 }
 
@@ -98,8 +109,8 @@ export function EventFormDialog({
         title,
         description: description || undefined,
         event_type: eventType,
-        start_at: combine(startDate, allDay ? "00:00" : startTime),
-        end_at: combine(endDate, allDay ? "23:59" : endTime),
+        start_at: combine(startDate, allDay ? "00:00" : startTime, allDay),
+        end_at: combine(endDate, allDay ? "23:59" : endTime, allDay),
         all_day: allDay,
         project_id: eventType === "meeting" ? projectId || undefined : undefined,
       }),
@@ -115,8 +126,8 @@ export function EventFormDialog({
       updateCalendarEvent(editingEvent!.id, {
         title,
         description: description || undefined,
-        start_at: combine(startDate, allDay ? "00:00" : startTime),
-        end_at: combine(endDate, allDay ? "23:59" : endTime),
+        start_at: combine(startDate, allDay ? "00:00" : startTime, allDay),
+        end_at: combine(endDate, allDay ? "23:59" : endTime, allDay),
         all_day: allDay,
       }),
     onSuccess: () => {

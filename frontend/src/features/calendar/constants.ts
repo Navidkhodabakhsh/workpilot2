@@ -8,8 +8,8 @@ export const EVENT_TYPE_LABEL: Record<CalendarEventType, string> = {
 }
 
 // Literal CSS custom-property references (not Tailwind classes) so they can
-// be handed directly to FullCalendar's backgroundColor/borderColor props;
-// the browser resolves var(...) at paint time same as anywhere else.
+// be handed directly to inline `style` backgroundColor props on calendar
+// chips/dots; the browser resolves var(...) at paint time same as anywhere else.
 export const EVENT_TYPE_COLOR: Record<CalendarEventType, string> = {
   meeting: "hsl(var(--success))",
   leave: "hsl(var(--leave))",

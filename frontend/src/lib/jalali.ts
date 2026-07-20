@@ -64,6 +64,16 @@ export const JALALI_MONTH_NAMES = [
 
 export const JALALI_WEEKDAY_LABELS = ["ش", "ی", "د", "س", "چ", "پ", "ج"]
 
+export const JALALI_WEEKDAY_FULL_LABELS = [
+  "شنبه",
+  "یکشنبه",
+  "دوشنبه",
+  "سه‌شنبه",
+  "چهارشنبه",
+  "پنجشنبه",
+  "جمعه",
+]
+
 const PERSIAN_DIGITS = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"]
 
 export function toPersianDigits(value: string | number): string {
