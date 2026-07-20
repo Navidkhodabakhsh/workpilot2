@@ -3,8 +3,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Controller, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { Plane } from "lucide-react"
+import { CalendarOff } from "lucide-react"
 
+import { PageHeader } from "@/components/layout/page-header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -186,12 +187,12 @@ export function LeavePage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">مرخصی</h1>
-          <p className="text-muted-foreground">
-            {canReview ? "درخواست‌های مرخصی اعضای سازمان را بررسی کنید" : "درخواست مرخصی خود را ثبت و پیگیری کنید"}
-          </p>
-        </div>
+        <PageHeader
+          icon={CalendarOff}
+          tone="leave"
+          title="مرخصی"
+          description={canReview ? "درخواست‌های مرخصی اعضای سازمان را بررسی کنید" : "درخواست مرخصی خود را ثبت و پیگیری کنید"}
+        />
         <NewLeaveRequestDialog />
       </div>
 
@@ -217,7 +218,7 @@ export function LeavePage() {
             <CardTitle className="text-base">درخواستی ثبت نشده است</CardTitle>
           </CardHeader>
           <CardContent>
-            <EmptyState icon={Plane} message="هنوز هیچ درخواست مرخصی‌ای ثبت نشده است." />
+            <EmptyState icon={CalendarOff} message="هنوز هیچ درخواست مرخصی‌ای ثبت نشده است." />
           </CardContent>
         </Card>
       )}

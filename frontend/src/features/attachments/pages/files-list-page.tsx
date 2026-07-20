@@ -1,7 +1,7 @@
 import { useRef, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Link } from "react-router-dom"
-import { Plus, Upload } from "lucide-react"
+import { Files, Plus, Upload } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Label } from "@/components/ui/label"
+import { PageHeader } from "@/components/layout/page-header"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { TableRowsSkeleton } from "@/components/ui/table-rows-skeleton"
 import { downloadAttachment, listOrgAttachments, uploadAttachment } from "@/features/attachments/api"
@@ -116,10 +117,12 @@ export function FilesListPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">فایل‌ها</h1>
-          <p className="text-muted-foreground">همهٔ فایل‌های پیوست‌شده به وظایف پروژه‌هایی که به آن‌ها دسترسی دارید</p>
-        </div>
+        <PageHeader
+          icon={Files}
+          tone="info"
+          title="فایل‌ها"
+          description="همهٔ فایل‌های پیوست‌شده به وظایف پروژه‌هایی که به آن‌ها دسترسی دارید"
+        />
         <UploadFileDialog />
       </div>
 

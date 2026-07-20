@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { MessageSquare } from "lucide-react"
 
+import { PageHeader } from "@/components/layout/page-header"
 import { Button } from "@/components/ui/button"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -17,13 +18,12 @@ export function MessagesPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="text-2xl font-bold">پیام‌ها</h1>
-        <p className="text-muted-foreground">
-          نظرات ثبت‌شده روی وظایف پروژه‌هایی که به آن‌ها دسترسی دارید — این بخش گفت‌وگوی متمرکز روی هر وظیفه را نشان
-          می‌دهد، نه پیام‌رسانی مستقیم بین افراد
-        </p>
-      </div>
+      <PageHeader
+        icon={MessageSquare}
+        tone="warning"
+        title="پیام‌ها"
+        description="نظرات ثبت‌شده روی وظایف پروژه‌هایی که به آن‌ها دسترسی دارید — این بخش گفت‌وگوی متمرکز روی هر وظیفه را نشان می‌دهد، نه پیام‌رسانی مستقیم بین افراد"
+      />
 
       {!isLoading && (!tasks || tasks.length === 0) && <EmptyState icon={MessageSquare} message="وظیفه‌ای یافت نشد." />}
 

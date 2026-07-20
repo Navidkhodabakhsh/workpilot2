@@ -3,7 +3,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
+import { Settings } from "lucide-react"
 
+import { PageHeader } from "@/components/layout/page-header"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -253,10 +255,7 @@ export function SettingsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="text-2xl font-bold">تنظیمات</h1>
-        <p className="text-muted-foreground">مدیریت پروفایل و تنظیمات سازمان</p>
-      </div>
+      <PageHeader icon={Settings} tone="secondary" title="تنظیمات" description="مدیریت پروفایل و تنظیمات سازمان" />
 
       <ProfileSection />
       <PasswordSection />

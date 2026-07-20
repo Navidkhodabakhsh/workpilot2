@@ -8,55 +8,34 @@ const CATEGORICAL_COLORS = [
   "var(--color-danger)",
 ]
 
-export type RoadmapItem = {
-  id: string
-  name: string
-  start: Date
-  end: Date
-  percent: number
-}
+export type RoadmapItem = { id: string; name: string; percent: number }
 
-/** A compact Gantt-style timeline: one row per project, a duration bar
- * positioned within the shared window of all projects shown, colored per
- * project, with the completion percent labeled directly on the row (never
- * color alone) so nothing here depends on reading bar position precisely. */
+/** One progress bar per project, every bar starting from the same edge and
+ * filling by its own completion percent -- a shared-timeline Gantt (bars
+ * offset by actual start/end dates) read as messy/inconsistent, so this
+ * keeps the richer gradient styling but drops the date positioning. */
 export function ProjectRoadmap({ items }: { items: RoadmapItem[] }) {
-  const rangeStart = Math.min(...items.map((p) => p.start.getTime()))
-  const rangeEnd = Math.max(...items.map((p) => p.end.getTime()))
-  const span = Math.max(rangeEnd - rangeStart, 86400000)
-
   return (
     <div className="flex flex-col gap-3">
       {items.map((item, index) => {
-        const leftPct = ((item.start.getTime() - rangeStart) / span) * 100
-        const widthPct = Math.max(((item.end.getTime() - item.start.getTime()) / span) * 100, 3)
         const color = CATEGORICAL_COLORS[index % CATEGORICAL_COLORS.length]
         return (
           <div key={item.id} className="flex items-center gap-3">
             <p className="w-28 shrink-0 truncate text-sm text-muted-foreground sm:w-36" title={item.name}>
               {item.name}
             </p>
-            <div className="relative h-6 min-w-0 flex-1 rounded-full bg-muted">
+            <div className="h-3 min-w-0 flex-1 overflow-hidden rounded-full bg-muted">
               <div
-                className="absolute inset-y-0 flex items-center justify-end overflow-hidden rounded-full px-2 shadow-sm transition-[inset-inline-start,width] duration-700 ease-out"
+                className="h-full rounded-full transition-[width] duration-700 ease-out"
                 style={{
-                  insetInlineStart: `${leftPct}%`,
-                  width: `${widthPct}%`,
-                  background: `linear-gradient(90deg, color-mix(in oklab, ${color} 70%, transparent), ${color})`,
+                  width: `${Math.max(item.percent, 3)}%`,
+                  background: `linear-gradient(90deg, color-mix(in oklab, ${color} 65%, transparent), ${color})`,
                 }}
-              >
-                {widthPct > 14 && (
-                  <span className="truncate text-[10px] font-medium text-white">
-                    {toPersianDigits(item.percent)}٪
-                  </span>
-                )}
-              </div>
+              />
             </div>
-            {widthPct <= 14 && (
-              <span className="w-9 shrink-0 text-end text-xs font-medium tabular-nums">
-                {toPersianDigits(item.percent)}٪
-              </span>
-            )}
+            <span className="w-10 shrink-0 text-end text-xs font-medium tabular-nums">
+              {toPersianDigits(item.percent)}٪
+            </span>
           </div>
         )
       })}

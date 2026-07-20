@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query"
 import { Link } from "react-router-dom"
 import { Archive as ArchiveIcon } from "lucide-react"
 
+import { PageHeader } from "@/components/layout/page-header"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
@@ -38,10 +39,7 @@ export function ArchivePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-bold">بایگانی</h1>
-        <p className="text-muted-foreground">پروژه‌ها و تسک‌های بایگانی‌شده</p>
-      </div>
+      <PageHeader icon={ArchiveIcon} tone="secondary" title="بایگانی" description="پروژه‌ها و تسک‌های بایگانی‌شده" />
 
       <div className="flex flex-col gap-3">
         <h2 className="font-semibold">پروژه‌های بایگانی‌شده</h2>

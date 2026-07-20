@@ -2,8 +2,9 @@ import type { ReactElement, ReactNode } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Link } from "react-router-dom"
 import { Area, AreaChart, Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
-import { CheckCircle2, ClipboardList, Clock, FolderKanban, ListChecks, Users } from "lucide-react"
+import { CheckCircle2, ClipboardList, Clock, FolderKanban, LayoutDashboard, ListChecks, Users } from "lucide-react"
 
+import { PageHeader } from "@/components/layout/page-header"
 import { AnimatedNumber } from "@/components/ui/animated-number"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -285,15 +286,7 @@ export function DashboardPage() {
   const teamHoursData = [...data.team_hours].sort((a, b) => b.approved_hours - a.approved_hours).slice(0, 8)
   const projectHours = worklogReport ? hoursByProject(worklogReport.items) : []
   const progress = tasks && projects ? projectProgress(tasks, projects).slice(0, 6) : []
-  const roadmapItems = progress
-    .filter((p) => p.start_date && p.end_date)
-    .map((p) => ({
-      id: p.project_id,
-      name: p.project_name,
-      start: new Date(p.start_date!),
-      end: new Date(p.end_date!),
-      percent: p.percent,
-    }))
+  const roadmapItems = progress.map((p) => ({ id: p.project_id, name: p.project_name, percent: p.percent }))
 
   const now = new Date()
   const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
@@ -304,10 +297,7 @@ export function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-bold">داشبورد</h1>
-        <p className="text-muted-foreground">نمای کلی از فعالیت‌ها و پروژه‌ها</p>
-      </div>
+      <PageHeader icon={LayoutDashboard} tone="primary" title="داشبورد" description="نمای کلی از فعالیت‌ها و پروژه‌ها" />
 
       <div className="flex flex-col gap-4">
         <SectionLabel>آمار کلی</SectionLabel>

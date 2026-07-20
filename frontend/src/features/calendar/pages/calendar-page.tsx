@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { CalendarCheck, ChevronLeft, ChevronRight, Plus } from "lucide-react"
+import { CalendarCheck, CalendarDays, ChevronLeft, ChevronRight, Plus } from "lucide-react"
 
+import { PageHeader } from "@/components/layout/page-header"
 import { Button } from "@/components/ui/button"
 import { Select } from "@/components/ui/select"
 import { listCalendarEvents, type CalendarEvent, type CalendarEventType } from "@/features/calendar/api"
@@ -192,10 +193,12 @@ export function CalendarPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">تقویم</h1>
-          <p className="text-muted-foreground">وظایف، جلسات، مرخصی‌ها و یادآوری‌های سازمان شما</p>
-        </div>
+        <PageHeader
+          icon={CalendarDays}
+          tone="accent"
+          title="تقویم"
+          description="وظایف، جلسات، مرخصی‌ها و یادآوری‌های سازمان شما"
+        />
         <Button onClick={() => openNewEventForm(today)}>
           <Plus className="size-4" />
           رویداد جدید

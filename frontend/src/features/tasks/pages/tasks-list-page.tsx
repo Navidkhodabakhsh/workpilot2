@@ -4,7 +4,7 @@ import { Controller, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useSearchParams } from "react-router-dom"
-import { Plus, Search } from "lucide-react"
+import { CheckSquare, Plus, Search } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -16,6 +16,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Card, CardContent } from "@/components/ui/card"
+import { PageHeader } from "@/components/layout/page-header"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Input } from "@/components/ui/input"
 import { JalaliDateInput } from "@/components/ui/jalali-date-input"
@@ -275,10 +276,7 @@ export function TasksListPage() {
         />
       )}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">تسک‌ها</h1>
-          <p className="text-muted-foreground">مدیریت وظایف پروژه‌ای و شخصی شما</p>
-        </div>
+        <PageHeader icon={CheckSquare} tone="secondary" title="تسک‌ها" description="مدیریت وظایف پروژه‌ای و شخصی شما" />
         {projects && users && (
           <CreateTaskDialog
             projects={projects}

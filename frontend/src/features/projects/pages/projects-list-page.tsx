@@ -4,8 +4,9 @@ import { Controller, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { Link } from "react-router-dom"
-import { Plus } from "lucide-react"
+import { FolderKanban, Plus } from "lucide-react"
 
+import { PageHeader } from "@/components/layout/page-header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -91,10 +92,7 @@ export function ProjectsListPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">پروژه‌ها</h1>
-          <p className="text-muted-foreground">فهرست پروژه‌های سازمان</p>
-        </div>
+        <PageHeader icon={FolderKanban} tone="primary" title="پروژه‌ها" description="فهرست پروژه‌های سازمان" />
         {canCreate && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>

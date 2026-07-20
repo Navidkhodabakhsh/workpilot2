@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { Pencil, Plus } from "lucide-react"
+import { Pencil, Plus, Users } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -18,6 +18,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
+import { PageHeader } from "@/components/layout/page-header"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { TableRowsSkeleton } from "@/components/ui/table-rows-skeleton"
 import {
@@ -149,10 +150,7 @@ export function UsersListPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">کاربران</h1>
-          <p className="text-muted-foreground">اعضای سازمان شما</p>
-        </div>
+        <PageHeader icon={Users} tone="success" title="کاربران" description="اعضای سازمان شما" />
         {isOrgAdmin && (
           <Dialog
             open={open}

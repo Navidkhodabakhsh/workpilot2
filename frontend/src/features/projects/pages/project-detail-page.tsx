@@ -4,8 +4,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Controller, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { Archive, Pencil, Plus, Users, UserPlus, X } from "lucide-react"
+import { Archive, FolderKanban, Pencil, Plus, Users, UserPlus, X } from "lucide-react"
 
+import { PageHeader } from "@/components/layout/page-header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
@@ -168,10 +169,12 @@ export function ProjectDetailPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">{project.name}</h1>
-          <p className="text-muted-foreground">{project.description || "بدون توضیحات"}</p>
-        </div>
+        <PageHeader
+          icon={FolderKanban}
+          tone="primary"
+          title={project.name}
+          description={project.description || "بدون توضیحات"}
+        />
         <div className="flex flex-wrap items-center gap-2">
           {/* Compact member cluster instead of a full-width box -- click to
               manage. Overlapping circles are a deliberately small footprint
