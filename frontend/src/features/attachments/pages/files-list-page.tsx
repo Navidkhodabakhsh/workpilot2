@@ -14,10 +14,11 @@ import {
 } from "@/components/ui/dialog"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Label } from "@/components/ui/label"
-import { Select } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { downloadAttachment, listOrgAttachments, uploadAttachment } from "@/features/attachments/api"
+import { TaskPicker } from "@/features/attachments/components/task-picker"
 import { listAllTasks } from "@/features/tasks/api"
+import { listProjects } from "@/features/projects/api"
 
 function formatSize(bytes: number) {
   if (bytes < 1024) return `${bytes} بایت`
@@ -33,6 +34,7 @@ function UploadFileDialog() {
   const queryClient = useQueryClient()
 
   const { data: tasks } = useQuery({ queryKey: ["tasks", "all"], queryFn: () => listAllTasks(), enabled: open })
+  const { data: projects } = useQuery({ queryKey: ["projects"], queryFn: listProjects, enabled: open })
 
   const uploadMutation = useMutation({
     mutationFn: (file: File) => uploadAttachment(taskId, file),
@@ -76,14 +78,13 @@ function UploadFileDialog() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <Label htmlFor="attachment-task">وظیفه</Label>
-            <Select id="attachment-task" value={taskId} onChange={(e) => setTaskId(e.target.value)}>
-              <option value="">انتخاب کنید...</option>
-              {tasks?.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.title}
-                </option>
-              ))}
-            </Select>
+            <TaskPicker
+              id="attachment-task"
+              tasks={tasks ?? []}
+              projects={projects ?? []}
+              value={taskId}
+              onChange={setTaskId}
+            />
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="attachment-file">فایل</Label>
