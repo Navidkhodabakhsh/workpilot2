@@ -15,6 +15,7 @@ type OtpStep = "phone" | "code"
 
 const RATE_LIMIT_MESSAGE = "تعداد تلاش‌های ورود بیش از حد مجاز است؛ چند دقیقه دیگر دوباره امتحان کنید."
 const NETWORK_ERROR_MESSAGE = "اتصال به سرور برقرار نشد. مطمئن شوید سرور در حال اجراست و آدرسش درست تنظیم شده."
+const POST_LOGIN_ERROR_MESSAGE = "ورود موفق بود ولی دریافت اطلاعات کاربر با خطا مواجه شد؛ دوباره تلاش کنید."
 
 export function LoginPage() {
   const navigate = useNavigate()
@@ -112,9 +113,9 @@ function PasswordLoginForm({ onSuccess }: { onSuccess: (accessToken: string) => 
     }
     setFieldError(null)
     setSubmitting(true)
+    let accessToken: string
     try {
-      const { access_token } = await login({ identifier: phone, password })
-      await onSuccess(access_token)
+      accessToken = (await login({ identifier: phone, password })).access_token
     } catch (err: any) {
       if (err?.response?.status === 429) {
         setServerError(RATE_LIMIT_MESSAGE)
@@ -123,7 +124,16 @@ function PasswordLoginForm({ onSuccess }: { onSuccess: (accessToken: string) => 
       } else {
         setServerError("شماره موبایل یا رمز عبور اشتباه است")
       }
-    } finally {
+      setSubmitting(false)
+      return
+    }
+    // Credentials were accepted -- a failure past this point (e.g.
+    // fetching the profile) is not a wrong-password case, so it gets its
+    // own distinct message instead of falling into the block above.
+    try {
+      await onSuccess(accessToken)
+    } catch {
+      setServerError(POST_LOGIN_ERROR_MESSAGE)
       setSubmitting(false)
     }
   }
@@ -215,13 +225,15 @@ function OtpLoginForm({ onSuccess }: { onSuccess: (accessToken: string) => Promi
     }
     setFieldError(null)
     setSubmitting(true)
+    let accessToken: string
     try {
-      const { access_token } = await otpLogin({
-        phone_number: phone,
-        code,
-        new_password: newPassword || undefined,
-      })
-      await onSuccess(access_token)
+      accessToken = (
+        await otpLogin({
+          phone_number: phone,
+          code,
+          new_password: newPassword || undefined,
+        })
+      ).access_token
     } catch (err: any) {
       const detail = err?.response?.data?.detail
       if (detail === "password_setup_required") {
@@ -239,7 +251,13 @@ function OtpLoginForm({ onSuccess }: { onSuccess: (accessToken: string) => Promi
       } else {
         setServerError("خطایی رخ داد؛ دوباره تلاش کنید")
       }
-    } finally {
+      setSubmitting(false)
+      return
+    }
+    try {
+      await onSuccess(accessToken)
+    } catch {
+      setServerError(POST_LOGIN_ERROR_MESSAGE)
       setSubmitting(false)
     }
   }

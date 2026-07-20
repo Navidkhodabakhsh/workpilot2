@@ -39,7 +39,13 @@ class TokenResponse(BaseModel):
 class UserOut(BaseModel):
     id: uuid.UUID
     organization_id: uuid.UUID | None
-    email: EmailStr
+    # Not EmailStr: this serializes an already-stored value (validated as
+    # EmailStr at write time in SignupRequest/OrgUserCreate), not new
+    # input -- re-validating on every read is unnecessary and, for
+    # reserved-use TLDs like the seed data's .local addresses, actively
+    # wrong (email-validator rejects those as "special-use" even though
+    # they were fine to store).
+    email: str
     phone_number: str | None
     full_name: str
     role: UserRole
