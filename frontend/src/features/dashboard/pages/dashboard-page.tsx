@@ -1,40 +1,21 @@
-import type { ReactElement } from "react"
+import type { ReactElement, ReactNode } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Link } from "react-router-dom"
-import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  LabelList,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts"
+import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 import { CheckCircle2, ClipboardList, Clock, FolderKanban, Users } from "lucide-react"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
 import { getDashboardSummary } from "@/features/dashboard/api"
 import type { StatusCount } from "@/features/dashboard/api"
-import { hoursByProject, projectProgress, userProductivity, weeklyActivity } from "@/features/dashboard/chart-utils"
+import { hoursByProject, projectProgress } from "@/features/dashboard/chart-utils"
+import { HorizontalBarList } from "@/features/dashboard/components/horizontal-bar-list"
 import { listOrgUsers } from "@/features/users/api"
 import { listProjects } from "@/features/projects/api"
 import { listAllTasks } from "@/features/tasks/api"
 import { getWorklogReport } from "@/features/reports/api"
 import { useAuthStore } from "@/features/auth/auth-store"
 import { useDepartmentStore } from "@/features/departments/department-store"
-
-const TEAM_MEMBER_COLORS = [
-  "var(--color-primary)",
-  "var(--color-secondary)",
-  "var(--color-info)",
-  "var(--color-warning)",
-  "var(--color-success)",
-]
 
 const STATUS_LABEL: Record<string, string> = {
   todo: "برای انجام",
@@ -117,14 +98,16 @@ function ChartCard({
   isEmpty,
   emptyMessage,
   height,
+  plain,
   children,
 }: {
   title: string
   isLoading: boolean
   isEmpty: boolean
   emptyMessage: string
-  height: number
-  children: ReactElement
+  height?: number
+  plain?: boolean
+  children: ReactNode
 }) {
   return (
     <Card className="overflow-hidden">
@@ -134,26 +117,14 @@ function ChartCard({
       <CardContent>
         {isLoading && <EmptyState className="h-[240px]" message="در حال بارگذاری..." />}
         {!isLoading && isEmpty && <EmptyState className="h-[220px]" message={emptyMessage} />}
-        {!isLoading && !isEmpty && (
+        {!isLoading && !isEmpty && plain && children}
+        {!isLoading && !isEmpty && !plain && (
           <ResponsiveContainer width="100%" height={height}>
-            {children}
+            {children as ReactElement}
           </ResponsiveContainer>
         )}
       </CardContent>
     </Card>
-  )
-}
-
-function ProductivityTooltip({ active, payload }: any) {
-  if (!active || !payload?.length) return null
-  const p = payload[0].payload
-  return (
-    <div className="rounded-lg border border-border bg-card px-3 py-2 text-xs shadow-md">
-      <p className="mb-1 font-medium">{p.full_name}</p>
-      <p>ساعت کاری: {p.hours}</p>
-      <p>تعداد وظایف: {p.task_count}</p>
-      <p>درصد تکمیل: {p.completion_percent}٪</p>
-    </div>
   )
 }
 
@@ -183,11 +154,6 @@ export function DashboardPage() {
   const chartData = taskStatusChartData(data.tasks_by_status)
   const teamHoursData = [...data.team_hours].sort((a, b) => b.approved_hours - a.approved_hours)
   const projectHours = worklogReport ? hoursByProject(worklogReport.items) : []
-  const productivity =
-    worklogReport && tasks && orgUsers
-      ? userProductivity(worklogReport.items, tasks, orgUsers).slice(0, 8)
-      : []
-  const activity = worklogReport ? weeklyActivity(worklogReport.items) : []
   const progress = tasks && projects ? projectProgress(tasks, projects).slice(0, 8) : []
 
   return (
@@ -225,12 +191,10 @@ export function DashboardPage() {
             height={240}
           >
             <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-              <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+              <XAxis dataKey="name" hide />
+              <YAxis allowDecimals={false} hide />
               <Tooltip />
               <Bar dataKey="value" radius={[6, 6, 0, 0]} animationDuration={700}>
-                <LabelList dataKey="value" position="top" style={{ fontSize: 12 }} />
                 {chartData.map((entry) => (
                   <Cell key={entry.name} fill={entry.color} />
                 ))}
@@ -243,20 +207,16 @@ export function DashboardPage() {
             isLoading={false}
             isEmpty={teamHoursData.length === 0}
             emptyMessage="هنوز گزارش کاری تأییدشده‌ای وجود ندارد."
-            height={240}
+            plain
           >
-            <BarChart data={teamHoursData} layout="vertical" margin={{ left: 12 }}>
-              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 12 }} />
-              <YAxis type="category" dataKey="full_name" width={90} tick={{ fontSize: 12 }} />
-              <Tooltip />
-              <Bar dataKey="approved_hours" radius={[0, 6, 6, 0]} maxBarSize={26} animationDuration={700}>
-                <LabelList dataKey="approved_hours" position="right" style={{ fontSize: 12 }} />
-                {teamHoursData.map((entry, index) => (
-                  <Cell key={entry.user_id} fill={TEAM_MEMBER_COLORS[index % TEAM_MEMBER_COLORS.length]} />
-                ))}
-              </Bar>
-            </BarChart>
+            <HorizontalBarList
+              items={teamHoursData.map((t) => ({
+                id: t.user_id,
+                label: t.full_name,
+                value: t.approved_hours,
+                displayValue: String(t.approved_hours),
+              }))}
+            />
           </ChartCard>
 
           <ChartCard
@@ -264,71 +224,16 @@ export function DashboardPage() {
             isLoading={isReportLoading}
             isEmpty={projectHours.length === 0}
             emptyMessage="هنوز گزارش کاری تأییدشده‌ای وجود ندارد."
-            height={240}
+            plain
           >
-            <BarChart data={projectHours} layout="vertical" margin={{ left: 12 }}>
-              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 12 }} />
-              <YAxis type="category" dataKey="project_name" width={110} tick={{ fontSize: 12 }} />
-              <Tooltip />
-              <Bar dataKey="hours" fill="var(--color-info)" radius={[0, 6, 6, 0]} maxBarSize={26} animationDuration={700}>
-                <LabelList dataKey="hours" position="right" style={{ fontSize: 12 }} />
-              </Bar>
-            </BarChart>
-          </ChartCard>
-
-          <ChartCard
-            title="بهره‌وری کاربران"
-            isLoading={isReportLoading}
-            isEmpty={productivity.length === 0}
-            emptyMessage="هنوز داده‌ای برای بهره‌وری وجود ندارد."
-            height={240}
-          >
-            <BarChart data={productivity} layout="vertical" margin={{ left: 12 }}>
-              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 12 }} />
-              <YAxis type="category" dataKey="full_name" width={90} tick={{ fontSize: 12 }} />
-              <Tooltip content={<ProductivityTooltip />} />
-              <Bar dataKey="hours" fill="var(--color-secondary)" radius={[0, 6, 6, 0]} maxBarSize={26} animationDuration={700}>
-                {productivity.map((entry, index) => (
-                  <Cell key={entry.user_id} fill={TEAM_MEMBER_COLORS[index % TEAM_MEMBER_COLORS.length]} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ChartCard>
-
-          <ChartCard
-            title="فعالیت هفتگی تیم"
-            isLoading={isReportLoading}
-            isEmpty={activity.length === 0}
-            emptyMessage="هنوز فعالیتی برای نمایش روند هفتگی وجود ندارد."
-            height={240}
-          >
-            <AreaChart data={activity}>
-              <defs>
-                <linearGradient id="activityGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.4} />
-                  <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0.02} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis
-                dataKey="week_start"
-                tick={{ fontSize: 12 }}
-                tickFormatter={(v) => new Date(v).toLocaleDateString("fa-IR")}
-              />
-              <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-              <Tooltip labelFormatter={(v) => new Date(v).toLocaleDateString("fa-IR")} />
-              <Area
-                type="monotone"
-                dataKey="active_users"
-                name="کاربران فعال"
-                stroke="var(--color-primary)"
-                fill="url(#activityGradient)"
-                strokeWidth={2}
-                animationDuration={700}
-              />
-            </AreaChart>
+            <HorizontalBarList
+              items={projectHours.map((p) => ({
+                id: p.project_id,
+                label: p.project_name,
+                value: p.hours,
+                displayValue: String(p.hours),
+              }))}
+            />
           </ChartCard>
 
           <ChartCard
@@ -336,17 +241,16 @@ export function DashboardPage() {
             isLoading={false}
             isEmpty={progress.length === 0}
             emptyMessage="هنوز داده‌ای برای پیشرفت پروژه‌ها وجود ندارد."
-            height={240}
+            plain
           >
-            <BarChart data={progress} layout="vertical" margin={{ left: 12 }}>
-              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-              <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 12 }} />
-              <YAxis type="category" dataKey="project_name" width={110} tick={{ fontSize: 12 }} />
-              <Tooltip formatter={(v) => `${v}٪`} />
-              <Bar dataKey="percent" fill="var(--color-success)" radius={[0, 6, 6, 0]} maxBarSize={26} animationDuration={700}>
-                <LabelList dataKey="percent" position="right" formatter={(v) => `${v}٪`} style={{ fontSize: 12 }} />
-              </Bar>
-            </BarChart>
+            <HorizontalBarList
+              items={progress.map((p) => ({
+                id: p.project_id,
+                label: p.project_name,
+                value: p.percent,
+                displayValue: `${p.percent}٪`,
+              }))}
+            />
           </ChartCard>
         </div>
       </div>

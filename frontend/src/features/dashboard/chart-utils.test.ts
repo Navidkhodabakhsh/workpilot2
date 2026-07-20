@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { hoursByProject, projectProgress, userProductivity, weeklyActivity } from "./chart-utils"
+import { hoursByProject, projectProgress } from "./chart-utils"
 import type { WorkLogReportRow } from "@/features/reports/api"
 import type { Task } from "@/lib/types"
 
@@ -64,38 +64,6 @@ describe("hoursByProject", () => {
     const result = hoursByProject(rows, 1)
     expect(result).toHaveLength(1)
     expect(result[0].project_name).toBe("Beta")
-  })
-})
-
-describe("userProductivity", () => {
-  it("computes hours, task count and completion percent per user", () => {
-    const rows = [makeRow({ user_id: "u1", time_spent_minutes: 120, status: "approved" })]
-    const tasks = [
-      makeTask({ id: "t1", assignee_id: "u1", status: "completed" }),
-      makeTask({ id: "t2", assignee_id: "u1", status: "todo" }),
-    ]
-    const users = [{ id: "u1", full_name: "User One" }]
-    expect(userProductivity(rows, tasks, users)).toEqual([
-      { user_id: "u1", full_name: "User One", hours: 2, task_count: 2, completion_percent: 50 },
-    ])
-  })
-
-  it("excludes users with no hours and no tasks", () => {
-    const users = [{ id: "u1", full_name: "User One" }]
-    expect(userProductivity([], [], users)).toEqual([])
-  })
-})
-
-describe("weeklyActivity", () => {
-  it("counts distinct active users per ISO week", () => {
-    const rows = [
-      makeRow({ user_id: "u1", log_date: "2026-07-13" }),
-      makeRow({ user_id: "u2", log_date: "2026-07-14" }),
-      makeRow({ user_id: "u1", log_date: "2026-07-06" }),
-    ]
-    const result = weeklyActivity(rows)
-    expect(result).toHaveLength(2)
-    expect(result[1].active_users).toBe(2)
   })
 })
 
