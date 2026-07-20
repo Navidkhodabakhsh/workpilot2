@@ -14,6 +14,15 @@ export const STATUS_VARIANT: Record<TaskStatus, "default" | "info" | "success" |
   archived: "danger",
 }
 
+// Same mapping the dashboard's task-status donut uses, so a task's color
+// identity is consistent whether you're looking at the chart or the card.
+export const STATUS_COLOR: Record<TaskStatus, string> = {
+  todo: "var(--color-muted-foreground)",
+  in_progress: "var(--color-info)",
+  completed: "var(--color-success)",
+  archived: "var(--color-danger)",
+}
+
 export const STATUS_COLUMNS: { value: TaskStatus; label: string }[] = [
   { value: "todo", label: STATUS_LABEL.todo },
   { value: "in_progress", label: STATUS_LABEL.in_progress },

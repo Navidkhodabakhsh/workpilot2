@@ -1,6 +1,8 @@
 import { useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { Clock } from "lucide-react"
 
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
@@ -46,22 +48,38 @@ export function PendingApprovals({
 
   return (
     <div className="flex flex-col gap-3">
-      <h2 className="text-lg font-semibold">گزارش‌های در انتظار تأیید ({pending.length})</h2>
+      <h2 className="flex items-center gap-2 text-lg font-semibold">
+        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-warning/15 text-warning">
+          <Clock className="size-4" aria-hidden="true" />
+        </span>
+        گزارش‌های در انتظار تأیید ({pending.length})
+      </h2>
       <div className="flex flex-col gap-3">
         {pending.map((log) => {
           const task = tasks.find((t) => t.id === log.task_id)
           const author = users.find((u) => u.id === log.user_id)
+          const hours = Math.round((log.time_spent_minutes / 60) * 10) / 10
           return (
-            <Card key={log.id}>
+            <Card
+              key={log.id}
+              className="overflow-hidden border-border/70 border-s-4 transition-shadow hover:shadow-md"
+              style={{ borderInlineStartColor: "var(--color-warning)" }}
+            >
               <CardContent className="flex flex-col gap-3 pt-6">
-                <div className="flex flex-col justify-between gap-1 sm:flex-row sm:items-start">
+                <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-start">
                   <div>
                     <p className="font-medium">{task?.title ?? "وظیفهٔ حذف‌شده"}</p>
                     <p className="text-sm text-muted-foreground">
-                      {author?.full_name} — {log.time_spent_minutes} دقیقه — {log.progress_percent}٪ پیشرفت
+                      {author?.full_name} — {log.progress_percent}٪ پیشرفت
                     </p>
                   </div>
-                  <span className="text-sm text-muted-foreground">{log.log_date}</span>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <Badge variant="warning" className="gap-1 tabular-nums">
+                      <Clock className="size-3" aria-hidden="true" />
+                      {hours} ساعت
+                    </Badge>
+                    <span className="text-sm text-muted-foreground">{log.log_date}</span>
+                  </div>
                 </div>
                 <p className="text-sm">{log.activity_description}</p>
 

@@ -12,27 +12,16 @@ import { EmptyState } from "@/components/ui/empty-state"
 import { Skeleton } from "@/components/ui/skeleton"
 import { getDashboardSummary } from "@/features/dashboard/api"
 import type { StatusCount } from "@/features/dashboard/api"
+import type { TaskStatus } from "@/lib/types"
 import { hoursByProject } from "@/features/dashboard/chart-utils"
 import { listOrgUsers } from "@/features/users/api"
 import { listAllTasks } from "@/features/tasks/api"
 import { getWorklogReport } from "@/features/reports/api"
-import { PRIORITY_LABEL, PRIORITY_VARIANT } from "@/features/tasks/constants"
+import { PRIORITY_LABEL, PRIORITY_VARIANT, STATUS_COLOR, STATUS_LABEL } from "@/features/tasks/constants"
 import { useAuthStore } from "@/features/auth/auth-store"
 import { useDepartmentStore } from "@/features/departments/department-store"
 import { toPersianDigits } from "@/lib/jalali"
 
-const STATUS_LABEL: Record<string, string> = {
-  todo: "برای انجام",
-  in_progress: "در حال انجام",
-  completed: "تکمیل‌شده",
-  archived: "بایگانی‌شده",
-}
-const STATUS_COLOR: Record<string, string> = {
-  todo: "var(--color-muted-foreground)",
-  in_progress: "var(--color-info)",
-  completed: "var(--color-success)",
-  archived: "var(--color-danger)",
-}
 const WORKLOG_STATUS_LABEL: Record<string, string> = {
   draft: "پیش‌نویس",
   submitted: "در انتظار تأیید",
@@ -133,9 +122,9 @@ function ChartCardSkeleton() {
 function taskStatusChartData(tasksByStatus: StatusCount[]) {
   return tasksByStatus
     .map((s) => ({
-      name: STATUS_LABEL[s.status] ?? s.status,
+      name: STATUS_LABEL[s.status as TaskStatus] ?? s.status,
       value: s.count,
-      color: STATUS_COLOR[s.status] ?? "var(--color-muted-foreground)",
+      color: STATUS_COLOR[s.status as TaskStatus] ?? "var(--color-muted-foreground)",
     }))
     .sort((a, b) => b.value - a.value)
 }

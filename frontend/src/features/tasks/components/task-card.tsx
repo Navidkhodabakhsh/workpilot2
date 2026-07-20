@@ -13,6 +13,7 @@ import {
   APPROVAL_VARIANT,
   PRIORITY_LABEL,
   PRIORITY_VARIANT,
+  STATUS_COLOR,
   STATUS_COLUMNS,
   STATUS_LABEL,
   STATUS_VARIANT,
@@ -54,8 +55,13 @@ export function TaskCard({
     },
   })
 
+  const statusColor = STATUS_COLOR[task.status]
+
   return (
-    <Card className="border-border/70 transition-shadow hover:shadow-sm">
+    <Card
+      className="overflow-hidden border-border/70 border-s-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+      style={{ borderInlineStartColor: statusColor }}
+    >
       <CardContent className="flex flex-col gap-2.5 pt-5">
         <div className="flex items-start justify-between gap-2">
           <p className="font-medium leading-snug">{task.title}</p>
@@ -72,17 +78,24 @@ export function TaskCard({
           )}
         </div>
 
-        <div className="flex flex-col gap-1 text-xs text-muted-foreground">
-          {assignee && <p>مسئول: {assignee.full_name}</p>}
+        <div className="flex flex-col gap-1.5 text-xs text-muted-foreground">
+          {assignee && (
+            <p className="flex items-center gap-1.5">
+              <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[9px] font-bold text-primary">
+                {assignee.full_name.trim().charAt(0)}
+              </span>
+              {assignee.full_name}
+            </p>
+          )}
           {task.created_by_full_name && (
-            <p className="flex items-center gap-1">
-              <UserPen className="size-3" aria-hidden="true" />
+            <p className="flex items-center gap-1.5">
+              <UserPen className="size-3.5 shrink-0" aria-hidden="true" />
               ثبت‌کننده: {task.created_by_full_name}
             </p>
           )}
           {(task.start_date || task.deadline) && (
-            <p className="flex items-center gap-1">
-              <CalendarDays className="size-3" aria-hidden="true" />
+            <p className="flex items-center gap-1.5">
+              <CalendarDays className="size-3.5 shrink-0" aria-hidden="true" />
               {task.start_date ? new Date(task.start_date).toLocaleDateString("fa-IR") : "—"}
               {" تا "}
               {task.deadline ? new Date(task.deadline).toLocaleDateString("fa-IR") : "—"}
@@ -92,13 +105,18 @@ export function TaskCard({
 
         {task.progress_percent > 0 && (
           <div className="flex flex-col gap-1">
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
               <div
-                className="h-full rounded-full bg-primary transition-[width]"
-                style={{ width: `${task.progress_percent}%` }}
+                className="h-full rounded-full transition-[width] duration-500 ease-out"
+                style={{
+                  width: `${task.progress_percent}%`,
+                  background: `linear-gradient(90deg, color-mix(in oklab, ${statusColor} 65%, transparent), ${statusColor})`,
+                }}
               />
             </div>
-            <span className="text-xs text-muted-foreground">{task.progress_percent}% پیشرفت</span>
+            <span className="text-xs font-medium text-muted-foreground tabular-nums">
+              {task.progress_percent}٪ پیشرفت
+            </span>
           </div>
         )}
 
