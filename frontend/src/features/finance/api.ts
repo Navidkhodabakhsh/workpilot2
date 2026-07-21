@@ -1,6 +1,8 @@
 import { apiClient } from "@/lib/api-client"
 
 export type FinanceEntryType = "income" | "expense"
+export type FinanceEntrySort = "document_date" | "document_number" | "amount" | "title" | "created_at"
+export type SortOrder = "asc" | "desc"
 export type FinanceCategory = { id: string; entry_type: FinanceEntryType; name: string; color: string; is_system: boolean }
 export type FinanceEntry = {
   id: string
@@ -29,7 +31,7 @@ export type FinanceSummary = {
 
 export const listFinanceCategories = async () => (await apiClient.get<FinanceCategory[]>("/api/v1/finance/categories")).data
 export const createFinanceCategory = async (payload: { entry_type: FinanceEntryType; name: string; color: string }) => (await apiClient.post<FinanceCategory>("/api/v1/finance/categories", payload)).data
-export const listFinanceEntries = async (filters: { type?: FinanceEntryType; category_id?: string; project_id?: string; date_from?: string; date_to?: string }) => (await apiClient.get<FinanceEntry[]>("/api/v1/finance/entries", { params: filters })).data
+export const listFinanceEntries = async (filters: { type?: FinanceEntryType; category_id?: string; project_id?: string; date_from?: string; date_to?: string; sort?: FinanceEntrySort; order?: SortOrder }) => (await apiClient.get<FinanceEntry[]>("/api/v1/finance/entries", { params: filters })).data
 export const createFinanceEntry = async (payload: { category_id: string; project_id?: string; entry_type: FinanceEntryType; document_date: string; amount: string; title: string; description?: string; document_number?: string; counterparty?: string }) => (await apiClient.post<FinanceEntry>("/api/v1/finance/entries", payload)).data
 export const deleteFinanceEntry = async (id: string) => apiClient.delete(`/api/v1/finance/entries/${id}`)
 export const getFinanceSummary = async (dateFrom?: string, dateTo?: string) => (await apiClient.get<FinanceSummary>("/api/v1/finance/summary", { params: { ...(dateFrom ? { date_from: dateFrom } : {}), ...(dateTo ? { date_to: dateTo } : {}) } })).data

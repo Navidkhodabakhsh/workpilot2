@@ -17,6 +17,7 @@ import { createComment, listComments } from "@/features/comments/api"
 import {
   deleteAttachment,
   downloadAttachment,
+  formatFileSize,
   listTaskAttachments,
   uploadAttachment,
 } from "@/features/attachments/api"
@@ -24,12 +25,6 @@ import { approveTask, getTaskActivity, rejectTask } from "@/features/tasks/api"
 import { APPROVAL_LABEL, APPROVAL_VARIANT, PRIORITY_LABEL, STATUS_LABEL } from "@/features/tasks/constants"
 import { useAuthStore } from "@/features/auth/auth-store"
 import type { Task } from "@/lib/types"
-
-function formatSize(bytes: number) {
-  if (bytes < 1024) return `${bytes} بایت`
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} کیلوبایت`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} مگابایت`
-}
 
 const ACTIVITY_LABEL: Record<string, string> = {
   "task.create": "وظیفه ایجاد شد",
@@ -252,7 +247,7 @@ export function TaskDetailDialog({
                   {a.original_filename}
                 </button>
                 <div className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
-                  <span>{formatSize(a.size_bytes)}</span>
+                  <span>{formatFileSize(a.size_bytes)}</span>
                   {a.uploaded_by_id === currentUserId && (
                     <button
                       onClick={() => deleteMutation.mutate(a.id)}

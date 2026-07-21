@@ -117,3 +117,45 @@ def test_finance_ledger_groups_documents_and_is_manager_only(client, signup_org_
 
     forbidden = client.get("/api/v1/finance/entries", headers=auth_headers(employee_token))
     assert forbidden.status_code == 403
+
+
+def test_finance_entries_can_be_sorted_by_amount_and_document_number(client, signup_org_admin):
+    admin_token, _ = signup_org_admin()
+    expense = next(
+        item
+        for item in client.get("/api/v1/finance/categories", headers=auth_headers(admin_token)).json()
+        if item["entry_type"] == "expense"
+    )
+
+    def create(amount, document_number):
+        return client.post(
+            "/api/v1/finance/entries",
+            json={
+                "entry_type": "expense",
+                "category_id": expense["id"],
+                "document_date": "2026-07-20",
+                "amount": amount,
+                "title": f"Doc {document_number}",
+                "document_number": document_number,
+            },
+            headers=auth_headers(admin_token),
+        )
+
+    create("500", "B-002")
+    create("2500000", "A-001")
+    create("100", "C-003")
+
+    by_amount_asc = client.get(
+        "/api/v1/finance/entries", params={"sort": "amount", "order": "asc"}, headers=auth_headers(admin_token)
+    ).json()
+    assert [row["amount"] for row in by_amount_asc] == ["100.00", "500.00", "2500000.00"]
+
+    by_document_number_desc = client.get(
+        "/api/v1/finance/entries", params={"sort": "document_number", "order": "desc"}, headers=auth_headers(admin_token)
+    ).json()
+    assert [row["document_number"] for row in by_document_number_desc] == ["C-003", "B-002", "A-001"]
+
+    invalid_sort = client.get(
+        "/api/v1/finance/entries", params={"sort": "not_a_real_column"}, headers=auth_headers(admin_token)
+    )
+    assert invalid_sort.status_code == 422

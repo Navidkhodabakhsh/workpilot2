@@ -26,7 +26,7 @@ DEFAULT_CATEGORIES = (
 )
 
 
-def _assert_finance_access(current_user: User) -> None:
+def assert_finance_access(current_user: User) -> None:
     if current_user.role not in {UserRole.org_admin, UserRole.project_manager}:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only organization and project managers can access finance")
 
@@ -56,7 +56,7 @@ def _ensure_default_categories(db: Session, org_id: uuid.UUID) -> None:
 
 
 def list_categories(db: Session, org_id: uuid.UUID, current_user: User) -> list[FinanceCategory]:
-    _assert_finance_access(current_user)
+    assert_finance_access(current_user)
     _ensure_default_categories(db, org_id)
     return (
         db.query(FinanceCategory)
@@ -69,7 +69,7 @@ def list_categories(db: Session, org_id: uuid.UUID, current_user: User) -> list[
 def create_category(
     db: Session, org_id: uuid.UUID, current_user: User, data: FinanceCategoryCreate
 ) -> FinanceCategory:
-    _assert_finance_access(current_user)
+    assert_finance_access(current_user)
     duplicate = (
         db.query(FinanceCategory)
         .filter(
@@ -139,7 +139,7 @@ def _attach_names(db: Session, org_id: uuid.UUID, entries: list[FinanceEntry]) -
 
 
 def create_entry(db: Session, org_id: uuid.UUID, current_user: User, data: FinanceEntryCreate) -> FinanceEntry:
-    _assert_finance_access(current_user)
+    assert_finance_access(current_user)
     category = _get_category(db, org_id, data.category_id)
     if category.entry_type != data.entry_type:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Category type does not match document type")
@@ -157,6 +157,15 @@ def create_entry(db: Session, org_id: uuid.UUID, current_user: User, data: Finan
     return _attach_names(db, org_id, [entry])[0]
 
 
+SORTABLE_FIELDS = {
+    "document_date": FinanceEntry.document_date,
+    "document_number": FinanceEntry.document_number,
+    "amount": FinanceEntry.amount,
+    "title": FinanceEntry.title,
+    "created_at": FinanceEntry.created_at,
+}
+
+
 def list_entries(
     db: Session,
     org_id: uuid.UUID,
@@ -166,8 +175,10 @@ def list_entries(
     project_id: uuid.UUID | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
+    sort: str = "document_date",
+    order: str = "desc",
 ) -> list[FinanceEntry]:
-    _assert_finance_access(current_user)
+    assert_finance_access(current_user)
     query = db.query(FinanceEntry).filter(FinanceEntry.organization_id == org_id)
     if entry_type is not None:
         query = query.filter(FinanceEntry.entry_type == entry_type)
@@ -179,11 +190,13 @@ def list_entries(
         query = query.filter(FinanceEntry.document_date >= date_from)
     if date_to is not None:
         query = query.filter(FinanceEntry.document_date <= date_to)
-    entries = query.order_by(FinanceEntry.document_date.desc(), FinanceEntry.created_at.desc()).all()
+    column = SORTABLE_FIELDS.get(sort, FinanceEntry.document_date)
+    direction = column.asc() if order == "asc" else column.desc()
+    entries = query.order_by(direction, FinanceEntry.id.desc()).all()
     return _attach_names(db, org_id, entries)
 
 
-def _get_entry(db: Session, org_id: uuid.UUID, entry_id: uuid.UUID) -> FinanceEntry:
+def get_entry(db: Session, org_id: uuid.UUID, entry_id: uuid.UUID) -> FinanceEntry:
     entry = (
         db.query(FinanceEntry)
         .filter(FinanceEntry.id == entry_id, FinanceEntry.organization_id == org_id)
@@ -197,8 +210,8 @@ def _get_entry(db: Session, org_id: uuid.UUID, entry_id: uuid.UUID) -> FinanceEn
 def update_entry(
     db: Session, org_id: uuid.UUID, current_user: User, entry_id: uuid.UUID, data: FinanceEntryUpdate
 ) -> FinanceEntry:
-    _assert_finance_access(current_user)
-    entry = _get_entry(db, org_id, entry_id)
+    assert_finance_access(current_user)
+    entry = get_entry(db, org_id, entry_id)
     changes = data.model_dump(exclude_unset=True)
     if "project_id" in changes:
         _validate_project(db, org_id, changes["project_id"])
@@ -215,8 +228,8 @@ def update_entry(
 
 
 def delete_entry(db: Session, org_id: uuid.UUID, current_user: User, entry_id: uuid.UUID) -> None:
-    _assert_finance_access(current_user)
-    entry = _get_entry(db, org_id, entry_id)
+    assert_finance_access(current_user)
+    entry = get_entry(db, org_id, entry_id)
     log_event(db, org_id, current_user.id, "finance.delete", "finance_entry", str(entry.id), {"title": entry.title})
     db.delete(entry)
     db.commit()
@@ -229,7 +242,7 @@ def get_summary(
     date_from: date | None = None,
     date_to: date | None = None,
 ) -> dict:
-    _assert_finance_access(current_user)
+    assert_finance_access(current_user)
     query = (
         db.query(
             FinanceEntry.entry_type,

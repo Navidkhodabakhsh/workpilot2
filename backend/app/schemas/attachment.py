@@ -6,7 +6,8 @@ from pydantic import BaseModel
 
 class AttachmentOut(BaseModel):
     id: uuid.UUID
-    task_id: uuid.UUID
+    task_id: uuid.UUID | None = None
+    finance_entry_id: uuid.UUID | None = None
     uploaded_by_id: uuid.UUID
     uploaded_by_full_name: str
     original_filename: str

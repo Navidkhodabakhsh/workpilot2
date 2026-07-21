@@ -11,6 +11,7 @@ from app.schemas.attachment import AttachmentOut
 from app.services import attachments as attachments_service
 
 task_attachments_router = APIRouter(prefix="/tasks/{task_id}/attachments", tags=["attachments"])
+finance_attachments_router = APIRouter(prefix="/finance/entries/{entry_id}/attachments", tags=["attachments"])
 attachments_router = APIRouter(prefix="/attachments", tags=["attachments"])
 
 
@@ -37,6 +38,32 @@ def list_task_attachments(
     current_user: User = Depends(get_current_user),
 ) -> list[AttachmentOut]:
     attachments = attachments_service.list_attachments_for_task(db, org_id, current_user, task_id)
+    return [AttachmentOut.model_validate(a) for a in attachments]
+
+
+@finance_attachments_router.post("", response_model=AttachmentOut, status_code=201)
+async def upload_finance_attachment(
+    entry_id: uuid.UUID,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_current_org_id),
+    current_user: User = Depends(get_current_user),
+) -> AttachmentOut:
+    contents = await file.read()
+    attachment = attachments_service.upload_finance_attachment(
+        db, org_id, current_user, entry_id, file.filename or "file", file.content_type or "", contents
+    )
+    return AttachmentOut.model_validate(attachment)
+
+
+@finance_attachments_router.get("", response_model=list[AttachmentOut])
+def list_finance_entry_attachments(
+    entry_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_current_org_id),
+    current_user: User = Depends(get_current_user),
+) -> list[AttachmentOut]:
+    attachments = attachments_service.list_attachments_for_finance_entry(db, org_id, current_user, entry_id)
     return [AttachmentOut.model_validate(a) for a in attachments]
 
 

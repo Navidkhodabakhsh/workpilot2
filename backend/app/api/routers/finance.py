@@ -1,5 +1,6 @@
 import uuid
 from datetime import date
+from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
@@ -48,12 +49,14 @@ def list_entries(
     project_id: uuid.UUID | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
+    sort: Literal["document_date", "document_number", "amount", "title", "created_at"] = "document_date",
+    order: Literal["asc", "desc"] = "desc",
     db: Session = Depends(get_db),
     org_id: uuid.UUID = Depends(get_current_org_id),
     current_user: User = Depends(get_current_user),
 ) -> list[FinanceEntryOut]:
     rows = finance_service.list_entries(
-        db, org_id, current_user, entry_type, category_id, project_id, date_from, date_to
+        db, org_id, current_user, entry_type, category_id, project_id, date_from, date_to, sort, order
     )
     return [FinanceEntryOut.model_validate(row) for row in rows]
 

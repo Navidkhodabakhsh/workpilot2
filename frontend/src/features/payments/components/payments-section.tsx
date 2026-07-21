@@ -7,6 +7,7 @@ import { Plus, Trash2, Wallet } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { CurrencyInput } from "@/components/ui/currency-input"
 import {
   Dialog,
   DialogContent,
@@ -115,7 +116,11 @@ export function PaymentsSection({ projectId }: { projectId: string }) {
               </div>
               <div className="flex flex-col gap-2">
                 <Label htmlFor="amount" required>مبلغ (تومان)</Label>
-                <Input id="amount" type="number" step="0.01" {...form.register("amount")} />
+                <Controller
+                  control={form.control}
+                  name="amount"
+                  render={({ field }) => <CurrencyInput id="amount" value={field.value} onChange={field.onChange} />}
+                />
                 {form.formState.errors.amount && (
                   <p className="text-sm text-danger">{form.formState.errors.amount.message}</p>
                 )}

@@ -1,8 +1,15 @@
 import { apiClient } from "@/lib/api-client"
 
+export function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} بایت`
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} کیلوبایت`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} مگابایت`
+}
+
 export type Attachment = {
   id: string
-  task_id: string
+  task_id: string | null
+  finance_entry_id: string | null
   uploaded_by_id: string
   uploaded_by_full_name: string
   original_filename: string
@@ -27,6 +34,20 @@ export async function uploadAttachment(taskId: string, file: File) {
   const formData = new FormData()
   formData.append("file", file)
   const { data } = await apiClient.post<Attachment>(`/api/v1/tasks/${taskId}/attachments`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  })
+  return data
+}
+
+export async function listFinanceEntryAttachments(entryId: string) {
+  const { data } = await apiClient.get<Attachment[]>(`/api/v1/finance/entries/${entryId}/attachments`)
+  return data
+}
+
+export async function uploadFinanceEntryAttachment(entryId: string, file: File) {
+  const formData = new FormData()
+  formData.append("file", file)
+  const { data } = await apiClient.post<Attachment>(`/api/v1/finance/entries/${entryId}/attachments`, formData, {
     headers: { "Content-Type": "multipart/form-data" },
   })
   return data
