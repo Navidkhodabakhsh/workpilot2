@@ -20,8 +20,8 @@ def upgrade() -> None:
     op.create_table(
         "calendar_event_categories",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
+        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.Column("organization_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("name", sa.String(length=120), nullable=False),
         sa.Column("color", sa.String(length=20), nullable=False, server_default="#64748b"),
