@@ -75,6 +75,32 @@ def test_upload_list_download_and_delete_attachment(client, signup_org_admin, cr
     assert client.get(f"/api/v1/tasks/{task_id}/attachments", headers=auth_headers(emp_token)).json() == []
 
 
+def test_path_traversal_filename_cannot_escape_the_attachments_directory(
+    client, signup_org_admin, create_org_user, tmp_path
+):
+    admin_token, _ = signup_org_admin()
+    pm_token, _ = create_org_user(admin_token, "project_manager", "pm")
+    emp_token, emp = create_org_user(admin_token, "employee", "emp")
+    _, task_id = _setup_task(client, admin_token, pm_token, emp_token, emp)
+
+    resp = client.post(
+        f"/api/v1/tasks/{task_id}/attachments",
+        files={"file": ("../../../../etc/evil-cron-job", b"malicious", "text/plain")},
+        headers=auth_headers(pm_token),
+    )
+    assert resp.status_code == 201
+    attachment = resp.json()
+
+    # The stored display name must never carry path separators through.
+    assert "/" not in attachment["original_filename"]
+    assert attachment["original_filename"] == "evil-cron-job"
+
+    # And nothing was actually written outside the isolated attachments root.
+    written_paths = [str(p) for p in tmp_path.rglob("*") if p.is_file()]
+    assert len(written_paths) == 1
+    assert written_paths[0].startswith(str(tmp_path))
+
+
 def test_non_uploader_non_manager_cannot_delete_attachment(client, signup_org_admin, create_org_user):
     admin_token, _ = signup_org_admin()
     pm_token, _ = create_org_user(admin_token, "project_manager", "pm")

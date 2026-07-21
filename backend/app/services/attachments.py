@@ -30,6 +30,14 @@ def _to_dict(attachment: Attachment, uploaded_by_full_name: str) -> dict:
     }
 
 
+def _sanitize_filename(filename: str) -> str:
+    # The client-supplied filename must never be trusted as a path
+    # component: strip it down to its final segment so "../../etc/cron.d/x"
+    # (or a Windows-style "..\\..\\x") can't escape the org's attachment
+    # directory when it's joined into the storage path below.
+    return os.path.basename(filename.replace("\\", "/")).strip() or "file"
+
+
 def _save_upload(org_id: uuid.UUID, filename: str, content_type: str, contents: bytes) -> Attachment:
     if len(contents) > settings.max_attachment_size_bytes:
         raise HTTPException(
@@ -37,9 +45,10 @@ def _save_upload(org_id: uuid.UUID, filename: str, content_type: str, contents: 
             detail=f"File exceeds the {settings.max_attachment_size_bytes // (1024 * 1024)}MB limit",
         )
 
+    safe_filename = _sanitize_filename(filename)
     org_dir = os.path.join(settings.attachments_dir, str(org_id))
     os.makedirs(org_dir, exist_ok=True)
-    stored_name = f"{uuid.uuid4()}-{filename}"
+    stored_name = f"{uuid.uuid4()}-{safe_filename}"
     file_path = os.path.join(org_dir, stored_name)
     with open(file_path, "wb") as f:
         f.write(contents)
@@ -47,7 +56,7 @@ def _save_upload(org_id: uuid.UUID, filename: str, content_type: str, contents: 
     return Attachment(
         organization_id=org_id,
         file_path=file_path,
-        original_filename=filename,
+        original_filename=safe_filename,
         content_type=content_type or "application/octet-stream",
         size_bytes=len(contents),
     )
