@@ -22,8 +22,8 @@ export function AuthLayout({ children }: { children: ReactNode }) {
       <div className="flex flex-1 items-center justify-center bg-background p-6 sm:p-10">
         <div className="flex w-full max-w-sm flex-col gap-6">
           <div className="flex items-center justify-center gap-2 lg:hidden">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-border">
-              <LogoMark className="size-5" />
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-md ring-1 ring-border">
+              <LogoMark className="size-6" />
             </div>
             <span className="text-lg font-bold">Tadvin Hesab</span>
           </div>

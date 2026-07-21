@@ -73,8 +73,8 @@ export function AppShell() {
             collapsed && "justify-center px-0"
           )}
         >
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm">
-            <LogoMark className="size-5" />
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-[0_2px_10px_rgba(0,0,0,0.35)]">
+            <LogoMark className="size-6" />
           </div>
           <span
             className={cn(
@@ -160,8 +160,8 @@ export function AppShell() {
         >
           <div className="flex items-center justify-between px-4 pb-4">
             <div className="flex items-center gap-3">
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm">
-                <LogoMark className="size-5" />
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-[0_2px_10px_rgba(0,0,0,0.35)]">
+                <LogoMark className="size-6" />
               </div>
               <span className="text-xl font-bold text-sidebar-foreground">Tadvin</span>
             </div>
