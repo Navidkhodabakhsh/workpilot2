@@ -9,8 +9,7 @@ import type { OrgUser, Task } from "@/lib/types"
 const user: OrgUser = {
   id: "user-1",
   organization_id: "org-1",
-  email: "user@example.com",
-  phone_number: null,
+  phone_number: "09120000002",
   full_name: "کاربر تست",
   role: "employee",
   is_active: true,

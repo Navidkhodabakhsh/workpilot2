@@ -43,7 +43,6 @@ const ROLE_VARIANT: Record<string, "primary" | "info" | "default"> = {
 
 const schema = z.object({
   full_name: z.string().min(2, "نام و نام خانوادگی را وارد کنید"),
-  email: z.string().email("ایمیل معتبر وارد کنید"),
   phone_number: phoneSchema,
   password: z.union([z.literal(""), passwordSchema]),
   role: z.enum(["project_manager", "employee"]),
@@ -55,6 +54,7 @@ const editSchema = z.object({
   role: z.enum(["org_admin", "project_manager", "employee"]),
   is_active: z.enum(["true", "false"]),
   phone_number: z.union([z.literal(""), phoneSchema]),
+  password: z.union([z.literal(""), passwordSchema]),
   department_id: z.string().optional(),
 })
 type EditFormValues = z.infer<typeof editSchema>
@@ -72,14 +72,13 @@ export function UsersListPage() {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { full_name: "", email: "", phone_number: "", password: "", role: "employee" },
+    defaultValues: { full_name: "", phone_number: "", password: "", role: "employee" },
   })
 
   const createMutation = useMutation({
     mutationFn: (values: FormValues) =>
       createOrgUser({
         full_name: values.full_name,
-        email: values.email,
         phone_number: values.phone_number,
         password: values.password || undefined,
         role: values.role as UserRole,
@@ -91,9 +90,8 @@ export function UsersListPage() {
       form.reset()
     },
     onError: (err: any) => {
-      const detail = err?.response?.data?.detail
       if (err?.response?.status === 409) {
-        setServerError(detail?.includes("Phone") ? "این شماره موبایل قبلاً ثبت شده است" : "این ایمیل قبلاً ثبت شده است")
+        setServerError("این شماره موبایل قبلاً ثبت شده است")
       } else {
         setServerError("خطایی رخ داد؛ دوباره تلاش کنید")
       }
@@ -111,6 +109,7 @@ export function UsersListPage() {
         role: values.role,
         is_active: values.is_active === "true",
         ...(values.phone_number ? { phone_number: values.phone_number } : {}),
+        ...(values.password ? { password: values.password } : {}),
         ...(values.department_id ? { department_id: values.department_id } : {}),
       })
       // Only project_manager/employee have department memberships -- an
@@ -142,7 +141,8 @@ export function UsersListPage() {
     editForm.reset({
       role: u.role as "org_admin" | "project_manager" | "employee",
       is_active: u.is_active ? "true" : "false",
-      phone_number: u.phone_number ?? "",
+      phone_number: u.phone_number,
+      password: "",
       department_id: u.department_id ?? "",
     })
   }
@@ -175,30 +175,25 @@ export function UsersListPage() {
                 className="flex flex-col gap-4"
               >
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="full_name">نام و نام خانوادگی</Label>
+                  <Label htmlFor="full_name" required>نام و نام خانوادگی</Label>
                   <Input id="full_name" {...form.register("full_name")} />
                   {form.formState.errors.full_name && (
                     <p className="text-sm text-danger">{form.formState.errors.full_name.message}</p>
                   )}
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="email">ایمیل</Label>
-                  <Input id="email" type="email" {...form.register("email")} />
-                  {form.formState.errors.email && (
-                    <p className="text-sm text-danger">{form.formState.errors.email.message}</p>
-                  )}
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="phone_number">شماره موبایل</Label>
+                  <Label htmlFor="phone_number" required>شماره موبایل</Label>
                   <Input id="phone_number" type="tel" dir="ltr" {...form.register("phone_number")} />
                   {form.formState.errors.phone_number ? (
                     <p className="text-sm text-danger">{form.formState.errors.phone_number.message}</p>
                   ) : (
-                    <p className="text-xs text-muted-foreground">{PHONE_HINT}</p>
+                    <p className="text-xs text-muted-foreground">
+                      اگر این شماره از قبل در سازمان دیگری حساب داشته باشد، همان حساب به این سازمان هم متصل می‌شود. {PHONE_HINT}
+                    </p>
                   )}
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="password">رمز عبور (اختیاری)</Label>
+                  <Label htmlFor="password">رمز عبور</Label>
                   <Input id="password" type="password" {...form.register("password")} />
                   {form.formState.errors.password ? (
                     <p className="text-sm text-danger">{form.formState.errors.password.message}</p>
@@ -209,7 +204,7 @@ export function UsersListPage() {
                   )}
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="role">نقش</Label>
+                  <Label htmlFor="role" required>نقش</Label>
                   <Select id="role" {...form.register("role")}>
                     <option value="employee">کارمند</option>
                     <option value="project_manager">مدیر پروژه</option>
@@ -217,7 +212,7 @@ export function UsersListPage() {
                 </div>
                 {departments && departments.length > 0 && (
                   <div className="flex flex-col gap-2">
-                    <Label htmlFor="department_id">دپارتمان (اختیاری)</Label>
+                    <Label htmlFor="department_id">دپارتمان</Label>
                     <Select id="department_id" {...form.register("department_id")}>
                       <option value="">بدون دپارتمان مشخص</option>
                       {departments.map((d) => (
@@ -243,7 +238,6 @@ export function UsersListPage() {
           <TableHeader>
             <TableRow>
               <TableHead>نام</TableHead>
-              <TableHead>ایمیل</TableHead>
               <TableHead>شماره موبایل</TableHead>
               <TableHead>نقش</TableHead>
               <TableHead>وضعیت</TableHead>
@@ -257,9 +251,8 @@ export function UsersListPage() {
               .map((u) => (
               <TableRow key={u.id}>
                 <TableCell className="font-medium">{u.full_name}</TableCell>
-                <TableCell>{u.email}</TableCell>
                 <TableCell dir="ltr" className="text-start">
-                  {u.phone_number ?? "—"}
+                  {u.phone_number}
                 </TableCell>
                 <TableCell>
                   <Badge variant={ROLE_VARIANT[u.role] ?? "default"}>{ROLE_LABEL[u.role] ?? u.role}</Badge>
@@ -293,7 +286,7 @@ export function UsersListPage() {
             className="flex flex-col gap-4"
           >
             <div className="flex flex-col gap-2">
-              <Label htmlFor="edit-role">نقش</Label>
+              <Label htmlFor="edit-role" required>نقش</Label>
               <Select id="edit-role" {...editForm.register("role")}>
                 <option value="employee">کارمند</option>
                 <option value="project_manager">مدیر پروژه</option>
@@ -301,20 +294,28 @@ export function UsersListPage() {
               </Select>
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="edit-active">وضعیت</Label>
+              <Label htmlFor="edit-active" required>وضعیت</Label>
               <Select id="edit-active" {...editForm.register("is_active")}>
                 <option value="true">فعال</option>
                 <option value="false">غیرفعال</option>
               </Select>
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="edit-phone">شماره موبایل</Label>
+              <Label htmlFor="edit-phone" required>شماره موبایل</Label>
               <Input id="edit-phone" type="tel" dir="ltr" {...editForm.register("phone_number")} />
-              {editForm.formState.errors.phone_number ? (
+              {editForm.formState.errors.phone_number && (
                 <p className="text-sm text-danger">{editForm.formState.errors.phone_number.message}</p>
+              )}
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="edit-password">رمز عبور جدید</Label>
+              <Input id="edit-password" type="password" autoComplete="new-password" {...editForm.register("password")} />
+              {editForm.formState.errors.password ? (
+                <p className="text-sm text-danger">{editForm.formState.errors.password.message}</p>
               ) : (
                 <p className="text-xs text-muted-foreground">
                   {editingUser?.has_password ? "این کاربر رمز عبور تعیین کرده است" : "این کاربر هنوز رمز عبوری تعیین نکرده و با کد یکبار مصرف وارد می‌شود"}
+                  {" "}برای تغییر رمز عبور این کاربر، رمز جدید را اینجا وارد کنید؛ برای بدون تغییر ماندن آن، خالی بگذارید.
                 </p>
               )}
             </div>
@@ -333,7 +334,7 @@ export function UsersListPage() {
             )}
             {departments && departments.length > 0 && editForm.watch("role") !== "org_admin" && (
               <div className="flex flex-col gap-2">
-                <Label>عضویت در دپارتمان‌های دیگر (اختیاری)</Label>
+                <Label>عضویت در دپارتمان‌های دیگر</Label>
                 <p className="text-xs text-muted-foreground">
                   علاوه بر دپارتمان اصلی بالا، این کاربر می‌تواند در دپارتمان‌های دیگر هم عضو باشد -- با نقشی
                   مستقل در هرکدام. اگر بیش از یکی انتخاب شود، خودِ کاربر می‌تواند بین آن‌ها جابه‌جا شود.

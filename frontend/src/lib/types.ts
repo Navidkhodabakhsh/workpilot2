@@ -70,8 +70,7 @@ export type DepartmentMembership = {
 export type OrgUser = {
   id: string
   organization_id: string | null
-  email: string
-  phone_number: string | null
+  phone_number: string
   full_name: string
   role: UserRole
   is_active: boolean

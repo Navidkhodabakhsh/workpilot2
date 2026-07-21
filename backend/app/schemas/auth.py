@@ -1,6 +1,6 @@
 import uuid
 
-from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.models.enums import OtpPurpose, UserRole
 from app.schemas.user import DepartmentMembershipOut
@@ -9,12 +9,11 @@ from app.schemas.validators import validate_password_strength
 
 class SignupRequest(BaseModel):
     organization_name: str = Field(min_length=2, max_length=200)
-    # Required: every organization must define at least one department at
-    # creation time (see services/auth.py::signup).
-    department_name: str = Field(min_length=2, max_length=200)
+    # Optional: an organization can start undivided and add departments
+    # later from Settings (see services/auth.py::signup).
+    department_name: str | None = Field(default=None, min_length=2, max_length=200)
     full_name: str = Field(min_length=2, max_length=200)
-    email: EmailStr
-    # Required: login is phone-first, so the founding admin needs one too.
+    # Login is phone-first; the founding admin needs a phone number.
     phone_number: str = Field(min_length=8, max_length=32)
     password: str = Field(min_length=8, max_length=128)
 
@@ -25,11 +24,32 @@ class SignupRequest(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    # Deliberately a plain string, not EmailStr: the API still accepts
-    # either an email or a phone number here (the login *page* only exposes
-    # a phone field, but e.g. platform_admin tooling may still use email).
-    identifier: str = Field(min_length=3, max_length=255)
+    phone_number: str = Field(min_length=8, max_length=32)
     password: str
+
+
+class CreateOrganizationRequest(BaseModel):
+    """Lets an already-authenticated account found an additional
+    organization (becoming its org_admin) without creating a new identity --
+    this is what lets one phone number be org_admin of one org and a member
+    of another. Deliberately a separate, authenticated action rather than
+    something public signup detects/merges into, so a public endpoint can
+    never be used to probe whether a phone number already has an account."""
+
+    organization_name: str = Field(min_length=2, max_length=200)
+    department_name: str | None = Field(default=None, min_length=2, max_length=200)
+
+
+class OrganizationMembershipOut(BaseModel):
+    organization_id: uuid.UUID
+    organization_name: str
+    role: UserRole
+
+    model_config = {"from_attributes": True}
+
+
+class SwitchOrganizationRequest(BaseModel):
+    organization_id: uuid.UUID
 
 
 class TokenResponse(BaseModel):
@@ -40,14 +60,7 @@ class TokenResponse(BaseModel):
 class UserOut(BaseModel):
     id: uuid.UUID
     organization_id: uuid.UUID | None
-    # Not EmailStr: this serializes an already-stored value (validated as
-    # EmailStr at write time in SignupRequest/OrgUserCreate), not new
-    # input -- re-validating on every read is unnecessary and, for
-    # reserved-use TLDs like the seed data's .local addresses, actively
-    # wrong (email-validator rejects those as "special-use" even though
-    # they were fine to store).
-    email: str
-    phone_number: str | None
+    phone_number: str
     full_name: str
     role: UserRole
     is_active: bool
@@ -59,13 +72,15 @@ class UserOut(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def _compute_has_password(cls, data):
+    def _flatten_account_fields(cls, data):
         # `data` is the raw ORM User object when built via model_validate(user).
-        # has_password isn't a real column -- attach it as a plain instance
-        # attribute so from_attributes' getattr picks it up like any other
-        # field (same pattern as Task.actual_hours in schemas/task.py).
-        if hasattr(data, "hashed_password"):
-            data.has_password = data.hashed_password is not None
+        # phone_number/has_password aren't real columns on User anymore --
+        # attach them as plain instance attributes so from_attributes'
+        # getattr picks them up like any other field (same pattern as
+        # Task.actual_hours in schemas/task.py).
+        if hasattr(data, "account"):
+            data.phone_number = data.account.phone_number
+            data.has_password = data.account.hashed_password is not None
         return data
 
 

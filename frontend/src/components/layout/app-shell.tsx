@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils"
 import { GlobalSearch } from "@/features/search/components/global-search"
 import { NotificationBell } from "@/features/notifications/components/notification-bell"
 import { DepartmentSelector } from "@/features/departments/components/department-selector"
+import { OrganizationSwitcher } from "@/features/auth/components/organization-switcher"
 import { logoutRequest } from "@/features/auth/api"
 import { useAuthStore } from "@/features/auth/auth-store"
 
@@ -214,6 +215,7 @@ export function AppShell() {
               without it, this group floats wherever the search box happens
               to end instead of reaching the edge. */}
           <div className="ms-auto flex shrink-0 items-center gap-3">
+            <OrganizationSwitcher />
             <DepartmentSelector />
             <NotificationBell />
             <AccountMenu onLogout={handleLogout} />

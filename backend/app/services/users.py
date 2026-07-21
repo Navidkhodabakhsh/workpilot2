@@ -4,6 +4,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.security import hash_password
+from app.models.account import Account
 from app.models.department import Department
 from app.models.department_membership import DepartmentMembership
 from app.models.enums import UserRole
@@ -45,23 +46,31 @@ def create_org_user(db: Session, org_id: uuid.UUID, current_user: User, data: Or
     if current_user.role != UserRole.org_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only an org_admin can add users")
 
-    existing = db.query(User).filter(User.email == data.email).first()
-    if existing is not None:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
-    existing_phone = db.query(User).filter(User.phone_number == data.phone_number).first()
-    if existing_phone is not None:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Phone number already registered")
+    account = db.query(Account).filter(Account.phone_number == data.phone_number).first()
+    if account is not None:
+        already_member = (
+            db.query(User).filter(User.account_id == account.id, User.organization_id == org_id).first()
+        )
+        if already_member is not None:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Phone number already registered")
+        # This phone number already has an identity elsewhere (e.g. it's a
+        # member of a different organization) -- attach this membership to
+        # that existing account instead of creating a second one. Any
+        # `password` submitted here is ignored: the identity's password is
+        # already set, and only that account holder should be able to
+        # change it (via their own login).
+    else:
+        account = Account(phone_number=data.phone_number, hashed_password=hash_password(data.password) if data.password else None)
+        db.add(account)
+        db.flush()
+
     if data.department_id is not None:
         _validate_department(db, org_id, data.department_id)
 
-    # No password means "invited by phone" -- they complete OTP verification
-    # and set their own password on first login (see services/otp.py).
     user = User(
+        account_id=account.id,
         organization_id=org_id,
         department_id=data.department_id,
-        email=data.email,
-        phone_number=data.phone_number,
-        hashed_password=hash_password(data.password) if data.password else None,
         full_name=data.full_name,
         role=data.role,
     )
@@ -91,12 +100,17 @@ def update_org_user(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You cannot deactivate your own account")
 
     if data.phone_number is not None:
+        # This changes the shared login identity, affecting every
+        # organization this account is a member of -- not just this one.
         existing_phone = (
-            db.query(User).filter(User.phone_number == data.phone_number, User.id != target.id).first()
+            db.query(Account).filter(Account.phone_number == data.phone_number, Account.id != target.account_id).first()
         )
         if existing_phone is not None:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Phone number already registered")
-        target.phone_number = data.phone_number
+        target.account.phone_number = data.phone_number
+
+    if data.password is not None:
+        target.account.hashed_password = hash_password(data.password)
 
     if data.department_id is not None:
         _validate_department(db, org_id, data.department_id)

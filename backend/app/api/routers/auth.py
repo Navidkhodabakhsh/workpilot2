@@ -11,12 +11,15 @@ from app.core.security import create_access_token, create_refresh_token, decode_
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.auth import (
+    CreateOrganizationRequest,
     LoginRequest,
+    OrganizationMembershipOut,
     OtpLoginIn,
     OtpRequestIn,
     OtpRequestOut,
     OtpResetPasswordIn,
     SignupRequest,
+    SwitchOrganizationRequest,
     TokenResponse,
     UserOut,
 )
@@ -49,10 +52,10 @@ def signup(data: SignupRequest, db: Session = Depends(get_db)) -> UserOut:
 
 @router.post("/login", response_model=TokenResponse)
 def login(data: LoginRequest, response: Response, db: Session = Depends(get_db)) -> TokenResponse:
-    # Keyed by identifier (not IP): in this deployment all traffic can share
+    # Keyed by phone number (not IP): in this deployment all traffic can share
     # an IP behind a proxy, and the goal is to slow down guessing against one
     # account regardless of where the requests originate.
-    rate_key = f"login_attempts:{data.identifier.lower()}"
+    rate_key = f"login_attempts:{data.phone_number}"
     if not check_and_increment(
         rate_key, settings.login_rate_limit_attempts, settings.login_rate_limit_window_seconds
     ):
@@ -158,10 +161,42 @@ def update_me(
 def change_password(
     data: PasswordChange, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ) -> dict[str, str]:
-    if current_user.hashed_password is None or not verify_password(
-        data.current_password, current_user.hashed_password
-    ):
+    account = current_user.account
+    if account.hashed_password is None or not verify_password(data.current_password, account.hashed_password):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect")
-    current_user.hashed_password = hash_password(data.new_password)
+    account.hashed_password = hash_password(data.new_password)
     db.commit()
     return {"detail": "password changed"}
+
+
+@router.get("/organizations", response_model=list[OrganizationMembershipOut])
+def list_my_organizations(
+    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+) -> list[OrganizationMembershipOut]:
+    memberships = auth_service.list_my_organizations(db, current_user)
+    return [
+        OrganizationMembershipOut(organization_id=m.organization_id, organization_name=m.organization.name, role=m.role)
+        for m in memberships
+        if m.organization_id is not None
+    ]
+
+
+@router.post("/organizations", response_model=UserOut, status_code=201)
+def create_organization(
+    data: CreateOrganizationRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+) -> UserOut:
+    user = auth_service.create_additional_organization(db, current_user, data)
+    return UserOut.model_validate(user)
+
+
+@router.post("/switch-organization", response_model=TokenResponse)
+def switch_organization(
+    data: SwitchOrganizationRequest,
+    response: Response,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> TokenResponse:
+    user = auth_service.switch_organization(db, current_user, data.organization_id)
+    token = auth_service.issue_access_token(user)
+    _set_refresh_cookie(response, user.id)
+    return TokenResponse(access_token=token)

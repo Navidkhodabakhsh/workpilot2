@@ -33,10 +33,7 @@ def search(db: Session, org_id: uuid.UUID, current_user: User, query: str) -> di
     )
     users = (
         db.query(User)
-        .filter(
-            User.organization_id == org_id,
-            (User.full_name.ilike(like) | User.email.ilike(like)),
-        )
+        .filter(User.organization_id == org_id, User.full_name.ilike(like))
         .order_by(User.full_name)
         .limit(RESULT_LIMIT)
         .all()

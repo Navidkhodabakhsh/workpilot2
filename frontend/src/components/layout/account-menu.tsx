@@ -1,15 +1,73 @@
 import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { useQuery } from "@tanstack/react-query"
-import { ChevronDown, KeyRound, LogOut, UserRound } from "lucide-react"
+import { useMutation, useQuery } from "@tanstack/react-query"
+import { Building2, ChevronDown, KeyRound, LogOut, UserRound } from "lucide-react"
 
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { getMyOrganization } from "@/features/settings/api"
+import { createOrganization, switchOrganization } from "@/features/auth/api"
 import { useAuthStore } from "@/features/auth/auth-store"
 import { ROLE_LABEL } from "@/lib/role-labels"
+
+function CreateOrganizationDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  const [name, setName] = useState("")
+  const [error, setError] = useState<string | null>(null)
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      const user = await createOrganization({ organization_name: name })
+      if (user.organization_id) await switchOrganization(user.organization_id)
+    },
+    onSuccess: () => window.location.assign("/"),
+    onError: () => setError("خطایی رخ داد؛ دوباره تلاش کنید"),
+  })
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        onOpenChange(next)
+        if (next) {
+          setName("")
+          setError(null)
+        }
+      }}
+    >
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>سازمان جدید</DialogTitle>
+          <DialogDescription>
+            یک سازمان تازه با همین شماره موبایل بسازید — عضویت‌های فعلی شما دست‌نخورده می‌ماند.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="new-org-name" required>نام سازمان</Label>
+            <Input id="new-org-name" value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          {error && <p className="text-sm text-danger">{error}</p>}
+          <Button disabled={name.trim().length < 2 || mutation.isPending} onClick={() => mutation.mutate()}>
+            {mutation.isPending ? "در حال ساخت..." : "ساخت و ورود به سازمان جدید"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
 
 export function AccountMenu({ onLogout }: { onLogout: () => void }) {
   const user = useAuthStore((s) => s.user)
   const [open, setOpen] = useState(false)
+  const [createOrgOpen, setCreateOrgOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
 
@@ -85,6 +143,17 @@ export function AccountMenu({ onLogout }: { onLogout: () => void }) {
           </button>
           <button
             type="button"
+            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-start text-sm hover:bg-muted"
+            onClick={() => {
+              setOpen(false)
+              setCreateOrgOpen(true)
+            }}
+          >
+            <Building2 className="size-4" aria-hidden="true" />
+            ساخت سازمان جدید
+          </button>
+          <button
+            type="button"
             className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-start text-sm text-danger hover:bg-danger/10"
             onClick={() => {
               setOpen(false)
@@ -96,6 +165,7 @@ export function AccountMenu({ onLogout }: { onLogout: () => void }) {
           </button>
         </div>
       )}
+      <CreateOrganizationDialog open={createOrgOpen} onOpenChange={setCreateOrgOpen} />
     </div>
   )
 }

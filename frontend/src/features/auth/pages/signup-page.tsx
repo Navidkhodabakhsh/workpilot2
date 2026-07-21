@@ -15,9 +15,8 @@ import { PASSWORD_HINT, PHONE_HINT, passwordSchema, phoneSchema } from "@/featur
 
 const schema = z.object({
   organization_name: z.string().min(2, "نام سازمان را وارد کنید"),
-  department_name: z.string().min(2, "نام دپارتمان را وارد کنید"),
+  department_name: z.string().optional(),
   full_name: z.string().min(2, "نام و نام خانوادگی را وارد کنید"),
-  email: z.string().email("ایمیل معتبر وارد کنید"),
   phone_number: phoneSchema,
   password: passwordSchema,
 })
@@ -35,7 +34,6 @@ export function SignupPage() {
       organization_name: "",
       department_name: "",
       full_name: "",
-      email: "",
       phone_number: "",
       password: "",
     },
@@ -44,17 +42,15 @@ export function SignupPage() {
   async function onSubmit(values: FormValues) {
     setServerError(null)
     try {
-      await signup(values)
-      const { access_token } = await login({ identifier: values.email, password: values.password })
+      await signup({ ...values, department_name: values.department_name || undefined })
+      const { access_token } = await login({ phone_number: values.phone_number, password: values.password })
       useAuthStore.setState({ accessToken: access_token })
       const user = await fetchMe()
       setSession(access_token, user)
       navigate("/", { replace: true })
     } catch (err: any) {
       if (err?.response?.status === 409) {
-        setServerError(
-          err?.response?.data?.detail?.includes("Phone") ? "این شماره موبایل قبلاً ثبت شده است" : "این ایمیل قبلاً ثبت شده است"
-        )
+        setServerError("این شماره موبایل قبلاً ثبت شده است")
       } else {
         setServerError("خطایی رخ داد؛ دوباره تلاش کنید")
       }
@@ -71,7 +67,7 @@ export function SignupPage() {
         <CardContent>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="organization_name">نام سازمان</Label>
+              <Label htmlFor="organization_name" required>نام سازمان</Label>
               <Input id="organization_name" {...form.register("organization_name")} />
               {form.formState.errors.organization_name && (
                 <p className="text-sm text-danger">{form.formState.errors.organization_name.message}</p>
@@ -79,31 +75,20 @@ export function SignupPage() {
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="department_name">نام دپارتمان</Label>
-              <Input id="department_name" placeholder="مثلاً: عمومی" {...form.register("department_name")} />
-              {form.formState.errors.department_name ? (
-                <p className="text-sm text-danger">{form.formState.errors.department_name.message}</p>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  هر سازمان باید حداقل یک دپارتمان داشته باشد؛ بعداً می‌توانید دپارتمان‌های بیشتری اضافه کنید.
-                </p>
-              )}
+              <Input id="department_name" placeholder="مثلاً: عمومی (اختیاری)" {...form.register("department_name")} />
+              <p className="text-xs text-muted-foreground">
+                اختیاری — می‌توانید سازمان را بدون دپارتمان شروع کنید و بعداً از تنظیمات دپارتمان‌بندی کنید.
+              </p>
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="full_name">نام و نام خانوادگی</Label>
+              <Label htmlFor="full_name" required>نام و نام خانوادگی</Label>
               <Input id="full_name" {...form.register("full_name")} />
               {form.formState.errors.full_name && (
                 <p className="text-sm text-danger">{form.formState.errors.full_name.message}</p>
               )}
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="email">ایمیل</Label>
-              <Input id="email" type="email" autoComplete="email" {...form.register("email")} />
-              {form.formState.errors.email && (
-                <p className="text-sm text-danger">{form.formState.errors.email.message}</p>
-              )}
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="phone_number">شماره موبایل</Label>
+              <Label htmlFor="phone_number" required>شماره موبایل</Label>
               <Input
                 id="phone_number"
                 type="tel"
@@ -119,7 +104,7 @@ export function SignupPage() {
               )}
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="password">رمز عبور</Label>
+              <Label htmlFor="password" required>رمز عبور</Label>
               <Input id="password" type="password" autoComplete="new-password" {...form.register("password")} />
               {form.formState.errors.password ? (
                 <p className="text-sm text-danger">{form.formState.errors.password.message}</p>

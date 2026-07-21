@@ -23,7 +23,6 @@ class SearchUserHit(BaseModel):
 
     id: uuid.UUID
     full_name: str
-    email: str
 
 
 class SearchResults(BaseModel):

@@ -14,13 +14,12 @@ def _request_otp(client, phone_number: str, purpose: str = "login") -> str:
     return code
 
 
-def _invite_phone_only_user(client, admin_token, unique_email, unique_phone, prefix: str = "invitee") -> str:
+def _invite_phone_only_user(client, admin_token, unique_phone, prefix: str = "invitee") -> str:
     phone = unique_phone()
     resp = client.post(
         "/api/v1/users",
         json={
             "full_name": f"{prefix.title()} User",
-            "email": unique_email(prefix),
             "phone_number": phone,
         },
         headers=auth_headers(admin_token),
@@ -35,9 +34,9 @@ def test_otp_request_for_unknown_phone_is_not_found(client):
     assert resp.status_code == 404
 
 
-def test_first_login_with_no_password_requires_new_password(client, signup_org_admin, unique_email, unique_phone):
+def test_first_login_with_no_password_requires_new_password(client, signup_org_admin, unique_phone):
     admin_token, _ = signup_org_admin()
-    phone = _invite_phone_only_user(client, admin_token, unique_email, unique_phone)
+    phone = _invite_phone_only_user(client, admin_token, unique_phone)
 
     code = _request_otp(client, phone)
     resp = client.post("/api/v1/auth/otp/login", json={"phone_number": phone, "code": code})
@@ -45,9 +44,9 @@ def test_first_login_with_no_password_requires_new_password(client, signup_org_a
     assert resp.json()["detail"] == "password_setup_required"
 
 
-def test_first_login_with_new_password_sets_it_and_logs_in(client, signup_org_admin, unique_email, unique_phone):
+def test_first_login_with_new_password_sets_it_and_logs_in(client, signup_org_admin, unique_phone):
     admin_token, _ = signup_org_admin()
-    phone = _invite_phone_only_user(client, admin_token, unique_email, unique_phone)
+    phone = _invite_phone_only_user(client, admin_token, unique_phone)
 
     code = _request_otp(client, phone)
     resp = client.post(
@@ -57,11 +56,11 @@ def test_first_login_with_new_password_sets_it_and_logs_in(client, signup_org_ad
     assert "access_token" in resp.json()
 
     # the password just set now works through the regular password login too
-    login_resp = client.post("/api/v1/auth/login", json={"identifier": phone, "password": PASSWORD})
+    login_resp = client.post("/api/v1/auth/login", json={"phone_number": phone, "password": PASSWORD})
     assert login_resp.status_code == 200
 
 
-def test_otp_login_without_new_password_works_when_password_already_set(client, unique_email, unique_phone):
+def test_otp_login_without_new_password_works_when_password_already_set(client, unique_phone):
     phone = unique_phone()
     client.post(
         "/api/v1/auth/signup",
@@ -69,7 +68,6 @@ def test_otp_login_without_new_password_works_when_password_already_set(client, 
             "organization_name": "Org",
             "department_name": "General",
             "full_name": "Admin A",
-            "email": unique_email("otpexisting"),
             "phone_number": phone,
             "password": PASSWORD,
         },
@@ -81,7 +79,7 @@ def test_otp_login_without_new_password_works_when_password_already_set(client, 
     assert "access_token" in resp.json()
 
 
-def test_wrong_otp_code_is_unauthorized(client, unique_email, unique_phone):
+def test_wrong_otp_code_is_unauthorized(client, unique_phone):
     phone = unique_phone()
     client.post(
         "/api/v1/auth/signup",
@@ -89,7 +87,6 @@ def test_wrong_otp_code_is_unauthorized(client, unique_email, unique_phone):
             "organization_name": "Org",
             "department_name": "General",
             "full_name": "Admin A",
-            "email": unique_email("otpwrong"),
             "phone_number": phone,
             "password": PASSWORD,
         },
@@ -99,7 +96,7 @@ def test_wrong_otp_code_is_unauthorized(client, unique_email, unique_phone):
     assert resp.status_code == 401
 
 
-def test_otp_code_cannot_be_reused(client, unique_email, unique_phone):
+def test_otp_code_cannot_be_reused(client, unique_phone):
     phone = unique_phone()
     client.post(
         "/api/v1/auth/signup",
@@ -107,7 +104,6 @@ def test_otp_code_cannot_be_reused(client, unique_email, unique_phone):
             "organization_name": "Org",
             "department_name": "General",
             "full_name": "Admin A",
-            "email": unique_email("otpreuse"),
             "phone_number": phone,
             "password": PASSWORD,
         },
@@ -119,7 +115,7 @@ def test_otp_code_cannot_be_reused(client, unique_email, unique_phone):
     assert second.status_code == 401
 
 
-def test_expired_otp_code_is_rejected(client, db_session, unique_email, unique_phone):
+def test_expired_otp_code_is_rejected(client, db_session, unique_phone):
     phone = unique_phone()
     client.post(
         "/api/v1/auth/signup",
@@ -127,7 +123,6 @@ def test_expired_otp_code_is_rejected(client, db_session, unique_email, unique_p
             "organization_name": "Org",
             "department_name": "General",
             "full_name": "Admin A",
-            "email": unique_email("otpexpired"),
             "phone_number": phone,
             "password": PASSWORD,
         },
@@ -142,7 +137,7 @@ def test_expired_otp_code_is_rejected(client, db_session, unique_email, unique_p
     assert resp.status_code == 401
 
 
-def test_otp_verify_locks_out_after_max_attempts(client, db_session, unique_email, unique_phone):
+def test_otp_verify_locks_out_after_max_attempts(client, db_session, unique_phone):
     """Exercises services.otp.verify_otp directly: the router's own login
     rate limiter (also keyed at 5 attempts) would otherwise mask this
     OTP-specific attempt-count exhaustion if driven through the API."""
@@ -153,7 +148,6 @@ def test_otp_verify_locks_out_after_max_attempts(client, db_session, unique_emai
             "organization_name": "Org",
             "department_name": "General",
             "full_name": "Admin A",
-            "email": unique_email("otplockout"),
             "phone_number": phone,
             "password": PASSWORD,
         },
@@ -168,7 +162,7 @@ def test_otp_verify_locks_out_after_max_attempts(client, db_session, unique_emai
     assert verify_otp(db_session, phone, code, OtpPurpose.login) is False
 
 
-def test_otp_request_rate_limiting_blocks_after_three_requests(client, unique_email, unique_phone):
+def test_otp_request_rate_limiting_blocks_after_three_requests(client, unique_phone):
     phone = unique_phone()
     client.post(
         "/api/v1/auth/signup",
@@ -176,7 +170,6 @@ def test_otp_request_rate_limiting_blocks_after_three_requests(client, unique_em
             "organization_name": "Org",
             "department_name": "General",
             "full_name": "Admin A",
-            "email": unique_email("otprate"),
             "phone_number": phone,
             "password": PASSWORD,
         },
@@ -190,7 +183,7 @@ def test_otp_request_rate_limiting_blocks_after_three_requests(client, unique_em
     assert statuses[3] == 429
 
 
-def test_password_reset_flow_changes_password(client, unique_email, unique_phone):
+def test_password_reset_flow_changes_password(client, unique_phone):
     phone = unique_phone()
     client.post(
         "/api/v1/auth/signup",
@@ -198,7 +191,6 @@ def test_password_reset_flow_changes_password(client, unique_email, unique_phone
             "organization_name": "Org",
             "department_name": "General",
             "full_name": "Admin A",
-            "email": unique_email("otpresetpw"),
             "phone_number": phone,
             "password": PASSWORD,
         },
@@ -213,14 +205,14 @@ def test_password_reset_flow_changes_password(client, unique_email, unique_phone
     assert resp.status_code == 200, resp.text
     assert "access_token" in resp.json()
 
-    old_login = client.post("/api/v1/auth/login", json={"identifier": phone, "password": PASSWORD})
+    old_login = client.post("/api/v1/auth/login", json={"phone_number": phone, "password": PASSWORD})
     assert old_login.status_code == 401
 
-    new_login = client.post("/api/v1/auth/login", json={"identifier": phone, "password": new_password})
+    new_login = client.post("/api/v1/auth/login", json={"phone_number": phone, "password": new_password})
     assert new_login.status_code == 200
 
 
-def test_password_reset_code_cannot_be_used_for_login(client, unique_email, unique_phone):
+def test_password_reset_code_cannot_be_used_for_login(client, unique_phone):
     """A password_reset-purpose code and a login-purpose code are tracked
     separately, so one can't be replayed against the other endpoint."""
     phone = unique_phone()
@@ -230,7 +222,6 @@ def test_password_reset_code_cannot_be_used_for_login(client, unique_email, uniq
             "organization_name": "Org",
             "department_name": "General",
             "full_name": "Admin A",
-            "email": unique_email("otppurpose"),
             "phone_number": phone,
             "password": PASSWORD,
         },

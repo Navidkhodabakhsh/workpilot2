@@ -5,7 +5,7 @@ import type { DepartmentMembership } from "@/lib/types"
 export type CurrentUser = {
   id: string
   organization_id: string | null
-  email: string
+  phone_number: string
   full_name: string
   role: "platform_admin" | "org_admin" | "project_manager" | "employee"
   is_active: boolean

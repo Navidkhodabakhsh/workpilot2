@@ -80,14 +80,6 @@ def client(db_session):
 
 
 @pytest.fixture
-def unique_email():
-    def _make(prefix: str = "user") -> str:
-        return f"{prefix}-{uuid.uuid4().hex[:10]}@example.com"
-
-    return _make
-
-
-@pytest.fixture
 def unique_phone():
     def _make() -> str:
         return f"09{uuid.uuid4().int % 10**9:09d}"
@@ -99,24 +91,24 @@ PASSWORD = "SuperSecret123"
 
 
 @pytest.fixture
-def signup_org_admin(client, unique_email, unique_phone):
+def signup_org_admin(client, unique_phone):
     """Signs up a fresh organization and returns (access_token, user_dict)."""
 
     def _signup(org_name: str = "Test Org"):
-        email = unique_email("admin")
         resp = client.post(
             "/api/v1/auth/signup",
             json={
                 "organization_name": org_name,
                 "department_name": "General",
                 "full_name": "Admin User",
-                "email": email,
                 "phone_number": unique_phone(),
                 "password": PASSWORD,
             },
         )
         assert resp.status_code == 201, resp.text
-        login_resp = client.post("/api/v1/auth/login", json={"identifier": email, "password": PASSWORD})
+        login_resp = client.post(
+            "/api/v1/auth/login", json={"phone_number": resp.json()["phone_number"], "password": PASSWORD}
+        )
         assert login_resp.status_code == 200, login_resp.text
         token = login_resp.json()["access_token"]
         return token, resp.json()
@@ -125,24 +117,23 @@ def signup_org_admin(client, unique_email, unique_phone):
 
 
 @pytest.fixture
-def create_org_user(client, unique_email, unique_phone):
+def create_org_user(client, unique_phone):
     """Creates a user with a given role inside an existing org (as its admin) and logs them in."""
 
     def _create(admin_token: str, role: str, prefix: str = "user"):
-        email = unique_email(prefix)
+        phone = unique_phone()
         resp = client.post(
             "/api/v1/users",
             json={
                 "full_name": f"{prefix.title()} User",
-                "email": email,
-                "phone_number": unique_phone(),
+                "phone_number": phone,
                 "password": PASSWORD,
                 "role": role,
             },
             headers={"Authorization": f"Bearer {admin_token}"},
         )
         assert resp.status_code == 201, resp.text
-        login_resp = client.post("/api/v1/auth/login", json={"identifier": email, "password": PASSWORD})
+        login_resp = client.post("/api/v1/auth/login", json={"phone_number": phone, "password": PASSWORD})
         token = login_resp.json()["access_token"]
         return token, resp.json()
 

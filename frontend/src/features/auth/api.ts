@@ -1,15 +1,16 @@
 import { apiClient } from "@/lib/api-client"
 import type { CurrentUser } from "@/features/auth/auth-store"
 
-export type LoginPayload = { identifier: string; password: string }
+export type LoginPayload = { phone_number: string; password: string }
 export type SignupPayload = {
   organization_name: string
-  department_name: string
+  department_name?: string
   full_name: string
-  email: string
   phone_number: string
   password: string
 }
+export type CreateOrganizationPayload = { organization_name: string; department_name?: string }
+export type OrganizationMembership = { organization_id: string; organization_name: string; role: string }
 
 export type OtpPurpose = "login" | "password_reset"
 export type OtpRequestPayload = { phone_number: string; purpose: OtpPurpose }
@@ -51,4 +52,21 @@ export async function fetchMe() {
 
 export async function logoutRequest() {
   await apiClient.post("/api/v1/auth/logout")
+}
+
+export async function listMyOrganizations() {
+  const { data } = await apiClient.get<OrganizationMembership[]>("/api/v1/auth/organizations")
+  return data
+}
+
+export async function createOrganization(payload: CreateOrganizationPayload) {
+  const { data } = await apiClient.post<CurrentUser>("/api/v1/auth/organizations", payload)
+  return data
+}
+
+export async function switchOrganization(organizationId: string) {
+  const { data } = await apiClient.post<TokenResponse>("/api/v1/auth/switch-organization", {
+    organization_id: organizationId,
+  })
+  return data
 }

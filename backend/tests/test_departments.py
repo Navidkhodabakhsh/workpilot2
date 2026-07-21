@@ -1,16 +1,15 @@
 from tests.conftest import PASSWORD, auth_headers
 
 
-def test_signup_creates_the_required_department(client, unique_email, unique_phone):
-    email = unique_email("dept")
+def test_signup_creates_the_named_department(client, unique_phone):
+    phone = unique_phone()
     resp = client.post(
         "/api/v1/auth/signup",
         json={
             "organization_name": "Dept Org",
             "department_name": "حسابداری",
             "full_name": "Admin",
-            "email": email,
-            "phone_number": unique_phone(),
+            "phone_number": phone,
             "password": PASSWORD,
         },
     )
@@ -18,7 +17,7 @@ def test_signup_creates_the_required_department(client, unique_email, unique_pho
     user = resp.json()
     assert user["department_id"] is not None
 
-    login_resp = client.post("/api/v1/auth/login", json={"identifier": email, "password": PASSWORD})
+    login_resp = client.post("/api/v1/auth/login", json={"phone_number": phone, "password": PASSWORD})
     token = login_resp.json()["access_token"]
 
     resp = client.get("/api/v1/departments", headers=auth_headers(token))
@@ -29,18 +28,24 @@ def test_signup_creates_the_required_department(client, unique_email, unique_pho
     assert departments[0]["id"] == user["department_id"]
 
 
-def test_signup_without_department_name_is_rejected(client, unique_email, unique_phone):
+def test_signup_without_department_name_creates_no_departments(client, unique_phone):
+    phone = unique_phone()
     resp = client.post(
         "/api/v1/auth/signup",
         json={
             "organization_name": "No Dept Org",
             "full_name": "Admin",
-            "email": unique_email(),
-            "phone_number": unique_phone(),
+            "phone_number": phone,
             "password": PASSWORD,
         },
     )
-    assert resp.status_code == 422
+    assert resp.status_code == 201
+    assert resp.json()["department_id"] is None
+
+    token = client.post("/api/v1/auth/login", json={"phone_number": phone, "password": PASSWORD}).json()["access_token"]
+    resp = client.get("/api/v1/departments", headers=auth_headers(token))
+    assert resp.status_code == 200
+    assert resp.json() == []
 
 
 def test_org_admin_can_add_a_second_department(client, signup_org_admin, create_org_user):

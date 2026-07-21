@@ -18,7 +18,7 @@ def test_change_password_requires_correct_current_password(client, signup_org_ad
     assert resp.status_code == 400
 
 
-def test_change_password_succeeds_and_new_password_works(client, signup_org_admin, unique_email):
+def test_change_password_succeeds_and_new_password_works(client, signup_org_admin):
     token, user = signup_org_admin()
     resp = client.post(
         "/api/v1/auth/me/change-password",
@@ -28,7 +28,7 @@ def test_change_password_succeeds_and_new_password_works(client, signup_org_admi
     assert resp.status_code == 200
 
     login_resp = client.post(
-        "/api/v1/auth/login", json={"identifier": user["email"], "password": "BrandNewPass123"}
+        "/api/v1/auth/login", json={"phone_number": user["phone_number"], "password": "BrandNewPass123"}
     )
     assert login_resp.status_code == 200
 

@@ -1,6 +1,6 @@
 import uuid
 
-from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.models.enums import UserRole
 from app.schemas.validators import validate_password_strength
@@ -8,10 +8,13 @@ from app.schemas.validators import validate_password_strength
 
 class OrgUserCreate(BaseModel):
     full_name: str = Field(min_length=2, max_length=200)
-    email: EmailStr
     # Required: login is phone-first, so every new user needs one to ever
-    # sign in. Password is optional -- omit it to invite the person by
-    # phone only; they set their own password on first OTP login.
+    # sign in. If this phone number already has an account (e.g. they're a
+    # member of another organization), it's silently reused as their
+    # identity here and `password` below is ignored -- see
+    # services/users.py::create_org_user. Password is otherwise optional --
+    # omit it to invite the person by phone only; they set their own
+    # password on first OTP login.
     phone_number: str = Field(min_length=8, max_length=32)
     password: str | None = Field(default=None, min_length=8, max_length=128)
     role: UserRole = UserRole.employee
@@ -35,6 +38,11 @@ class UserUpdate(BaseModel):
     is_active: bool | None = None
     phone_number: str | None = Field(default=None, min_length=8, max_length=32)
     department_id: uuid.UUID | None = None
+    # Sets a new password for this user directly (an org_admin action) --
+    # distinct from the self-service change-password flow, which requires
+    # the current password. Changes the shared Account, so it affects login
+    # for every organization this person belongs to.
+    password: str | None = Field(default=None, min_length=8, max_length=128)
 
     @field_validator("role")
     @classmethod
@@ -42,6 +50,11 @@ class UserUpdate(BaseModel):
         if value == UserRole.platform_admin:
             raise ValueError("platform_admin cannot be assigned within an organization")
         return value
+
+    @field_validator("password")
+    @classmethod
+    def _password_strength(cls, value: str | None) -> str | None:
+        return validate_password_strength(value) if value is not None else None
 
 
 class DepartmentMembershipIn(BaseModel):

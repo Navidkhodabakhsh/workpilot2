@@ -4,7 +4,7 @@ import { useAuthStore, type CurrentUser } from "./auth-store"
 const user: CurrentUser = {
   id: "u1",
   organization_id: "org1",
-  email: "admin@example.com",
+  phone_number: "09120000001",
   full_name: "Admin User",
   role: "org_admin",
   is_active: true,

@@ -1,6 +1,7 @@
 """Import all models here so SQLAlchemy's mapper configuration and Alembic's
 autogenerate can discover them via a single entrypoint."""
 
+from app.models.account import Account
 from app.models.audit_log import AuditLog
 from app.models.calendar_event import CalendarEvent
 from app.models.collaboration import Attachment, Comment
@@ -20,6 +21,7 @@ from app.models.user import User
 from app.models.worklog import WorkLog
 
 __all__ = [
+    "Account",
     "AuditLog",
     "CalendarEvent",
     "Attachment",

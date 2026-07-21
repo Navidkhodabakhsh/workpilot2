@@ -19,7 +19,7 @@ def test_search_finds_projects_tasks_and_users(client, signup_org_admin, create_
     assert any("Marketing" in p["name"] for p in body["projects"])
     assert any("marketing" in t["title"].lower() for t in body["tasks"])
 
-    resp = client.get("/api/v1/search", params={"q": "pm-"}, headers=auth_headers(admin_token))
+    resp = client.get("/api/v1/search", params={"q": "Pm User"}, headers=auth_headers(admin_token))
     assert any(u["id"] == pm["id"] for u in resp.json()["users"])
 
 

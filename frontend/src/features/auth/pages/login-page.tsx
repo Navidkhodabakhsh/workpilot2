@@ -118,7 +118,7 @@ function PasswordLoginForm({ onSuccess }: { onSuccess: (accessToken: string) => 
     setSubmitting(true)
     let accessToken: string
     try {
-      accessToken = (await login({ identifier: phone, password })).access_token
+      accessToken = (await login({ phone_number: phone, password })).access_token
     } catch (err: any) {
       if (err?.response?.status === 429) {
         setServerError(RATE_LIMIT_MESSAGE)
@@ -144,7 +144,7 @@ function PasswordLoginForm({ onSuccess }: { onSuccess: (accessToken: string) => 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
-        <Label htmlFor="phone">شماره موبایل</Label>
+        <Label htmlFor="phone" required>شماره موبایل</Label>
         <Input
           id="phone"
           type="tel"
@@ -156,7 +156,7 @@ function PasswordLoginForm({ onSuccess }: { onSuccess: (accessToken: string) => 
         />
       </div>
       <div className="flex flex-col gap-2">
-        <Label htmlFor="password">رمز عبور</Label>
+        <Label htmlFor="password" required>رمز عبور</Label>
         <Input
           id="password"
           type="password"
@@ -269,7 +269,7 @@ function OtpLoginForm({ onSuccess }: { onSuccess: (accessToken: string) => Promi
     return (
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="otp-phone">شماره موبایل</Label>
+          <Label htmlFor="otp-phone" required>شماره موبایل</Label>
           <Input
             id="otp-phone"
             type="tel"
@@ -315,7 +315,7 @@ function OtpLoginForm({ onSuccess }: { onSuccess: (accessToken: string) => Promi
         </p>
       )}
       <div className="flex flex-col gap-2">
-        <Label htmlFor="otp-code">کد ۶ رقمی</Label>
+        <Label htmlFor="otp-code" required>کد ۶ رقمی</Label>
         <Input
           id="otp-code"
           inputMode="numeric"

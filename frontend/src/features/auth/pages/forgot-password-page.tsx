@@ -108,7 +108,7 @@ export function ForgotPasswordPage() {
           {step === "phone" ? (
             <form onSubmit={onRequestCode} className="flex flex-col gap-4">
               <div className="flex flex-col gap-2">
-                <Label htmlFor="fp-phone">شماره موبایل</Label>
+                <Label htmlFor="fp-phone" required>شماره موبایل</Label>
                 <Input
                   id="fp-phone"
                   type="tel"
@@ -154,7 +154,7 @@ export function ForgotPasswordPage() {
                 </p>
               )}
               <div className="flex flex-col gap-2">
-                <Label htmlFor="fp-code">کد ۶ رقمی</Label>
+                <Label htmlFor="fp-code" required>کد ۶ رقمی</Label>
                 <Input
                   id="fp-code"
                   inputMode="numeric"
@@ -165,7 +165,7 @@ export function ForgotPasswordPage() {
                 />
               </div>
               <div className="flex flex-col gap-2">
-                <Label htmlFor="fp-new-password">رمز عبور جدید</Label>
+                <Label htmlFor="fp-new-password" required>رمز عبور جدید</Label>
                 <Input
                   id="fp-new-password"
                   type="password"
@@ -176,7 +176,7 @@ export function ForgotPasswordPage() {
                 <p className="text-xs text-muted-foreground">{PASSWORD_HINT}</p>
               </div>
               <div className="flex flex-col gap-2">
-                <Label htmlFor="fp-confirm-password">تکرار رمز عبور جدید</Label>
+                <Label htmlFor="fp-confirm-password" required>تکرار رمز عبور جدید</Label>
                 <Input
                   id="fp-confirm-password"
                   type="password"

@@ -13,6 +13,7 @@ from datetime import date, datetime, timedelta, timezone
 
 from app.core.security import hash_password
 from app.db.session import SessionLocal
+from app.models.account import Account
 from app.models.calendar_event import CalendarEvent
 from app.models.department import Department
 from app.models.department_membership import DepartmentMembership
@@ -50,7 +51,6 @@ DEPARTMENTS = [
     {
         "name": "مهندسی و فنی",
         "phone_prefix": "0911",
-        "email_prefix": "eng",
         "project_names": [
             "بازطراحی وب‌سایت شرکتی",
             "توسعهٔ اپلیکیشن موبایل فروش",
@@ -79,7 +79,6 @@ DEPARTMENTS = [
     {
         "name": "حسابداری و مالی",
         "phone_prefix": "0912",
-        "email_prefix": "fin",
         "project_names": [
             "بستن حساب‌های مالی سال",
             "پیاده‌سازی سامانهٔ فاکتور الکترونیک",
@@ -108,7 +107,6 @@ DEPARTMENTS = [
     {
         "name": "منابع انسانی",
         "phone_prefix": "0913",
-        "email_prefix": "hr",
         "project_names": [
             "برگزاری دورهٔ آموزشی کارکنان",
             "بازطراحی فرایند جذب و استخدام",
@@ -141,13 +139,18 @@ REMINDER_TITLES = ["یادآوری ارسال گزارش", "یادآوری تم�
 HOLIDAY_TITLES = ["تعطیلی رسمی"]
 
 
+def _make_account(db, phone_number):
+    account = Account(phone_number=phone_number, hashed_password=hash_password(PASSWORD))
+    db.add(account)
+    db.flush()
+    return account
+
+
 def make_users_for_department(db, org, dept, dept_data, index_offset):
-    manager_email = f"{dept_data['email_prefix']}.manager@test.local"
+    manager_account = _make_account(db, f"{dept_data['phone_prefix']}{1000000 + index_offset}")
     manager = User(
+        account_id=manager_account.id,
         organization_id=org.id,
-        email=manager_email,
-        phone_number=f"{dept_data['phone_prefix']}{1000000 + index_offset}",
-        hashed_password=hash_password(PASSWORD),
         full_name=f"مدیر پروژه {dept.name}",
         role=UserRole.project_manager,
         department_id=dept.id,
@@ -158,12 +161,10 @@ def make_users_for_department(db, org, dept, dept_data, index_offset):
 
     employees = []
     for i in range(1, 7):
-        email = f"{dept_data['email_prefix']}.emp{i}@test.local"
+        emp_account = _make_account(db, f"{dept_data['phone_prefix']}{1000010 + index_offset + i}")
         emp = User(
+            account_id=emp_account.id,
             organization_id=org.id,
-            email=email,
-            phone_number=f"{dept_data['phone_prefix']}{1000010 + index_offset + i}",
-            hashed_password=hash_password(PASSWORD),
             full_name=f"کارمند {i} {dept.name}",
             role=UserRole.employee,
             department_id=dept.id,
@@ -187,26 +188,25 @@ def main():
         # Idempotent: safe to run on every startup (e.g. from install.sh),
         # including against a Postgres volume from a previous run that
         # already has this same demo org in it.
-        if db.query(User).filter(User.email == "admin@test.local").first() is not None:
-            print("Demo org already seeded (admin@test.local exists) -- skipping.")
+        if db.query(Account).filter(Account.phone_number == "09100000001").first() is not None:
+            print("Demo org already seeded (09100000001 exists) -- skipping.")
             return
 
         org = Organization(name="شرکت نمونهٔ آزمایشی", slug=f"demo-org-{uuid.uuid4().hex[:8]}")
         db.add(org)
         db.flush()
 
+        admin_account = _make_account(db, "09100000001")
         admin = User(
+            account_id=admin_account.id,
             organization_id=org.id,
-            email="admin@test.local",
-            phone_number="09100000001",
-            hashed_password=hash_password(PASSWORD),
             full_name="مدیر سازمان",
             role=UserRole.org_admin,
         )
         db.add(admin)
         db.flush()
 
-        credentials = [("مدیر سازمان (org_admin)", admin.email, admin.phone_number, PASSWORD)]
+        credentials = [("مدیر سازمان (org_admin)", admin_account.phone_number, PASSWORD)]
         all_dept_records = []  # [(dept, manager, employees), ...] -- used below for cross-department memberships
 
         for dept_idx, dept_data in enumerate(DEPARTMENTS):
@@ -218,9 +218,9 @@ def main():
 
             manager, employees = make_users_for_department(db, org, dept, dept_data, dept_idx * 100)
             all_dept_records.append((dept, manager, employees))
-            credentials.append((f"مدیر پروژهٔ {dept.name}", manager.email, manager.phone_number, PASSWORD))
+            credentials.append((f"مدیر پروژهٔ {dept.name}", manager.account.phone_number, PASSWORD))
             for i, emp in enumerate(employees, start=1):
-                credentials.append((f"کارمند {i} - {dept.name}", emp.email, emp.phone_number, PASSWORD))
+                credentials.append((f"کارمند {i} - {dept.name}", emp.account.phone_number, PASSWORD))
 
             members_pool = [manager] + employees
 
@@ -414,9 +414,9 @@ def main():
         print("=== Seed complete ===")
         print(f"Organization: {org.name} (id={org.id})")
         print()
-        print("=== Credentials (email | phone | password) ===")
-        for label, email, phone, pwd in credentials:
-            print(f"{label}: {email} | {phone} | {pwd}")
+        print("=== Credentials (phone | password) ===")
+        for label, phone, pwd in credentials:
+            print(f"{label}: {phone} | {pwd}")
     finally:
         db.close()
 
