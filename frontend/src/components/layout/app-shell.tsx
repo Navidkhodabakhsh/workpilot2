@@ -84,9 +84,9 @@ export function AppShell() {
             <SidebarNav collapsed={collapsed} />
           </div>
           {/* Scroll affordance without a visible scrollbar track/thumb --
-              just a soft fade at each edge over whatever's currently
-              underneath it. */}
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-6 bg-gradient-to-b from-sidebar to-transparent" aria-hidden="true" />
+              just a soft fade at the bottom edge over whatever's currently
+              underneath it. No fade at the top: it read as a hard seam
+              between the logo header and the nav list right below it. */}
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-sidebar to-transparent" aria-hidden="true" />
         </div>
         <div className="relative flex shrink-0 flex-col gap-1 border-t border-sidebar-border/60 px-3 pt-3 pb-1">
