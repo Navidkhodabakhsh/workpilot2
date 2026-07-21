@@ -8,13 +8,7 @@ import path from 'path'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
-    alias: [
-      {
-        find: '@/features/tasks/components/task-card',
-        replacement: path.resolve(__dirname, './src/features/tasks/components/task-card-compat.tsx'),
-      },
-      { find: '@', replacement: path.resolve(__dirname, './src') },
-    ],
+    alias: [{ find: '@', replacement: path.resolve(__dirname, './src') }],
   },
   server: {
     host: true,

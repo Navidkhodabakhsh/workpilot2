@@ -162,3 +162,27 @@ def test_task_dependency_cycle_is_rejected(client, signup_org_admin, create_org_
 
     resp = client.post(f"/api/v1/tasks/{t1}/dependencies", json={"depends_on_task_id": t1}, headers=auth_headers(pm_token))
     assert resp.status_code == 400
+
+
+def test_newly_created_task_appears_first_in_the_list(client, signup_org_admin):
+    admin_token, _ = signup_org_admin()
+    project_id = client.post("/api/v1/projects", json={"name": "Ordering Project"}, headers=auth_headers(admin_token)).json()["id"]
+
+    first_id = client.post(
+        "/api/v1/tasks", json={"project_id": project_id, "title": "First task"}, headers=auth_headers(admin_token)
+    ).json()["id"]
+    second_id = client.post(
+        "/api/v1/tasks", json={"project_id": project_id, "title": "Second task"}, headers=auth_headers(admin_token)
+    ).json()["id"]
+
+    ids_in_order = [t["id"] for t in client.get("/api/v1/tasks", headers=auth_headers(admin_token)).json()]
+    assert ids_in_order.index(second_id) < ids_in_order.index(first_id)
+
+
+def test_newly_created_project_appears_first_in_the_list(client, signup_org_admin):
+    admin_token, _ = signup_org_admin()
+    first_id = client.post("/api/v1/projects", json={"name": "First project"}, headers=auth_headers(admin_token)).json()["id"]
+    second_id = client.post("/api/v1/projects", json={"name": "Second project"}, headers=auth_headers(admin_token)).json()["id"]
+
+    ids_in_order = [p["id"] for p in client.get("/api/v1/projects", headers=auth_headers(admin_token)).json()]
+    assert ids_in_order.index(second_id) < ids_in_order.index(first_id)

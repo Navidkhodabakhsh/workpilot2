@@ -236,7 +236,6 @@ def main():
                     organization_id=org.id,
                     name=project_name,
                     description=f"پروژهٔ {dept.name} شماره {p_idx + 1}",
-                    cooperation_start_date=project_start,
                     start_date=project_start,
                     end_date=project_end,
                     status=ProjectStatus.active,

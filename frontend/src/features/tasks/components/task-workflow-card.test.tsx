@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react"
 import { beforeEach, describe, expect, it } from "vitest"
 
 import { useAuthStore } from "@/features/auth/auth-store"
-import { TaskCard } from "@/features/tasks/components/task-card"
+import { TaskWorkflowCard } from "@/features/tasks/components/task-workflow-card"
 import type { OrgUser, Task } from "@/lib/types"
 
 const user: OrgUser = {
@@ -42,7 +42,7 @@ const task: Task = {
   created_at: "2026-07-20T00:00:00Z",
 }
 
-describe("legacy task card compatibility", () => {
+describe("TaskWorkflowCard", () => {
   beforeEach(() => {
     useAuthStore.setState({
       accessToken: "token",
@@ -50,11 +50,11 @@ describe("legacy task card compatibility", () => {
     })
   })
 
-  it("uses the active workflow card with editing and time controls", () => {
+  it("renders editing and time-logging controls", () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     render(
       <QueryClientProvider client={queryClient}>
-        <TaskCard task={task} users={[user]} />
+        <TaskWorkflowCard task={task} users={[user]} />
       </QueryClientProvider>,
     )
 

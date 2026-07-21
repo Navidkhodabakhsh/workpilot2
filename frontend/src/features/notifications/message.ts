@@ -29,7 +29,7 @@ export function notificationMessage(notification: Notification): string {
 
 // Where clicking a notification should take the user, if anywhere -- task
 // notifications open that task's detail dialog via a query param the tasks
-// list page reads on mount (see tasks-list-page.tsx).
+// workflow page reads on mount (see tasks-workflow-page.tsx).
 export function notificationTaskId(notification: Notification): string | null {
   const { task_id } = notification.payload
   return typeof task_id === "string" ? task_id : null

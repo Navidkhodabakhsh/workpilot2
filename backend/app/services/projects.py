@@ -73,7 +73,6 @@ def create_project(db: Session, org_id: uuid.UUID, current_user: User, data: Pro
     project = Project(
         name=data.name,
         description=data.description,
-        cooperation_start_date=data.cooperation_start_date,
         start_date=data.start_date,
         end_date=data.end_date,
         manager_id=data.manager_id,
@@ -101,7 +100,7 @@ def create_project(db: Session, org_id: uuid.UUID, current_user: User, data: Pro
 def list_projects(db: Session, org_id: uuid.UUID, current_user: User) -> list[Project]:
     repo = ProjectRepository(db, org_id)
     if current_user.role == UserRole.org_admin:
-        return repo.list(limit=500)
+        return repo.list(limit=500, order_by=Project.created_at.desc())
 
     member_project_ids = (
         db.query(ProjectMember.project_id).filter(ProjectMember.user_id == current_user.id).subquery()
@@ -109,6 +108,7 @@ def list_projects(db: Session, org_id: uuid.UUID, current_user: User) -> list[Pr
     return (
         db.query(Project)
         .filter(Project.organization_id == org_id, Project.id.in_(member_project_ids))
+        .order_by(Project.created_at.desc())
         .all()
     )
 

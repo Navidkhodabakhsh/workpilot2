@@ -32,7 +32,7 @@ import {
 import { createTask, listTasks } from "@/features/tasks/api"
 import { STATUS_COLUMNS } from "@/features/tasks/constants"
 import { listOrgUsers } from "@/features/users/api"
-import { TaskCard } from "@/features/tasks/components/task-card"
+import { TaskWorkflowCard } from "@/features/tasks/components/task-workflow-card"
 import { EmptyState } from "@/components/ui/empty-state"
 import type { TaskStatus } from "@/lib/types"
 import { PendingApprovals } from "@/features/worklogs/components/pending-approvals"
@@ -49,7 +49,6 @@ type FormValues = z.infer<typeof schema>
 const editSchema = z.object({
   name: z.string().min(2, "نام پروژه را وارد کنید"),
   description: z.string().optional(),
-  cooperation_start_date: z.string().optional(),
   start_date: z.string().optional(),
   end_date: z.string().optional(),
   manager_id: z.string().optional(),
@@ -109,7 +108,6 @@ export function ProjectDetailPage() {
     mutationFn: (values: EditFormValues) =>
       updateProject(projectId!, {
         ...values,
-        cooperation_start_date: values.cooperation_start_date || undefined,
         start_date: values.start_date || undefined,
         end_date: values.end_date || undefined,
         manager_id: values.manager_id || undefined,
@@ -135,7 +133,6 @@ export function ProjectDetailPage() {
     editForm.reset({
       name: project.name,
       description: project.description ?? "",
-      cooperation_start_date: project.cooperation_start_date ?? "",
       start_date: project.start_date ?? "",
       end_date: project.end_date ?? "",
       manager_id: project.manager_id ?? "",
@@ -287,16 +284,6 @@ export function ProjectDetailPage() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-2">
-                <Label htmlFor="edit-cooperation-start">تاریخ شروع همکاری</Label>
-                <Controller
-                  control={editForm.control}
-                  name="cooperation_start_date"
-                  render={({ field }) => (
-                    <JalaliDateInput id="edit-cooperation-start" value={field.value ?? ""} onChange={field.onChange} />
-                  )}
-                />
-              </div>
-              <div className="flex flex-col gap-2">
                 <Label htmlFor="edit-start-date">تاریخ شروع پروژه</Label>
                 <Controller
                   control={editForm.control}
@@ -304,14 +291,14 @@ export function ProjectDetailPage() {
                   render={({ field }) => <JalaliDateInput id="edit-start-date" value={field.value ?? ""} onChange={field.onChange} />}
                 />
               </div>
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="edit-end-date">تاریخ پایان</Label>
-              <Controller
-                control={editForm.control}
-                name="end_date"
-                render={({ field }) => <JalaliDateInput id="edit-end-date" value={field.value ?? ""} onChange={field.onChange} />}
-              />
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="edit-end-date">تاریخ پایان</Label>
+                <Controller
+                  control={editForm.control}
+                  name="end_date"
+                  render={({ field }) => <JalaliDateInput id="edit-end-date" value={field.value ?? ""} onChange={field.onChange} />}
+                />
+              </div>
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="edit-status" required>وضعیت</Label>
@@ -451,7 +438,7 @@ export function ProjectDetailPage() {
         return (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {visible.map((task) => (
-              <TaskCard key={task.id} task={task} users={users} />
+              <TaskWorkflowCard key={task.id} task={task} users={users} />
             ))}
           </div>
         )

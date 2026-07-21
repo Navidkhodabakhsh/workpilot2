@@ -32,7 +32,6 @@ import { useAuthStore } from "@/features/auth/auth-store"
 const schema = z.object({
   name: z.string().min(2, "نام پروژه را وارد کنید"),
   description: z.string().optional(),
-  cooperation_start_date: z.string().optional(),
   start_date: z.string().optional(),
   end_date: z.string().optional(),
   manager_id: z.string().optional(),
@@ -70,7 +69,6 @@ export function ProjectsListPage() {
     mutationFn: (values: FormValues) =>
       createProject({
         ...values,
-        cooperation_start_date: values.cooperation_start_date || undefined,
         start_date: values.start_date || undefined,
         end_date: values.end_date || undefined,
         manager_id: values.manager_id || undefined,
@@ -121,25 +119,13 @@ export function ProjectsListPage() {
                   <Label htmlFor="description">توضیحات</Label>
                   <Input id="description" {...form.register("description")} />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="cooperation_start_date">تاریخ شروع همکاری</Label>
-                    <Controller
-                      control={form.control}
-                      name="cooperation_start_date"
-                      render={({ field }) => (
-                        <JalaliDateInput id="cooperation_start_date" value={field.value ?? ""} onChange={field.onChange} />
-                      )}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="start_date">تاریخ شروع پروژه</Label>
-                    <Controller
-                      control={form.control}
-                      name="start_date"
-                      render={({ field }) => <JalaliDateInput id="start_date" value={field.value ?? ""} onChange={field.onChange} />}
-                    />
-                  </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="start_date">تاریخ شروع پروژه</Label>
+                  <Controller
+                    control={form.control}
+                    name="start_date"
+                    render={({ field }) => <JalaliDateInput id="start_date" value={field.value ?? ""} onChange={field.onChange} />}
+                  />
                 </div>
                 {isOrgAdmin && (
                   <div className="flex flex-col gap-2">

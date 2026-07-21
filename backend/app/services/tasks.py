@@ -241,7 +241,7 @@ def list_tasks(
             Task.status.notin_([TaskStatus.completed, TaskStatus.archived]),
         )
 
-    tasks = query.all()
+    tasks = query.order_by(Task.created_at.desc()).all()
     return _attach_computed_fields(db, org_id, tasks)
 
 

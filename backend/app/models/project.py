@@ -17,10 +17,6 @@ class Project(UUIDPKMixin, TimestampMixin, Base):
     )
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    # "Cooperation start" (when the client/engagement began) is distinct from
-    # `start_date` (when work on the project itself began) -- both requested
-    # separately by the org owner.
-    cooperation_start_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     start_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     status: Mapped[ProjectStatus] = mapped_column(

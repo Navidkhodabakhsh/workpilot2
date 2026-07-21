@@ -14,7 +14,6 @@ export async function getProject(projectId: string) {
 export async function createProject(payload: {
   name: string
   description?: string
-  cooperation_start_date?: string
   start_date?: string
   end_date?: string
   manager_id?: string
@@ -30,7 +29,6 @@ export async function updateProject(
   payload: Partial<{
     name: string
     description: string
-    cooperation_start_date: string
     start_date: string
     end_date: string
     status: string

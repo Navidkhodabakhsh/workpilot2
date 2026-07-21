@@ -9,7 +9,6 @@ from app.models.enums import ProjectStatus
 class ProjectCreate(BaseModel):
     name: str = Field(min_length=2, max_length=200)
     description: str | None = None
-    cooperation_start_date: date | None = None
     start_date: date | None = None
     end_date: date | None = None
     manager_id: uuid.UUID | None = None
@@ -20,7 +19,6 @@ class ProjectCreate(BaseModel):
 class ProjectUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=2, max_length=200)
     description: str | None = None
-    cooperation_start_date: date | None = None
     start_date: date | None = None
     end_date: date | None = None
     status: ProjectStatus | None = None
@@ -33,7 +31,6 @@ class ProjectOut(BaseModel):
     organization_id: uuid.UUID
     name: str
     description: str | None
-    cooperation_start_date: date | None
     start_date: date | None
     end_date: date | None
     status: ProjectStatus

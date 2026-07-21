@@ -11,7 +11,7 @@ from app.models.task import Task
 from app.models.user import User
 from app.models.worklog import WorkLog
 from app.services.dashboard import get_visible_project_ids
-from app.services.projects import assert_can_view_project, get_project
+from app.services.projects import assert_can_manage_project, get_project
 
 
 def query_worklog_report(
@@ -24,9 +24,12 @@ def query_worklog_report(
     date_from: date | None = None,
     date_to: date | None = None,
 ) -> dict:
+    # Manage-level: this is per-member worklog detail (activity text, who
+    # logged it), not a view a plain project member should be able to pull
+    # for the whole project just because they can see it exists.
     if project_id is not None:
         project = get_project(db, org_id, current_user, project_id)
-        assert_can_view_project(db, project, current_user)
+        assert_can_manage_project(db, project, current_user)
         project_ids = [project_id]
     else:
         project_ids = get_visible_project_ids(db, org_id, current_user)
@@ -89,7 +92,7 @@ def query_worklog_trend(
     expose, just aggregated over time instead of a snapshot."""
     if project_id is not None:
         project = get_project(db, org_id, current_user, project_id)
-        assert_can_view_project(db, project, current_user)
+        assert_can_manage_project(db, project, current_user)
         project_ids = [project_id]
     else:
         project_ids = get_visible_project_ids(db, org_id, current_user)

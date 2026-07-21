@@ -72,3 +72,58 @@ def test_approve_and_reject_flow(client, signup_org_admin, create_org_user):
     assert resp.status_code == 200
     assert resp.json()["status"] == "rejected"
     assert resp.json()["review_comment"] == "needs more detail"
+
+
+def test_task_progress_only_moves_once_a_worklog_is_approved(client, signup_org_admin, create_org_user):
+    """A project task's progress must not jump just because someone
+    *submitted* a report claiming that much progress -- only an approved
+    report should move it, and a rejected one must leave it untouched."""
+    admin_token, _ = signup_org_admin()
+    pm_token, _ = create_org_user(admin_token, "project_manager", "pm")
+    emp_token, emp = create_org_user(admin_token, "employee", "emp")
+    _, task_id = _setup_task_for_employee(client, admin_token, pm_token, emp_token, emp)
+
+    def task_progress():
+        return client.get(f"/api/v1/tasks/{task_id}", headers=auth_headers(pm_token)).json()["progress_percent"]
+
+    assert task_progress() == 0
+
+    wl1 = client.post(
+        "/api/v1/worklogs",
+        json={"task_id": task_id, "activity_description": "work", "time_spent_minutes": 30, "progress_percent": 40, "log_date": "2026-07-14"},
+        headers=auth_headers(emp_token),
+    ).json()["id"]
+    # Still just submitted -- progress must not have moved yet.
+    assert task_progress() == 0
+
+    client.post(f"/api/v1/worklogs/{wl1}/approve", headers=auth_headers(pm_token))
+    assert task_progress() == 40
+
+    wl2 = client.post(
+        "/api/v1/worklogs",
+        json={"task_id": task_id, "activity_description": "more work", "time_spent_minutes": 30, "progress_percent": 90, "log_date": "2026-07-15"},
+        headers=auth_headers(emp_token),
+    ).json()["id"]
+    client.post(f"/api/v1/worklogs/{wl2}/reject", json={"review_comment": "not actually done"}, headers=auth_headers(pm_token))
+    # Rejected -- the inflated 90% must never have applied.
+    assert task_progress() == 40
+
+
+def test_employee_cannot_list_worklogs_or_reports_for_a_project(client, signup_org_admin, create_org_user):
+    """Regression guard: bulk worklog/report endpoints are manage-only, same
+    as the approval queue they back -- a plain member must not be able to
+    pull every member's raw entries by calling the endpoint directly."""
+    admin_token, _ = signup_org_admin()
+    pm_token, _ = create_org_user(admin_token, "project_manager", "pm")
+    emp_token, emp = create_org_user(admin_token, "employee", "emp")
+    project_id, _ = _setup_task_for_employee(client, admin_token, pm_token, emp_token, emp)
+
+    resp = client.get("/api/v1/worklogs", params={"project_id": project_id}, headers=auth_headers(emp_token))
+    assert resp.status_code == 403
+
+    resp = client.get("/api/v1/reports/worklogs", params={"project_id": project_id}, headers=auth_headers(emp_token))
+    assert resp.status_code == 403
+
+    # a manager can still reach both
+    assert client.get("/api/v1/worklogs", params={"project_id": project_id}, headers=auth_headers(pm_token)).status_code == 200
+    assert client.get("/api/v1/reports/worklogs", params={"project_id": project_id}, headers=auth_headers(pm_token)).status_code == 200

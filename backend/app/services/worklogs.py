@@ -53,7 +53,11 @@ def create_worklog(db: Session, org_id: uuid.UUID, current_user: User, data: Wor
     db.add(worklog)
     db.flush()
 
-    if data.progress_percent > task.progress_percent:
+    # Progress only moves once hours are actually approved -- a personal
+    # (no-project) task's worklog auto-approves right above, but a project
+    # task's worklog stays `submitted` until a manager reviews it, so its
+    # progress update is deferred to approve_worklog() below instead.
+    if worklog.status == WorkLogStatus.approved and data.progress_percent > task.progress_percent:
         task.progress_percent = data.progress_percent
 
     # Notify whoever created the task (the closest thing we have to "the
@@ -143,8 +147,12 @@ def list_worklogs(
     task_id: uuid.UUID | None = None,
     status_filter: WorkLogStatus | None = None,
 ) -> list[WorkLog]:
+    # Manage-level, not just view-level: this returns every member's raw
+    # worklog entries (including review comments), the same data the
+    # manager-only approval queue is built from -- a plain project member
+    # shouldn't be able to pull it by calling the endpoint directly.
     project = get_project(db, org_id, current_user, project_id)
-    assert_can_view_project(db, project, current_user)
+    assert_can_manage_project(db, project, current_user)
 
     query = (
         db.query(WorkLog)
@@ -158,15 +166,16 @@ def list_worklogs(
     return query.all()
 
 
-def _assert_can_review(db: Session, org_id: uuid.UUID, current_user: User, worklog: WorkLog) -> None:
+def _assert_can_review(db: Session, org_id: uuid.UUID, current_user: User, worklog: WorkLog) -> Task:
     task = get_task(db, org_id, current_user, worklog.task_id)
     project = get_project(db, org_id, current_user, task.project_id)
     assert_can_manage_project(db, project, current_user)
+    return task
 
 
 def approve_worklog(db: Session, org_id: uuid.UUID, current_user: User, worklog_id: uuid.UUID) -> WorkLog:
     worklog = get_worklog(db, org_id, current_user, worklog_id)
-    _assert_can_review(db, org_id, current_user, worklog)
+    task = _assert_can_review(db, org_id, current_user, worklog)
 
     if worklog.status != WorkLogStatus.submitted:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only submitted work logs can be reviewed")
@@ -174,6 +183,8 @@ def approve_worklog(db: Session, org_id: uuid.UUID, current_user: User, worklog_
     worklog.status = WorkLogStatus.approved
     worklog.reviewed_by_id = current_user.id
     worklog.review_comment = None
+    if worklog.progress_percent > task.progress_percent:
+        task.progress_percent = worklog.progress_percent
     db.flush()
 
     log_event(db, org_id, current_user.id, "worklog.approve", "worklog", str(worklog.id))

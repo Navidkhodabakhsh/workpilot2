@@ -33,8 +33,11 @@ class TenantScopedRepository(Generic[ModelType]):
     def get(self, id: uuid.UUID) -> ModelType | None:
         return self._base_query().filter(self.model.id == id).first()
 
-    def list(self, *, limit: int = 50, offset: int = 0) -> list[ModelType]:
-        return self._base_query().offset(offset).limit(limit).all()
+    def list(self, *, limit: int = 50, offset: int = 0, order_by=None) -> list[ModelType]:
+        query = self._base_query()
+        if order_by is not None:
+            query = query.order_by(order_by)
+        return query.offset(offset).limit(limit).all()
 
     def add(self, obj: ModelType) -> ModelType:
         obj.organization_id = self.organization_id

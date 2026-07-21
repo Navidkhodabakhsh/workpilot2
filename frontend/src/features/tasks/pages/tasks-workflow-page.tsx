@@ -108,7 +108,8 @@ export function TasksWorkflowPage() {
   })
   const me = useAuthStore((state) => state.user)
   const selectedDepartmentId = useDepartmentStore((state) => state.selectedDepartmentId)
-  const canReview = me?.role === "org_admin" || me?.role === "project_manager"
+  const isOrgAdmin = me?.role === "org_admin"
+  const canReview = isOrgAdmin || me?.role === "project_manager"
   const [tab, setTab] = useState<Tab>("self_created")
   const [status, setStatus] = useState<"all" | TaskStatus>("all")
   const [search, setSearch] = useState("")
@@ -131,8 +132,11 @@ export function TasksWorkflowPage() {
     .filter((task) => !projectId || task.project_id === projectId)
     .filter((task) => !value || task.value === value)
     .filter((task) => !search.trim() || task.title.toLowerCase().includes(search.trim().toLowerCase()))
-    .filter((task) => !selectedDepartmentId || !task.project_id || projects?.find((project) => project.id === task.project_id)?.department_id === selectedDepartmentId)
-    .sort((a, b) => (a.deadline ?? "9999").localeCompare(b.deadline ?? "9999")), [tasks, tab, me?.id, status, projectId, value, search, selectedDepartmentId, projects])
+    .filter((task) => !selectedDepartmentId || !task.project_id || projects?.find((project) => project.id === task.project_id)?.department_id === selectedDepartmentId),
+    // Newest first, exactly as the API already returns them -- no client
+    // sort here, so a freshly created task shows up at the top instead of
+    // being reshuffled by deadline.
+    [tasks, tab, me?.id, status, projectId, value, search, selectedDepartmentId, projects])
 
   return (
     <div className="flex flex-col gap-5">
@@ -140,7 +144,9 @@ export function TasksWorkflowPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><PageHeader icon={CheckSquare} tone="secondary" title="تسک‌ها" description="وظیفه، ساعت مصرف‌شده و تأیید مدیر در یک مسیر" />{projects && users && <NewTaskDialog projects={projects} users={users} />}</div>
       <div className="grid grid-cols-2 gap-1 rounded-xl border border-border/70 bg-muted/40 p-1 sm:inline-flex sm:w-fit">
         <button className={`rounded-lg px-4 py-2.5 text-sm font-medium ${tab === "self_created" ? "bg-card shadow-sm" : "text-muted-foreground"}`} onClick={() => setTab("self_created")}>ساخته‌شده توسط من</button>
-        <button className={`rounded-lg px-4 py-2.5 text-sm font-medium ${tab === "assigned_to_me" ? "bg-card shadow-sm" : "text-muted-foreground"}`} onClick={() => setTab("assigned_to_me")}>محول‌شده به من</button>
+        {/* An org_admin oversees every task in the organization already, so a
+            personal "assigned to me" view doesn't add anything meaningful. */}
+        {!isOrgAdmin && <button className={`rounded-lg px-4 py-2.5 text-sm font-medium ${tab === "assigned_to_me" ? "bg-card shadow-sm" : "text-muted-foreground"}`} onClick={() => setTab("assigned_to_me")}>محول‌شده به من</button>}
         {canReview && <button className={`col-span-2 rounded-lg px-4 py-2.5 text-sm font-medium ${tab === "pending" ? "bg-warning/15 text-warning" : "text-muted-foreground"}`} onClick={() => setTab("pending")}>در انتظار تأیید من</button>}
       </div>
       {tab !== "pending" && <div className="flex flex-wrap gap-2"><button className={`rounded-full border px-3 py-1 text-xs ${status === "all" ? "border-primary bg-primary/10 text-primary" : "border-border"}`} onClick={() => setStatus("all")}>همه</button>{ACTIVE_STATUS_COLUMNS.map((column) => <button key={column.value} className={`rounded-full border px-3 py-1 text-xs ${status === column.value ? "border-primary bg-primary/10 text-primary" : "border-border"}`} onClick={() => setStatus(column.value)}>{column.label}</button>)}</div>}
