@@ -45,8 +45,18 @@ fi
 # stay reachable from outside this machine -- e.g. a Windows host browsing
 # into this VM -- where "localhost" would otherwise point at Windows
 # itself instead of here. docker-compose.yml reads these via ${VAR:-...}.
-vm_ip=$(ip route get 1.1.1.1 2>/dev/null | awk '{print $7; exit}')
-vm_ip=${vm_ip:-$(hostname -I 2>/dev/null | awk '{print $1}')}
+#
+# Extracted via `grep -oP 'src \K\S+'` (not a fixed field position like
+# `awk '{print $7}'`): the exact field count in `ip route get` output
+# varies (e.g. whether a "via <gateway>" hop is present), so a positional
+# awk pick silently grabs the wrong token on some machines. The fallback
+# also explicitly excludes Docker's own bridge-network ranges (this script
+# just installed Docker above, which creates a 172.17-31.0.0/16 interface)
+# so it can never pick that instead of the VM's real LAN-facing address.
+vm_ip=$(ip route get 1.1.1.1 2>/dev/null | grep -oP 'src \K\S+' | head -1)
+if [ -z "${vm_ip:-}" ]; then
+  vm_ip=$(hostname -I 2>/dev/null | tr ' ' '\n' | grep -vE '^(127\.|172\.(1[7-9]|2[0-9]|3[01])\.)' | head -1)
+fi
 if [ -n "${vm_ip:-}" ]; then
   cat > .env <<ENVEOF
 VITE_API_BASE_URL=http://${vm_ip}:8000
