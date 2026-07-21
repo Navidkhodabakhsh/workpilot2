@@ -152,6 +152,39 @@
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+
+  /* A slim, on-brand scrollbar for the sidebar nav -- a fully hidden
+     scrollbar (no-scrollbar above) gave no visual hint the area was
+     scrollable at all when its content overflows the viewport. */
+  .sidebar-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--sidebar-accent) / 0.45) transparent;
+  }
+  .sidebar-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .sidebar-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .sidebar-scrollbar::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--sidebar-accent) / 0.45);
+    border-radius: 9999px;
+  }
+}
+
+@layer base {
+  /* Amount/quantity fields use a plain text-like numeric input everywhere in
+     this app (often with custom formatting on top) -- the browser's native
+     up/down spin buttons don't fit that and were never actually used. */
+  input[type="number"] {
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
 }
 
 @layer base {

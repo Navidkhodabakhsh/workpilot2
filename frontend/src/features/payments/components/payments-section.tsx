@@ -96,7 +96,7 @@ export function PaymentsSection({ projectId }: { projectId: string }) {
               className="flex flex-col gap-4"
             >
               <div className="flex flex-col gap-2">
-                <Label htmlFor="payment_date">تاریخ</Label>
+                <Label htmlFor="payment_date" required>تاریخ</Label>
                 <Controller
                   control={form.control}
                   name="payment_date"
@@ -107,14 +107,14 @@ export function PaymentsSection({ projectId }: { projectId: string }) {
                 )}
               </div>
               <div className="flex flex-col gap-2">
-                <Label htmlFor="description">شرح</Label>
+                <Label htmlFor="description" required>شرح</Label>
                 <Input id="description" {...form.register("description")} />
                 {form.formState.errors.description && (
                   <p className="text-sm text-danger">{form.formState.errors.description.message}</p>
                 )}
               </div>
               <div className="flex flex-col gap-2">
-                <Label htmlFor="amount">مبلغ (تومان)</Label>
+                <Label htmlFor="amount" required>مبلغ (تومان)</Label>
                 <Input id="amount" type="number" step="0.01" {...form.register("amount")} />
                 {form.formState.errors.amount && (
                   <p className="text-sm text-danger">{form.formState.errors.amount.message}</p>

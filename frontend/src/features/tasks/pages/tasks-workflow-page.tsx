@@ -80,7 +80,7 @@ function NewTaskDialog({ projects, users }: { projects: Project[]; users: OrgUse
           <DialogDescription>وظیفهٔ شخصی یا پروژه‌ای بسازید؛ تخصیص فقط به نقش پایین‌تر ممکن است.</DialogDescription>
         </DialogHeader>
         <form className="flex flex-col gap-4" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
-          <div className="flex flex-col gap-2"><Label htmlFor="new-task-title">عنوان</Label><Input id="new-task-title" {...form.register("title")} />{form.formState.errors.title && <p className="text-sm text-danger">{form.formState.errors.title.message}</p>}</div>
+          <div className="flex flex-col gap-2"><Label htmlFor="new-task-title" required>عنوان</Label><Input id="new-task-title" {...form.register("title")} />{form.formState.errors.title && <p className="text-sm text-danger">{form.formState.errors.title.message}</p>}</div>
           <div className="flex flex-col gap-2"><Label htmlFor="new-task-description">توضیحات</Label><Textarea id="new-task-description" {...form.register("description")} /></div>
           <div className="flex flex-col gap-2"><Label htmlFor="new-task-project">پروژه</Label><Select id="new-task-project" {...form.register("project_id")}><option value="">شخصی (بدون پروژه)</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</Select></div>
           {canAssign && projectId && <div className="flex flex-col gap-2"><Label htmlFor="new-task-assignee">مسئول انجام</Label><Select id="new-task-assignee" {...form.register("assignee_id")}><option value="">خودم</option>{candidates.map((user) => <option key={user.id} value={user.id}>{user.full_name}</option>)}</Select></div>}

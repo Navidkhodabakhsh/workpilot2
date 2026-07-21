@@ -68,7 +68,7 @@ function ProfileSection() {
           className="flex flex-col gap-3 sm:max-w-sm"
         >
           <div className="flex flex-col gap-2">
-            <Label htmlFor="full_name">نام و نام خانوادگی</Label>
+            <Label htmlFor="full_name" required>نام و نام خانوادگی</Label>
             <Input id="full_name" {...form.register("full_name")} />
             {form.formState.errors.full_name && (
               <p className="text-sm text-danger">{form.formState.errors.full_name.message}</p>
@@ -120,21 +120,21 @@ function PasswordSection() {
           className="flex flex-col gap-3 sm:max-w-sm"
         >
           <div className="flex flex-col gap-2">
-            <Label htmlFor="current_password">رمز فعلی</Label>
+            <Label htmlFor="current_password" required>رمز فعلی</Label>
             <Input id="current_password" type="password" {...form.register("current_password")} />
             {form.formState.errors.current_password && (
               <p className="text-sm text-danger">{form.formState.errors.current_password.message}</p>
             )}
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="new_password">رمز جدید</Label>
+            <Label htmlFor="new_password" required>رمز جدید</Label>
             <Input id="new_password" type="password" {...form.register("new_password")} />
             {form.formState.errors.new_password && (
               <p className="text-sm text-danger">{form.formState.errors.new_password.message}</p>
             )}
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="confirm_password">تکرار رمز جدید</Label>
+            <Label htmlFor="confirm_password" required>تکرار رمز جدید</Label>
             <Input id="confirm_password" type="password" {...form.register("confirm_password")} />
             {form.formState.errors.confirm_password && (
               <p className="text-sm text-danger">{form.formState.errors.confirm_password.message}</p>
@@ -184,7 +184,7 @@ function OrganizationSection() {
           className="flex flex-col gap-3 sm:max-w-sm"
         >
           <div className="flex flex-col gap-2">
-            <Label htmlFor="org_name">نام سازمان</Label>
+            <Label htmlFor="org_name" required>نام سازمان</Label>
             <Input id="org_name" {...form.register("name")} />
             {form.formState.errors.name && (
               <p className="text-sm text-danger">{form.formState.errors.name.message}</p>
@@ -235,7 +235,7 @@ function DepartmentsSection() {
           className="flex flex-col gap-3 sm:max-w-sm"
         >
           <div className="flex flex-col gap-2">
-            <Label htmlFor="department_name">افزودن دپارتمان جدید</Label>
+            <Label htmlFor="department_name" required>افزودن دپارتمان جدید</Label>
             <Input id="department_name" placeholder="مثلاً: منابع انسانی" {...form.register("name")} />
             {form.formState.errors.name && (
               <p className="text-sm text-danger">{form.formState.errors.name.message}</p>

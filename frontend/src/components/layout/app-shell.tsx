@@ -82,8 +82,8 @@ export function AppShell() {
             Tadvin
           </span>
         </div>
-        <div className="relative flex-1 overflow-y-auto">
-          <div className="no-scrollbar h-full overflow-y-auto">
+        <div className="relative min-h-0 flex-1 overflow-y-auto">
+          <div className="sidebar-scrollbar h-full overflow-y-auto">
             <SidebarNav collapsed={collapsed} />
           </div>
           {/* Scroll affordance without a visible scrollbar track/thumb --
@@ -92,7 +92,7 @@ export function AppShell() {
           <div className="pointer-events-none absolute inset-x-0 top-0 h-6 bg-gradient-to-b from-sidebar to-transparent" aria-hidden="true" />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-sidebar to-transparent" aria-hidden="true" />
         </div>
-        <div className="relative flex flex-col gap-1 border-t border-sidebar-border/60 px-3 pt-3 pb-1">
+        <div className="relative flex shrink-0 flex-col gap-1 border-t border-sidebar-border/60 px-3 pt-3 pb-1">
           <Button
             variant="ghost"
             className={cn(
@@ -172,10 +172,10 @@ export function AppShell() {
               <X className="size-5" />
             </Button>
           </div>
-          <div className="flex-1 overflow-y-auto">
+          <div className="min-h-0 flex-1 overflow-y-auto">
             <SidebarNav onNavigate={() => setMobileNavOpen(false)} />
           </div>
-          <div className="border-t border-sidebar-border/60 px-3 pt-3">
+          <div className="shrink-0 border-t border-sidebar-border/60 px-3 pt-3">
             <Button
               variant="ghost"
               className="flex h-11 w-full items-center justify-start gap-3 text-sidebar-foreground/80 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground"

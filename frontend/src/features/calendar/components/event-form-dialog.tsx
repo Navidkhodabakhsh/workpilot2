@@ -171,13 +171,13 @@ export function EventFormDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="event-title">عنوان</Label>
+            <Label htmlFor="event-title" required>عنوان</Label>
             <Input id="event-title" value={title} onChange={(e) => setTitle(e.target.value)} />
           </div>
 
           {!isEdit && (
             <div className="flex flex-col gap-2">
-              <Label htmlFor="event-type">نوع رویداد</Label>
+              <Label htmlFor="event-type" required>نوع رویداد</Label>
               <Select id="event-type" value={eventType} onChange={(e) => setEventType(e.target.value as CalendarEventType)}>
                 {availableTypes.map((t) => (
                   <option key={t} value={t}>
@@ -190,7 +190,7 @@ export function EventFormDialog({
 
           {!isEdit && eventType === "meeting" && (
             <div className="flex flex-col gap-2">
-              <Label htmlFor="event-project">پروژه (اختیاری)</Label>
+              <Label htmlFor="event-project">پروژه</Label>
               <Select id="event-project" value={projectId} onChange={(e) => setProjectId(e.target.value)}>
                 <option value="">سراسر سازمان</option>
                 {projects.map((p) => (
@@ -209,21 +209,21 @@ export function EventFormDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="event-start-date">تاریخ شروع</Label>
+              <Label htmlFor="event-start-date" required>تاریخ شروع</Label>
               <JalaliDateInput id="event-start-date" value={startDate} onChange={setStartDate} />
               {!allDay && (
                 <Input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
               )}
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="event-end-date">تاریخ پایان</Label>
+              <Label htmlFor="event-end-date" required>تاریخ پایان</Label>
               <JalaliDateInput id="event-end-date" value={endDate} onChange={setEndDate} />
               {!allDay && <Input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />}
             </div>
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="event-description">توضیحات (اختیاری)</Label>
+            <Label htmlFor="event-description">توضیحات</Label>
             <Textarea id="event-description" value={description} onChange={(e) => setDescription(e.target.value)} />
           </div>
 

@@ -111,14 +111,14 @@ export function ProjectsListPage() {
                 className="flex flex-col gap-4"
               >
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="name">نام پروژه</Label>
+                  <Label htmlFor="name" required>نام پروژه</Label>
                   <Input id="name" {...form.register("name")} />
                   {form.formState.errors.name && (
                     <p className="text-sm text-danger">{form.formState.errors.name.message}</p>
                   )}
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="description">توضیحات (اختیاری)</Label>
+                  <Label htmlFor="description">توضیحات</Label>
                   <Input id="description" {...form.register("description")} />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -143,7 +143,7 @@ export function ProjectsListPage() {
                 </div>
                 {isOrgAdmin && (
                   <div className="flex flex-col gap-2">
-                    <Label htmlFor="manager_id">مدیر پروژه (اختیاری)</Label>
+                    <Label htmlFor="manager_id">مدیر پروژه</Label>
                     <Select id="manager_id" {...form.register("manager_id")}>
                       <option value="">بدون مدیر مشخص</option>
                       {users
@@ -158,7 +158,7 @@ export function ProjectsListPage() {
                 )}
                 {departments && departments.length > 0 && (
                   <div className="flex flex-col gap-2">
-                    <Label htmlFor="department_id">دپارتمان (اختیاری)</Label>
+                    <Label htmlFor="department_id">دپارتمان</Label>
                     <Select id="department_id" {...form.register("department_id")}>
                       <option value="">بدون دپارتمان مشخص</option>
                       {departments.map((d) => (
@@ -171,7 +171,7 @@ export function ProjectsListPage() {
                 )}
                 {users && users.length > 0 && (
                   <div className="flex flex-col gap-2">
-                    <Label>اعضای پروژه (اختیاری)</Label>
+                    <Label>اعضای پروژه</Label>
                     <div className="flex max-h-40 flex-col gap-1.5 overflow-y-auto rounded-md border p-2">
                       {users.map((u) => (
                         <label key={u.id} className="flex items-center gap-2 text-sm">

@@ -27,11 +27,11 @@ export function PageHeader({
   description?: string
 }) {
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex min-w-0 flex-1 items-center gap-3">
       <div className={`flex size-11 shrink-0 items-center justify-center rounded-full ${TONE_CLASS[tone]}`}>
         <Icon className="size-5" aria-hidden="true" />
       </div>
-      <div>
+      <div className="min-w-0">
         <h1 className="text-2xl font-bold">{title}</h1>
         {description && <p className="text-muted-foreground">{description}</p>}
       </div>

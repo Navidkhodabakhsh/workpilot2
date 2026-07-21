@@ -66,7 +66,7 @@ export function SidebarNav({
             onClick={onNavigate}
             aria-label={label}
             className={cn(
-              "flex min-h-11 items-center gap-3 overflow-hidden rounded-lg px-3 py-2 text-sm font-medium transition-[background-color,color,padding] duration-300 ease-in-out",
+              "flex min-h-11 items-center gap-3 overflow-hidden rounded-lg px-3 py-2 text-[0.9375rem] font-medium transition-[background-color,color,padding] duration-300 ease-in-out",
               "text-sidebar-foreground/80 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground",
               "aria-[current=page]:bg-sidebar-accent aria-[current=page]:text-sidebar-accent-foreground aria-[current=page]:hover:bg-sidebar-accent",
               collapsed && "justify-center px-0"

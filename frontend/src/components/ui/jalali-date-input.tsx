@@ -34,6 +34,8 @@ export function JalaliDateInput({
   disabled?: boolean
 }) {
   const [open, setOpen] = useState(false)
+  const [view, setView] = useState<"days" | "months" | "years">("days")
+  const [yearRangeStart, setYearRangeStart] = useState(0)
   const containerRef = useRef<HTMLDivElement>(null)
   const today = new Date()
   const selected = value ? parseIsoDate(value) : null
@@ -59,6 +61,7 @@ export function JalaliDateInput({
 
   function openPicker() {
     setViewJalali(toJalali(selected ?? today))
+    setView("days")
     setOpen(true)
   }
 
@@ -75,8 +78,14 @@ export function JalaliDateInput({
     setViewJalali({ jy, jm, jd: 1 })
   }
 
+  function openYearGrid() {
+    setYearRangeStart(viewJalali.jy - 5)
+    setView("years")
+  }
+
   const grid = getJalaliMonthGrid(viewJalali.jy, viewJalali.jm)
   const selectedIso = value
+  const YEARS_PER_PAGE = 12
 
   return (
     <div className={cn("relative", className)} ref={containerRef}>
@@ -99,87 +108,192 @@ export function JalaliDateInput({
 
       {open && (
         <div className="absolute top-full z-[60] mt-1 w-72 rounded-lg border border-border bg-card p-3 shadow-lg">
-          <div className="mb-2 flex items-center justify-between">
-            <button
-              type="button"
-              onClick={() => changeMonth(-1)}
-              className="rounded-md p-1 text-muted-foreground hover:bg-muted"
-              aria-label="ماه قبل"
-            >
-              <ChevronRight className="size-4" />
-            </button>
-            <span className="text-sm font-medium">
-              {JALALI_MONTH_NAMES[viewJalali.jm - 1]} {toPersianDigits(viewJalali.jy)}
-            </span>
-            <button
-              type="button"
-              onClick={() => changeMonth(1)}
-              className="rounded-md p-1 text-muted-foreground hover:bg-muted"
-              aria-label="ماه بعد"
-            >
-              <ChevronLeft className="size-4" />
-            </button>
-          </div>
-
-          <div className="grid grid-cols-7 gap-1 text-center text-xs text-muted-foreground">
-            {JALALI_WEEKDAY_LABELS.map((w) => (
-              <span key={w} className="py-1">
-                {w}
-              </span>
-            ))}
-          </div>
-          <div className="grid grid-cols-7 gap-1">
-            {grid.map((date) => {
-              const iso = toIsoDateString(date)
-              const cellJalali = toJalali(date)
-              const inCurrentMonth = cellJalali.jm === viewJalali.jm
-              const isSelected = iso === selectedIso
-              const isToday = iso === toIsoDateString(today)
-              return (
+          {view === "days" && (
+            <>
+              <div className="mb-2 flex items-center justify-between">
                 <button
-                  key={iso}
                   type="button"
+                  onClick={() => changeMonth(-1)}
+                  className="rounded-md p-1 text-muted-foreground hover:bg-muted"
+                  aria-label="ماه قبل"
+                >
+                  <ChevronRight className="size-4" />
+                </button>
+                <div className="flex items-center gap-1 text-sm font-medium">
+                  <button
+                    type="button"
+                    onClick={() => setView("months")}
+                    className="rounded-md px-1.5 py-0.5 hover:bg-muted"
+                  >
+                    {JALALI_MONTH_NAMES[viewJalali.jm - 1]}
+                  </button>
+                  <button type="button" onClick={openYearGrid} className="rounded-md px-1.5 py-0.5 hover:bg-muted">
+                    {toPersianDigits(viewJalali.jy)}
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => changeMonth(1)}
+                  className="rounded-md p-1 text-muted-foreground hover:bg-muted"
+                  aria-label="ماه بعد"
+                >
+                  <ChevronLeft className="size-4" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-7 gap-1 text-center text-xs text-muted-foreground">
+                {JALALI_WEEKDAY_LABELS.map((w) => (
+                  <span key={w} className="py-1">
+                    {w}
+                  </span>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 gap-1">
+                {grid.map((date) => {
+                  const iso = toIsoDateString(date)
+                  const cellJalali = toJalali(date)
+                  const inCurrentMonth = cellJalali.jm === viewJalali.jm
+                  const isSelected = iso === selectedIso
+                  const isToday = iso === toIsoDateString(today)
+                  return (
+                    <button
+                      key={iso}
+                      type="button"
+                      onClick={() => {
+                        onChange(iso)
+                        setOpen(false)
+                      }}
+                      className={cn(
+                        "flex size-8 items-center justify-center rounded-md text-xs transition-colors",
+                        inCurrentMonth ? "text-foreground" : "text-muted-foreground/40",
+                        isSelected ? "bg-primary text-primary-foreground" : "hover:bg-muted",
+                        isToday && !isSelected && "border border-primary/50"
+                      )}
+                    >
+                      {toPersianDigits(cellJalali.jd)}
+                    </button>
+                  )
+                })}
+              </div>
+
+              <div className="mt-2 flex items-center justify-between border-t border-border pt-2">
+                <button
+                  type="button"
+                  className="text-xs font-medium text-primary hover:underline"
                   onClick={() => {
-                    onChange(iso)
+                    onChange(toIsoDateString(today))
                     setOpen(false)
                   }}
-                  className={cn(
-                    "flex size-8 items-center justify-center rounded-md text-xs transition-colors",
-                    inCurrentMonth ? "text-foreground" : "text-muted-foreground/40",
-                    isSelected ? "bg-primary text-primary-foreground" : "hover:bg-muted",
-                    isToday && !isSelected && "border border-primary/50"
-                  )}
                 >
-                  {toPersianDigits(cellJalali.jd)}
+                  امروز
                 </button>
-              )
-            })}
-          </div>
+                {value && (
+                  <button
+                    type="button"
+                    className="text-xs text-muted-foreground hover:underline"
+                    onClick={() => {
+                      onChange("")
+                      setOpen(false)
+                    }}
+                  >
+                    پاک کردن
+                  </button>
+                )}
+              </div>
+            </>
+          )}
 
-          <div className="mt-2 flex items-center justify-between border-t border-border pt-2">
-            <button
-              type="button"
-              className="text-xs font-medium text-primary hover:underline"
-              onClick={() => {
-                onChange(toIsoDateString(today))
-                setOpen(false)
-              }}
-            >
-              امروز
-            </button>
-            {value && (
-              <button
-                type="button"
-                className="text-xs text-muted-foreground hover:underline"
-                onClick={() => {
-                  onChange("")
-                  setOpen(false)
-                }}
-              >
-                پاک کردن
-              </button>
-            )}
-          </div>
+          {view === "months" && (
+            <>
+              <div className="mb-2 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setViewJalali((v) => ({ ...v, jy: v.jy - 1 }))}
+                  className="rounded-md p-1 text-muted-foreground hover:bg-muted"
+                  aria-label="سال قبل"
+                >
+                  <ChevronRight className="size-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={openYearGrid}
+                  className="rounded-md px-1.5 py-0.5 text-sm font-medium hover:bg-muted"
+                >
+                  {toPersianDigits(viewJalali.jy)}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewJalali((v) => ({ ...v, jy: v.jy + 1 }))}
+                  className="rounded-md p-1 text-muted-foreground hover:bg-muted"
+                  aria-label="سال بعد"
+                >
+                  <ChevronLeft className="size-4" />
+                </button>
+              </div>
+              <div className="grid grid-cols-3 gap-1.5">
+                {JALALI_MONTH_NAMES.map((name, idx) => (
+                  <button
+                    key={name}
+                    type="button"
+                    onClick={() => {
+                      setViewJalali((v) => ({ ...v, jm: idx + 1 }))
+                      setView("days")
+                    }}
+                    className={cn(
+                      "rounded-md py-2 text-xs transition-colors",
+                      idx + 1 === viewJalali.jm ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+                    )}
+                  >
+                    {name}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
+          {view === "years" && (
+            <>
+              <div className="mb-2 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setYearRangeStart((y) => y - YEARS_PER_PAGE)}
+                  className="rounded-md p-1 text-muted-foreground hover:bg-muted"
+                  aria-label="بازه قبل"
+                >
+                  <ChevronRight className="size-4" />
+                </button>
+                <span className="text-sm font-medium">
+                  {toPersianDigits(yearRangeStart)} - {toPersianDigits(yearRangeStart + YEARS_PER_PAGE - 1)}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setYearRangeStart((y) => y + YEARS_PER_PAGE)}
+                  className="rounded-md p-1 text-muted-foreground hover:bg-muted"
+                  aria-label="بازه بعد"
+                >
+                  <ChevronLeft className="size-4" />
+                </button>
+              </div>
+              <div className="grid grid-cols-3 gap-1.5">
+                {Array.from({ length: YEARS_PER_PAGE }, (_, i) => yearRangeStart + i).map((y) => (
+                  <button
+                    key={y}
+                    type="button"
+                    onClick={() => {
+                      setViewJalali((v) => ({ ...v, jy: y }))
+                      setView("months")
+                    }}
+                    className={cn(
+                      "rounded-md py-2 text-xs transition-colors",
+                      y === viewJalali.jy ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+                    )}
+                  >
+                    {toPersianDigits(y)}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>

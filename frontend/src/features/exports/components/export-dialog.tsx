@@ -95,7 +95,7 @@ export function ExportDialog({ projectId }: { projectId: string }) {
         </DialogHeader>
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="export-format">فرمت خروجی</Label>
+            <Label htmlFor="export-format" required>فرمت خروجی</Label>
             <Select
               id="export-format"
               value={format}
@@ -111,7 +111,7 @@ export function ExportDialog({ projectId }: { projectId: string }) {
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="export-range">بازهٔ زمانی</Label>
+            <Label htmlFor="export-range" required>بازهٔ زمانی</Label>
             <Select
               id="export-range"
               value={preset}

@@ -237,14 +237,14 @@ export function ProjectDetailPage() {
                 className="flex flex-col gap-4"
               >
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="title">عنوان وظیفه</Label>
+                  <Label htmlFor="title" required>عنوان وظیفه</Label>
                   <Input id="title" {...form.register("title")} />
                   {form.formState.errors.title && (
                     <p className="text-sm text-danger">{form.formState.errors.title.message}</p>
                   )}
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="assignee_id">مسئول (اختیاری)</Label>
+                  <Label htmlFor="assignee_id">مسئول</Label>
                   <Select id="assignee_id" {...form.register("assignee_id")}>
                     <option value="">بدون مسئول</option>
                     {users.map((u) => (
@@ -275,7 +275,7 @@ export function ProjectDetailPage() {
             className="flex flex-col gap-4"
           >
             <div className="flex flex-col gap-2">
-              <Label htmlFor="edit-name">نام پروژه</Label>
+              <Label htmlFor="edit-name" required>نام پروژه</Label>
               <Input id="edit-name" {...editForm.register("name")} />
               {editForm.formState.errors.name && (
                 <p className="text-sm text-danger">{editForm.formState.errors.name.message}</p>
@@ -314,7 +314,7 @@ export function ProjectDetailPage() {
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="edit-status">وضعیت</Label>
+              <Label htmlFor="edit-status" required>وضعیت</Label>
               <Select id="edit-status" {...editForm.register("status")}>
                 <option value="active">فعال</option>
                 <option value="completed">تکمیل‌شده</option>

@@ -101,7 +101,7 @@ export function EditTaskDialog({ task, users }: { task: Task; users: OrgUser[] }
         </DialogHeader>
         <form className="flex flex-col gap-4" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
           <div className="flex flex-col gap-2">
-            <Label htmlFor={`edit-task-title-${task.id}`}>عنوان</Label>
+            <Label htmlFor={`edit-task-title-${task.id}`} required>عنوان</Label>
             <Input id={`edit-task-title-${task.id}`} {...form.register("title")} />
             {form.formState.errors.title && <p className="text-sm text-danger">{form.formState.errors.title.message}</p>}
           </div>
@@ -111,7 +111,7 @@ export function EditTaskDialog({ task, users }: { task: Task; users: OrgUser[] }
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
-              <Label>ارزش تسک</Label>
+              <Label required>ارزش تسک</Label>
               <Select {...form.register("value")}>
                 <option value="low">کم</option>
                 <option value="medium">متوسط</option>
@@ -119,7 +119,7 @@ export function EditTaskDialog({ task, users }: { task: Task; users: OrgUser[] }
               </Select>
             </div>
             <div className="flex flex-col gap-2">
-              <Label>اولویت</Label>
+              <Label required>اولویت</Label>
               <Select {...form.register("priority")}>
                 <option value="low">کم</option>
                 <option value="medium">متوسط</option>

@@ -75,7 +75,7 @@ function NewLeaveRequestDialog() {
         <form onSubmit={form.handleSubmit((v) => mutation.mutate(v))} className="flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="start_date">از تاریخ</Label>
+              <Label htmlFor="start_date" required>از تاریخ</Label>
               <Controller
                 control={form.control}
                 name="start_date"
@@ -86,7 +86,7 @@ function NewLeaveRequestDialog() {
               )}
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="end_date">تا تاریخ</Label>
+              <Label htmlFor="end_date" required>تا تاریخ</Label>
               <Controller
                 control={form.control}
                 name="end_date"
@@ -98,7 +98,7 @@ function NewLeaveRequestDialog() {
             </div>
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="reason">دلیل (اختیاری)</Label>
+            <Label htmlFor="reason">دلیل</Label>
             <Textarea id="reason" {...form.register("reason")} />
           </div>
           <Button type="submit" disabled={mutation.isPending}>

@@ -79,7 +79,7 @@ function UploadFileDialog() {
         </DialogHeader>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="attachment-task">وظیفه</Label>
+            <Label htmlFor="attachment-task" required>وظیفه</Label>
             <TaskPicker
               id="attachment-task"
               tasks={tasks ?? []}
@@ -89,7 +89,7 @@ function UploadFileDialog() {
             />
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="attachment-file">فایل</Label>
+            <Label htmlFor="attachment-file" required>فایل</Label>
             <input
               id="attachment-file"
               ref={fileInputRef}

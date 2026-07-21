@@ -129,25 +129,25 @@ export function LogWorkDialog({
           <form onSubmit={form.handleSubmit((values) => mutation.mutate(values))} className="flex flex-col gap-4 rounded-xl border border-border/70 p-4">
             <p className="font-semibold">ثبت ساعت جدید</p>
             <div className="flex flex-col gap-2">
-              <Label htmlFor={`activity-description-${taskId}`}>توضیحات فعالیت</Label>
+              <Label htmlFor={`activity-description-${taskId}`} required>توضیحات فعالیت</Label>
               <Textarea id={`activity-description-${taskId}`} {...form.register("activity_description")} />
               {form.formState.errors.activity_description && <p className="text-sm text-danger">{form.formState.errors.activity_description.message}</p>}
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-2">
-                <Label htmlFor={`time-spent-hours-${taskId}`}>زمان صرف‌شده (ساعت)</Label>
+                <Label htmlFor={`time-spent-hours-${taskId}`} required>زمان صرف‌شده (ساعت)</Label>
                 <Input id={`time-spent-hours-${taskId}`} type="number" min={0.05} max={24} step={0.25} inputMode="decimal" {...form.register("time_spent_hours")} />
                 <p className="text-xs text-muted-foreground">مثلاً ۲ برای دو ساعت یا ۰٫۵ برای نیم ساعت</p>
                 {form.formState.errors.time_spent_hours && <p className="text-sm text-danger">{form.formState.errors.time_spent_hours.message}</p>}
               </div>
               <div className="flex flex-col gap-2">
-                <Label htmlFor={`progress-percent-${taskId}`}>پیشرفت تسک (٪)</Label>
+                <Label htmlFor={`progress-percent-${taskId}`} required>پیشرفت تسک (٪)</Label>
                 <Input id={`progress-percent-${taskId}`} type="number" min={0} max={100} {...form.register("progress_percent")} />
                 {form.formState.errors.progress_percent && <p className="text-sm text-danger">{form.formState.errors.progress_percent.message}</p>}
               </div>
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor={`log-date-${taskId}`}>تاریخ گزارش</Label>
+              <Label htmlFor={`log-date-${taskId}`} required>تاریخ گزارش</Label>
               <Controller control={form.control} name="log_date" render={({ field }) => <JalaliDateInput id={`log-date-${taskId}`} value={field.value} onChange={field.onChange} />} />
               {form.formState.errors.log_date && <p className="text-sm text-danger">{form.formState.errors.log_date.message}</p>}
             </div>
