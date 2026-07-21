@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils"
 import { GlobalSearch } from "@/features/search/components/global-search"
 import { NotificationBell } from "@/features/notifications/components/notification-bell"
 import { DepartmentSelector } from "@/features/departments/components/department-selector"
+import { DepartmentOnboardingHint } from "@/features/departments/components/department-onboarding-hint"
 import { OrganizationSwitcher } from "@/features/auth/components/organization-switcher"
 import { logoutRequest } from "@/features/auth/api"
 import { useAuthStore } from "@/features/auth/auth-store"
@@ -54,6 +55,7 @@ export function AppShell() {
 
   return (
     <div className="flex h-svh flex-col overflow-hidden lg:flex-row">
+      <DepartmentOnboardingHint />
       {/* Desktop sidebar */}
       <aside
         className={cn(
