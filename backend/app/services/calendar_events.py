@@ -2,14 +2,14 @@ import uuid
 from datetime import datetime
 
 from fastapi import HTTPException, status
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.db.tenant_repository import TenantScopedRepository
-from app.models.calendar_event import CalendarEvent
+from app.models.calendar_event import CalendarEvent, CalendarEventCategory
 from app.models.enums import CalendarEventType, UserRole
 from app.models.user import User
-from app.schemas.calendar_event import CalendarEventCreate, CalendarEventUpdate
+from app.schemas.calendar_event import CalendarEventCategoryCreate, CalendarEventCreate, CalendarEventUpdate
 from app.services.dashboard import get_visible_project_ids
 from app.services.projects import assert_can_view_project, get_project
 
@@ -17,9 +17,107 @@ from app.services.projects import assert_can_view_project, get_project
 # else (meetings, holidays) requires org_admin/project_manager.
 _EMPLOYEE_ALLOWED_TYPES = {CalendarEventType.leave, CalendarEventType.reminder}
 
+# Seed rows matching the colors the four event types have always rendered
+# with (see frontend EVENT_TYPE_COLOR), so a fresh org's category picker
+# starts out visually consistent with the existing type-based legend.
+DEFAULT_CATEGORIES = (
+    ("جلسه", "#16a34a"),
+    ("مرخصی", "#9333ea"),
+    ("تعطیلی", "#dc2626"),
+    ("یادآوری", "#d97706"),
+)
+
 
 class CalendarEventRepository(TenantScopedRepository[CalendarEvent]):
     model = CalendarEvent
+
+
+def _ensure_default_categories(db: Session, org_id: uuid.UUID) -> None:
+    existing = {
+        name
+        for (name,) in db.query(CalendarEventCategory.name)
+        .filter(CalendarEventCategory.organization_id == org_id)
+        .all()
+    }
+    created = False
+    for name, color in DEFAULT_CATEGORIES:
+        if name not in existing:
+            db.add(CalendarEventCategory(organization_id=org_id, name=name, color=color, is_system=True))
+            created = True
+    if created:
+        db.commit()
+
+
+def list_categories(db: Session, org_id: uuid.UUID) -> list[CalendarEventCategory]:
+    _ensure_default_categories(db, org_id)
+    return (
+        db.query(CalendarEventCategory)
+        .filter(CalendarEventCategory.organization_id == org_id)
+        .order_by(CalendarEventCategory.name)
+        .all()
+    )
+
+
+def _assert_can_manage_categories(current_user: User) -> None:
+    if current_user.role not in {UserRole.org_admin, UserRole.project_manager}:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only organization and project managers can manage calendar categories",
+        )
+
+
+def create_category(
+    db: Session, org_id: uuid.UUID, current_user: User, data: CalendarEventCategoryCreate
+) -> CalendarEventCategory:
+    _assert_can_manage_categories(current_user)
+    duplicate = (
+        db.query(CalendarEventCategory)
+        .filter(
+            CalendarEventCategory.organization_id == org_id,
+            func.lower(CalendarEventCategory.name) == data.name.strip().lower(),
+        )
+        .first()
+    )
+    if duplicate:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Category already exists")
+    category = CalendarEventCategory(
+        organization_id=org_id, name=data.name.strip(), color=data.color, is_system=False
+    )
+    db.add(category)
+    db.commit()
+    db.refresh(category)
+    return category
+
+
+def _validate_category(db: Session, org_id: uuid.UUID, category_id: uuid.UUID | None) -> None:
+    if category_id is None:
+        return
+    exists = (
+        db.query(CalendarEventCategory.id)
+        .filter(CalendarEventCategory.id == category_id, CalendarEventCategory.organization_id == org_id)
+        .first()
+    )
+    if exists is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Calendar category not found")
+
+
+def _attach_category_info(db: Session, org_id: uuid.UUID, events: list[CalendarEvent]) -> list[CalendarEvent]:
+    category_ids = {e.category_id for e in events if e.category_id is not None}
+    categories = (
+        {
+            c.id: c
+            for c in db.query(CalendarEventCategory)
+            .filter(CalendarEventCategory.organization_id == org_id, CalendarEventCategory.id.in_(category_ids))
+            .all()
+        }
+        if category_ids
+        else {}
+    )
+    for event in events:
+        category = categories.get(event.category_id)
+        event.category_name = category.name if category else None
+        event.category_color = category.color if category else None
+    return events
 
 
 def create_event(db: Session, org_id: uuid.UUID, current_user: User, data: CalendarEventCreate) -> CalendarEvent:
@@ -42,11 +140,14 @@ def create_event(db: Session, org_id: uuid.UUID, current_user: User, data: Calen
         project = get_project(db, org_id, current_user, data.project_id)
         assert_can_view_project(db, project, current_user)
 
+    _validate_category(db, org_id, data.category_id)
+
     event = CalendarEvent(
         organization_id=org_id,
         created_by_id=current_user.id,
         project_id=data.project_id,
         user_id=user_id,
+        category_id=data.category_id,
         title=data.title,
         description=data.description,
         event_type=data.event_type,
@@ -57,7 +158,7 @@ def create_event(db: Session, org_id: uuid.UUID, current_user: User, data: Calen
     db.add(event)
     db.commit()
     db.refresh(event)
-    return event
+    return _attach_category_info(db, org_id, [event])[0]
 
 
 def list_events(
@@ -70,7 +171,7 @@ def list_events(
     )
 
     if current_user.role == UserRole.org_admin:
-        return query.all()
+        return _attach_category_info(db, org_id, query.all())
 
     # Org-wide events (no project): holidays and general meetings are visible
     # to everyone; leave/reminder are visible only to their own user and to
@@ -88,7 +189,7 @@ def list_events(
     if current_user.role == UserRole.project_manager:
         conditions.append(CalendarEvent.event_type.in_([CalendarEventType.leave, CalendarEventType.reminder]))
 
-    return query.filter(or_(*conditions)).all()
+    return _attach_category_info(db, org_id, query.filter(or_(*conditions)).all())
 
 
 def get_event(db: Session, org_id: uuid.UUID, current_user: User, event_id: uuid.UUID) -> CalendarEvent:
@@ -123,12 +224,15 @@ def update_event(
     if new_end < new_start:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="end_at must not be before start_at")
 
+    if "category_id" in changes:
+        _validate_category(db, org_id, changes["category_id"])
+
     for field, value in changes.items():
         setattr(event, field, value)
 
     db.commit()
     db.refresh(event)
-    return event
+    return _attach_category_info(db, org_id, [event])[0]
 
 
 def delete_event(db: Session, org_id: uuid.UUID, current_user: User, event_id: uuid.UUID) -> None:

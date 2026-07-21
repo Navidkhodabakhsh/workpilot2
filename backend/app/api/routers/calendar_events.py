@@ -7,10 +7,38 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_org_id, get_current_user
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.calendar_event import CalendarEventCreate, CalendarEventOut, CalendarEventUpdate
+from app.schemas.calendar_event import (
+    CalendarEventCategoryCreate,
+    CalendarEventCategoryOut,
+    CalendarEventCreate,
+    CalendarEventOut,
+    CalendarEventUpdate,
+)
 from app.services import calendar_events as calendar_events_service
 
 router = APIRouter(prefix="/calendar-events", tags=["calendar-events"])
+categories_router = APIRouter(prefix="/calendar-event-categories", tags=["calendar-events"])
+
+
+@categories_router.get("", response_model=list[CalendarEventCategoryOut])
+def list_categories(
+    db: Session = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_current_org_id),
+    current_user: User = Depends(get_current_user),
+) -> list[CalendarEventCategoryOut]:
+    return [CalendarEventCategoryOut.model_validate(item) for item in calendar_events_service.list_categories(db, org_id)]
+
+
+@categories_router.post("", response_model=CalendarEventCategoryOut, status_code=201)
+def create_category(
+    data: CalendarEventCategoryCreate,
+    db: Session = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_current_org_id),
+    current_user: User = Depends(get_current_user),
+) -> CalendarEventCategoryOut:
+    return CalendarEventCategoryOut.model_validate(
+        calendar_events_service.create_category(db, org_id, current_user, data)
+    )
 
 
 @router.post("", response_model=CalendarEventOut, status_code=201)

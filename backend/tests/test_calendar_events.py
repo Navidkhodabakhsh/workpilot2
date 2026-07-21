@@ -210,3 +210,81 @@ def test_employee_cannot_update_someone_elses_event(client, signup_org_admin, cr
         headers=auth_headers(emp_token),
     )
     assert resp.status_code == 403
+
+
+def test_default_categories_are_seeded_and_listable_by_anyone(client, signup_org_admin, create_org_user):
+    admin_token, _ = signup_org_admin()
+    emp_token, _ = create_org_user(admin_token, "employee", "emp")
+    resp = client.get("/api/v1/calendar-event-categories", headers=auth_headers(emp_token))
+    assert resp.status_code == 200
+    names = {c["name"] for c in resp.json()}
+    assert names == {"جلسه", "مرخصی", "تعطیلی", "یادآوری"}
+    assert all(c["is_system"] for c in resp.json())
+
+
+def test_employee_cannot_create_a_calendar_category(client, signup_org_admin, create_org_user):
+    admin_token, _ = signup_org_admin()
+    emp_token, _ = create_org_user(admin_token, "employee", "emp")
+    resp = client.post(
+        "/api/v1/calendar-event-categories", json={"name": "دورکاری", "color": "#123456"}, headers=auth_headers(emp_token)
+    )
+    assert resp.status_code == 403
+
+
+def test_org_admin_can_create_a_category_and_use_it_on_an_event(client, signup_org_admin):
+    admin_token, _ = signup_org_admin()
+    category = client.post(
+        "/api/v1/calendar-event-categories", json={"name": "دورکاری", "color": "#123456"}, headers=auth_headers(admin_token)
+    )
+    assert category.status_code == 201
+    category_id = category.json()["id"]
+
+    event = client.post(
+        "/api/v1/calendar-events",
+        json={
+            "title": "Remote day",
+            "event_type": "meeting",
+            "category_id": category_id,
+            "start_at": "2026-07-10T09:00:00Z",
+            "end_at": "2026-07-10T10:00:00Z",
+        },
+        headers=auth_headers(admin_token),
+    )
+    assert event.status_code == 201
+    assert event.json()["category_name"] == "دورکاری"
+    assert event.json()["category_color"] == "#123456"
+
+    listed = client.get("/api/v1/calendar-events", params=RANGE, headers=auth_headers(admin_token)).json()
+    remote_day = next(e for e in listed if e["title"] == "Remote day")
+    assert remote_day["category_color"] == "#123456"
+
+    # Clearing the category on update works, and is distinguishable from "unset".
+    cleared = client.patch(
+        f"/api/v1/calendar-events/{event.json()['id']}",
+        json={"category_id": None},
+        headers=auth_headers(admin_token),
+    )
+    assert cleared.status_code == 200
+    assert cleared.json()["category_id"] is None
+    assert cleared.json()["category_color"] is None
+
+
+def test_event_with_foreign_category_id_is_rejected(client, signup_org_admin):
+    admin_a_token, _ = signup_org_admin("Org A")
+    admin_b_token, _ = signup_org_admin("Org B")
+    foreign_category_id = client.post(
+        "/api/v1/calendar-event-categories", json={"name": "Foreign", "color": "#111111"}, headers=auth_headers(admin_b_token)
+    ).json()["id"]
+
+    resp = client.post(
+        "/api/v1/calendar-events",
+        json={
+            "title": "Should fail",
+            "event_type": "meeting",
+            "category_id": foreign_category_id,
+            "start_at": "2026-07-10T09:00:00Z",
+            "end_at": "2026-07-10T10:00:00Z",
+        },
+        headers=auth_headers(admin_a_token),
+    )
+    assert resp.status_code == 404

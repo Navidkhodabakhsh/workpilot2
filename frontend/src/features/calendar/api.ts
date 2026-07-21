@@ -2,12 +2,22 @@ import { apiClient } from "@/lib/api-client"
 
 export type CalendarEventType = "meeting" | "leave" | "holiday" | "reminder"
 
+export type CalendarEventCategory = {
+  id: string
+  name: string
+  color: string
+  is_system: boolean
+}
+
 export type CalendarEvent = {
   id: string
   organization_id: string
   created_by_id: string
   project_id: string | null
   user_id: string | null
+  category_id: string | null
+  category_name: string | null
+  category_color: string | null
   title: string
   description: string | null
   event_type: CalendarEventType
@@ -15,6 +25,16 @@ export type CalendarEvent = {
   end_at: string
   all_day: boolean
   created_at: string
+}
+
+export async function listCalendarEventCategories() {
+  const { data } = await apiClient.get<CalendarEventCategory[]>("/api/v1/calendar-event-categories")
+  return data
+}
+
+export async function createCalendarEventCategory(payload: { name: string; color: string }) {
+  const { data } = await apiClient.post<CalendarEventCategory>("/api/v1/calendar-event-categories", payload)
+  return data
 }
 
 export async function listCalendarEvents(start: Date, end: Date) {
@@ -28,6 +48,7 @@ export async function createCalendarEvent(payload: {
   title: string
   description?: string
   event_type: CalendarEventType
+  category_id?: string
   start_at: string
   end_at: string
   all_day?: boolean
@@ -43,6 +64,7 @@ export async function updateCalendarEvent(
   payload: Partial<{
     title: string
     description: string
+    category_id: string | null
     start_at: string
     end_at: string
     all_day: boolean

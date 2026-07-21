@@ -4,13 +4,10 @@ import { JALALI_WEEKDAY_FULL_LABELS, toJalali, toPersianDigits } from "@/lib/jal
 import { dateKey } from "@/features/calendar/calendar-utils"
 import type { CalendarItem } from "@/features/calendar/types"
 
-// One consistent color for every day header, and a separate consistent
-// color for every task/event row -- day identity comes from the date and
-// weekday label, not from hue, so color stays simple instead of turning
-// into a second (confusing) coding scheme layered on top of the type
-// filters above.
+// One consistent color for every day header -- day identity comes from the
+// date and weekday label, not from hue. Each item's own dot uses its type's
+// color (item.color), matching the filter legend above the agenda.
 const DAY_COLOR = "var(--color-primary)"
-const ITEM_DOT_COLOR = "var(--color-info)"
 
 export function AgendaView({
   days,
@@ -66,7 +63,7 @@ export function AgendaView({
                   onClick={() => onSelectItem(item)}
                   className="flex items-center gap-2 rounded-lg border border-border bg-card p-2.5 text-start text-sm shadow-xs transition-colors hover:bg-muted/40"
                 >
-                  <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: ITEM_DOT_COLOR }} />
+                  <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
                   {item.time && (
                     <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
                       {toPersianDigits(item.time)}
