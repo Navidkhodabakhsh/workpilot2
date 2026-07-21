@@ -73,9 +73,7 @@ export function AppShell() {
             collapsed && "justify-center px-0"
           )}
         >
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-[0_2px_10px_rgba(0,0,0,0.35)]">
-            <LogoMark className="size-6" />
-          </div>
+          <LogoMark inverted className="size-8 shrink-0" />
           <span
             className={cn(
               "overflow-hidden whitespace-nowrap text-xl font-bold text-sidebar-foreground transition-all duration-300 ease-in-out",
@@ -160,9 +158,7 @@ export function AppShell() {
         >
           <div className="flex items-center justify-between px-4 pb-4">
             <div className="flex items-center gap-3">
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-[0_2px_10px_rgba(0,0,0,0.35)]">
-                <LogoMark className="size-6" />
-              </div>
+              <LogoMark inverted className="size-8 shrink-0" />
               <span className="text-xl font-bold text-sidebar-foreground">Tadvin</span>
             </div>
             <Button
