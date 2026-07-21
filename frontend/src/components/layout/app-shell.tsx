@@ -64,10 +64,6 @@ export function AppShell() {
         )}
       >
         <div
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_hsl(var(--color-blue-500)/0.35),_transparent_60%)]"
-          aria-hidden="true"
-        />
-        <div
           className={cn(
             "relative flex items-center gap-3 overflow-hidden px-4 pb-4 transition-all duration-300 ease-in-out",
             collapsed && "justify-center px-0"
