@@ -99,9 +99,27 @@ def update_org_user(
     if target.id == current_user.id and data.is_active is False:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You cannot deactivate your own account")
 
+    if data.phone_number is not None or data.password is not None:
+        # phone_number/password live on the shared Account, not this
+        # org-scoped User row -- changing them here would change the login
+        # credentials for every organization this account belongs to. If
+        # it's shared with another org, an admin of *this* org must not be
+        # able to reach into that: it would let any org_admin silently
+        # hijack a shared identity's access to a completely unrelated
+        # organization. Only allow it when this org is the account's only
+        # membership.
+        other_org_membership = (
+            db.query(User)
+            .filter(User.account_id == target.account_id, User.organization_id != org_id)
+            .first()
+        )
+        if other_org_membership is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="This identity belongs to more than one organization; its phone number and password can only be changed by the account holder themselves",
+            )
+
     if data.phone_number is not None:
-        # This changes the shared login identity, affecting every
-        # organization this account is a member of -- not just this one.
         existing_phone = (
             db.query(Account).filter(Account.phone_number == data.phone_number, Account.id != target.account_id).first()
         )
