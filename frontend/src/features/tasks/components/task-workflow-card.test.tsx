@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { render, screen } from "@testing-library/react"
-import { beforeEach, describe, expect, it } from "vitest"
+import { describe, expect, it } from "vitest"
 
 import { useAuthStore } from "@/features/auth/auth-store"
 import { TaskWorkflowCard } from "@/features/tasks/components/task-workflow-card"
@@ -42,15 +42,32 @@ const task: Task = {
   created_at: "2026-07-20T00:00:00Z",
 }
 
+const manager: OrgUser = {
+  id: "user-2",
+  organization_id: "org-1",
+  phone_number: "09120000003",
+  full_name: "مدیر پروژه",
+  role: "project_manager",
+  is_active: true,
+  has_password: true,
+  department_id: null,
+  department_memberships: [],
+}
+
+const taskCreatedByManagerForSomeoneElse: Task = {
+  ...task,
+  id: "task-2",
+  assignee_id: user.id,
+  created_by_id: manager.id,
+  created_by_full_name: manager.full_name,
+}
+
 describe("TaskWorkflowCard", () => {
-  beforeEach(() => {
+  it("renders editing and time-logging controls for the assignee", () => {
     useAuthStore.setState({
       accessToken: "token",
       user: { ...user, department_memberships: [] },
     })
-  })
-
-  it("renders editing and time-logging controls", () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     render(
       <QueryClientProvider client={queryClient}>
@@ -61,5 +78,21 @@ describe("TaskWorkflowCard", () => {
     expect(screen.getByText("زمان مصرف‌شده:")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: /ویرایش تسک/ })).toBeEnabled()
     expect(screen.getByRole("button", { name: /ثبت و مشاهده ساعت/ })).toBeEnabled()
+  })
+
+  it("only offers read-only hour viewing to the task's creator when they aren't the assignee", () => {
+    useAuthStore.setState({
+      accessToken: "token",
+      user: { ...manager, department_memberships: [] },
+    })
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={queryClient}>
+        <TaskWorkflowCard task={taskCreatedByManagerForSomeoneElse} users={[user, manager]} />
+      </QueryClientProvider>,
+    )
+
+    expect(screen.getByRole("button", { name: "مشاهده ساعت‌های تسک" })).toBeEnabled()
+    expect(screen.queryByRole("button", { name: "ثبت و مشاهده ساعت" })).not.toBeInTheDocument()
   })
 })
