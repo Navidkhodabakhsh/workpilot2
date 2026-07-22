@@ -83,13 +83,8 @@ export function AppShell() {
           <div className="sidebar-scrollbar h-full overflow-y-auto">
             <SidebarNav collapsed={collapsed} />
           </div>
-          {/* Scroll affordance without a visible scrollbar track/thumb --
-              just a soft fade at the bottom edge over whatever's currently
-              underneath it. No fade at the top: it read as a hard seam
-              between the logo header and the nav list right below it. */}
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-sidebar to-transparent" aria-hidden="true" />
         </div>
-        <div className="relative flex shrink-0 flex-col gap-1 border-t border-sidebar-border/60 px-3 pt-3 pb-1">
+        <div className="relative flex shrink-0 flex-col gap-1 px-3 pt-3 pb-1">
           <Button
             variant="ghost"
             className={cn(
@@ -170,7 +165,7 @@ export function AppShell() {
           <div className="min-h-0 flex-1 overflow-y-auto">
             <SidebarNav onNavigate={() => setMobileNavOpen(false)} />
           </div>
-          <div className="shrink-0 border-t border-sidebar-border/60 px-3 pt-3">
+          <div className="shrink-0 px-3 pt-3">
             <Button
               variant="ghost"
               className="flex h-11 w-full items-center justify-start gap-3 text-sidebar-foreground/80 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground"
