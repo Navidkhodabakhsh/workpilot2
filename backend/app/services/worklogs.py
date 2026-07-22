@@ -30,12 +30,13 @@ def create_worklog(db: Session, org_id: uuid.UUID, current_user: User, data: Wor
             detail="Work cannot be logged on an archived task",
         )
 
-    # Both legitimate task owners may record their own effort: the person
-    # who opened the task and the person it was assigned to.
-    if current_user.id not in {task.assignee_id, task.created_by_id}:
+    # Only the assignee actually does the work, so only the assignee may
+    # record hours -- a manager who merely created/assigned the task reviews
+    # and approves those hours instead (see approve_worklog/reject_worklog).
+    if current_user.id != task.assignee_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only log work on tasks you created or that are assigned to you",
+            detail="You can only log work on tasks assigned to you",
         )
 
     worklog = WorkLog(

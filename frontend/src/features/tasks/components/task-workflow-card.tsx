@@ -26,7 +26,9 @@ export function TaskWorkflowCard({ task, users, projectName }: { task: Task; use
   const currentUserId = currentUser?.id
   const assignee = users.find((user) => user.id === task.assignee_id)
   const isAssignee = task.assignee_id === currentUserId
-  const canLog = isAssignee || task.created_by_id === currentUserId
+  // Only the assignee actually performs the work and logs hours; the task
+  // creator (typically the manager who assigned it) reviews/approves instead.
+  const canLog = isAssignee
   const isManager = currentUser?.role === "org_admin" || currentUser?.role === "project_manager"
   const canEdit = isAssignee || task.created_by_id === currentUserId || isManager
   const canViewHours = canLog || isManager

@@ -26,6 +26,15 @@ def test_only_assignee_can_log_work(client, signup_org_admin, create_org_user):
     )
     assert resp.status_code == 403
 
+    # The task's creator (the manager who assigned it) is not the one doing
+    # the work, so they may not log hours on it either -- only the assignee.
+    resp = client.post(
+        "/api/v1/worklogs",
+        json={"task_id": task_id, "activity_description": "not mine to log", "time_spent_minutes": 10, "progress_percent": 5, "log_date": "2026-07-14"},
+        headers=auth_headers(pm_token),
+    )
+    assert resp.status_code == 403
+
     resp = client.post(
         "/api/v1/worklogs",
         json={"task_id": task_id, "activity_description": "did it", "time_spent_minutes": 30, "progress_percent": 20, "log_date": "2026-07-14"},
