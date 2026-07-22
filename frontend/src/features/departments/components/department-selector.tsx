@@ -12,10 +12,11 @@ export function DepartmentSelector() {
   const selectedDepartmentId = useDepartmentStore((s) => s.selectedDepartmentId)
   const setSelectedDepartmentId = useDepartmentStore((s) => s.setSelectedDepartmentId)
 
-  // org_admin oversees the whole organization, so they get a real "all
-  // departments" filter across every department. Everyone else only ever
-  // acts within the department(s) they're a member of, so this becomes a
-  // switcher between just those -- not a view into departments they don't
+  // org_admin oversees the whole organization, so they get a switcher across
+  // every department (no aggregate "all departments" view -- always scoped
+  // to exactly one at a time, same as everyone else). Everyone else only
+  // ever acts within the department(s) they're a member of, so this becomes
+  // a switcher between just those -- not a view into departments they don't
   // belong to.
   const isOrgAdmin = user?.role === "org_admin"
 
@@ -27,12 +28,19 @@ export function DepartmentSelector() {
 
   const myDepartments = user?.department_memberships ?? []
   const isMineSelected = myDepartments.some((m) => m.department_id === selectedDepartmentId)
+  const isOrgAdminSelectionValid = allDepartments?.some((d) => d.id === selectedDepartmentId) ?? false
   useEffect(() => {
     if (!isOrgAdmin && myDepartments.length >= 2 && !isMineSelected) {
       setSelectedDepartmentId(myDepartments[0].department_id)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOrgAdmin, myDepartments.length, isMineSelected])
+  useEffect(() => {
+    if (isOrgAdmin && allDepartments && allDepartments.length > 0 && !isOrgAdminSelectionValid) {
+      setSelectedDepartmentId(allDepartments[0].id)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOrgAdmin, allDepartments, isOrgAdminSelectionValid])
 
   if (isOrgAdmin) {
     if (!allDepartments || allDepartments.length === 0) return null
@@ -41,11 +49,10 @@ export function DepartmentSelector() {
         <Building2 className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
         <Select
           aria-label="دپارتمان"
-          value={selectedDepartmentId ?? ""}
+          value={selectedDepartmentId ?? allDepartments[0].id}
           onChange={(e) => setSelectedDepartmentId(e.target.value || null)}
           className="h-9 w-40"
         >
-          <option value="">همهٔ دپارتمان‌ها</option>
           {allDepartments.map((d) => (
             <option key={d.id} value={d.id}>
               {d.name}
