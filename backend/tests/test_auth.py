@@ -1,14 +1,16 @@
-from tests.conftest import PASSWORD, auth_headers
+from tests.conftest import PASSWORD, auth_headers, signup_otp_code
 
 
 def test_signup_creates_org_admin(client, unique_phone):
+    phone = unique_phone()
     resp = client.post(
         "/api/v1/auth/signup",
         json={
             "organization_name": "Acme",
             "department_name": "General",
             "full_name": "Admin User",
-            "phone_number": unique_phone(),
+            "phone_number": phone,
+            "code": signup_otp_code(client, phone),
             "password": PASSWORD,
         },
     )
@@ -16,6 +18,23 @@ def test_signup_creates_org_admin(client, unique_phone):
     body = resp.json()
     assert body["role"] == "org_admin"
     assert body["organization_id"] is not None
+
+
+def test_signup_with_wrong_otp_code_is_unauthorized(client, unique_phone):
+    phone = unique_phone()
+    signup_otp_code(client, phone)  # sends a real code, but we deliberately submit a wrong one below
+    resp = client.post(
+        "/api/v1/auth/signup",
+        json={
+            "organization_name": "Acme",
+            "department_name": "General",
+            "full_name": "Admin User",
+            "phone_number": phone,
+            "code": "000000",
+            "password": PASSWORD,
+        },
+    )
+    assert resp.status_code == 401
 
 
 def test_duplicate_signup_phone_is_conflict(client, unique_phone):
@@ -27,10 +46,14 @@ def test_duplicate_signup_phone_is_conflict(client, unique_phone):
             "department_name": "General",
             "full_name": "Admin A",
             "phone_number": phone,
+            "code": signup_otp_code(client, phone),
             "password": PASSWORD,
         },
     )
     assert resp.status_code == 201
+    # The phone is now registered, so even requesting a fresh signup code
+    # for it is rejected -- reuse the already-consumed one to reach the
+    # actual assertion, which fires the same 409 earlier regardless.
     resp2 = client.post(
         "/api/v1/auth/signup",
         json={
@@ -38,6 +61,7 @@ def test_duplicate_signup_phone_is_conflict(client, unique_phone):
             "department_name": "General",
             "full_name": "Admin B",
             "phone_number": phone,
+            "code": "000000",
             "password": PASSWORD,
         },
     )
@@ -45,12 +69,14 @@ def test_duplicate_signup_phone_is_conflict(client, unique_phone):
 
 
 def test_signup_without_department_name_creates_org_with_no_department(client, unique_phone):
+    phone = unique_phone()
     resp = client.post(
         "/api/v1/auth/signup",
         json={
             "organization_name": "No Department Org",
             "full_name": "Admin A",
-            "phone_number": unique_phone(),
+            "phone_number": phone,
+            "code": signup_otp_code(client, phone),
             "password": PASSWORD,
         },
     )
@@ -67,6 +93,7 @@ def test_wrong_password_is_unauthorized(client, unique_phone):
             "department_name": "General",
             "full_name": "Admin A",
             "phone_number": phone,
+            "code": signup_otp_code(client, phone),
             "password": PASSWORD,
         },
     )
@@ -87,13 +114,15 @@ def test_me_returns_current_user(client, signup_org_admin):
 
 
 def test_password_without_digit_is_rejected(client, unique_phone):
+    phone = unique_phone()
     resp = client.post(
         "/api/v1/auth/signup",
         json={
             "organization_name": "Org",
             "department_name": "General",
             "full_name": "Admin A",
-            "phone_number": unique_phone(),
+            "phone_number": phone,
+            "code": signup_otp_code(client, phone),
             "password": "alllowercase",
         },
     )
@@ -101,13 +130,15 @@ def test_password_without_digit_is_rejected(client, unique_phone):
 
 
 def test_password_without_letter_is_rejected(client, unique_phone):
+    phone = unique_phone()
     resp = client.post(
         "/api/v1/auth/signup",
         json={
             "organization_name": "Org",
             "department_name": "General",
             "full_name": "Admin A",
-            "phone_number": unique_phone(),
+            "phone_number": phone,
+            "code": signup_otp_code(client, phone),
             "password": "12345678",
         },
     )
@@ -123,6 +154,7 @@ def test_refresh_flow_issues_a_new_access_token(client, unique_phone):
             "department_name": "General",
             "full_name": "Admin A",
             "phone_number": phone,
+            "code": signup_otp_code(client, phone),
             "password": PASSWORD,
         },
     )
@@ -156,6 +188,7 @@ def test_login_rate_limiting_blocks_after_five_attempts(client, unique_phone):
             "department_name": "General",
             "full_name": "Admin A",
             "phone_number": phone,
+            "code": signup_otp_code(client, phone),
             "password": PASSWORD,
         },
     )

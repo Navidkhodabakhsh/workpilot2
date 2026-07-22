@@ -1,4 +1,4 @@
-from tests.conftest import PASSWORD, auth_headers
+from tests.conftest import PASSWORD, auth_headers, signup_otp_code
 
 
 def test_signup_creates_the_named_department(client, unique_phone):
@@ -10,6 +10,7 @@ def test_signup_creates_the_named_department(client, unique_phone):
             "department_name": "حسابداری",
             "full_name": "Admin",
             "phone_number": phone,
+            "code": signup_otp_code(client, phone),
             "password": PASSWORD,
         },
     )
@@ -36,6 +37,7 @@ def test_signup_without_department_name_creates_no_departments(client, unique_ph
             "organization_name": "No Dept Org",
             "full_name": "Admin",
             "phone_number": phone,
+            "code": signup_otp_code(client, phone),
             "password": PASSWORD,
         },
     )

@@ -57,17 +57,28 @@ def _create_organization_with_department(
     return user
 
 
+def request_signup_otp(db: Session, phone_number: str) -> str | None:
+    """Sends a signup-purpose code to a phone number that doesn't have an
+    account yet -- the inverse precondition of request_otp_for_phone (used
+    by login/password_reset), which requires the account to already exist."""
+    existing = db.query(Account).filter(Account.phone_number == phone_number).first()
+    if existing is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Phone number already registered")
+    return request_otp(db, phone_number, OtpPurpose.signup)
+
+
 def signup(db: Session, data: SignupRequest) -> User:
     """Creates a brand-new organization plus its first user, who becomes
-    org_admin, under a brand-new Account. Rejects if the phone number
-    already has an account -- an already-registered person who wants to
-    found a *second* organization uses the authenticated
-    create_additional_organization() below instead, so this public endpoint
-    can never be used to probe whether a phone number is already
-    registered."""
+    org_admin, under a brand-new Account. Requires a valid signup-purpose
+    code (see request_signup_otp) proving ownership of the phone number.
+    Rejects if the phone number already has an account -- an
+    already-registered person who wants to found a *second* organization
+    uses the authenticated create_additional_organization() below instead."""
     existing = db.query(Account).filter(Account.phone_number == data.phone_number).first()
     if existing is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Phone number already registered")
+    if not verify_otp(db, data.phone_number, data.code, OtpPurpose.signup):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired code")
 
     account = Account(phone_number=data.phone_number, hashed_password=hash_password(data.password))
     db.add(account)

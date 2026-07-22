@@ -7,6 +7,14 @@ from app.schemas.user import DepartmentMembershipOut
 from app.schemas.validators import validate_password_strength
 
 
+class SignupOtpRequestIn(BaseModel):
+    """Requests a signup-purpose code for a phone number that must NOT
+    already have an account -- the inverse precondition of OtpRequestIn's
+    login/password_reset purposes, which require the account to already exist."""
+
+    phone_number: str = Field(min_length=8, max_length=32)
+
+
 class SignupRequest(BaseModel):
     organization_name: str = Field(min_length=2, max_length=200)
     # Optional: an organization can start undivided and add departments
@@ -15,6 +23,9 @@ class SignupRequest(BaseModel):
     full_name: str = Field(min_length=2, max_length=200)
     # Login is phone-first; the founding admin needs a phone number.
     phone_number: str = Field(min_length=8, max_length=32)
+    # Proves ownership of phone_number -- see services/auth.py::signup, which
+    # verifies this (OtpPurpose.signup) before creating the account.
+    code: str = Field(min_length=6, max_length=6)
     password: str = Field(min_length=8, max_length=128)
 
     @field_validator("password")

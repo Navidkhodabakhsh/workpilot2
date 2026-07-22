@@ -2,11 +2,13 @@ import { apiClient } from "@/lib/api-client"
 import type { CurrentUser } from "@/features/auth/auth-store"
 
 export type LoginPayload = { phone_number: string; password: string }
+export type SignupOtpRequestPayload = { phone_number: string }
 export type SignupPayload = {
   organization_name: string
   department_name?: string
   full_name: string
   phone_number: string
+  code: string
   password: string
 }
 export type CreateOrganizationPayload = { organization_name: string; department_name?: string }
@@ -22,6 +24,11 @@ type TokenResponse = { access_token: string; token_type: string }
 
 export async function login(payload: LoginPayload) {
   const { data } = await apiClient.post<TokenResponse>("/api/v1/auth/login", payload)
+  return data
+}
+
+export async function requestSignupOtp(payload: SignupOtpRequestPayload) {
+  const { data } = await apiClient.post<OtpRequestResponse>("/api/v1/auth/signup/request-otp", payload)
   return data
 }
 

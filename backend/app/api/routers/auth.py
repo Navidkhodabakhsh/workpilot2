@@ -18,6 +18,7 @@ from app.schemas.auth import (
     OtpRequestIn,
     OtpRequestOut,
     OtpResetPasswordIn,
+    SignupOtpRequestIn,
     SignupRequest,
     SwitchOrganizationRequest,
     TokenResponse,
@@ -42,6 +43,12 @@ def _set_refresh_cookie(response: Response, user_id: uuid.UUID) -> None:
         max_age=settings.refresh_token_expire_days * 24 * 60 * 60,
         path=_REFRESH_COOKIE_PATH,
     )
+
+
+@router.post("/signup/request-otp", response_model=OtpRequestOut)
+def signup_request_otp(data: SignupOtpRequestIn, db: Session = Depends(get_db)) -> OtpRequestOut:
+    code = auth_service.request_signup_otp(db, data.phone_number)
+    return OtpRequestOut(message="کد ارسال شد", debug_code=code)
 
 
 @router.post("/signup", response_model=UserOut, status_code=201)

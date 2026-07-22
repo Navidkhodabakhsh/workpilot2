@@ -90,18 +90,33 @@ def unique_phone():
 PASSWORD = "SuperSecret123"
 
 
+def signup_otp_code(client, phone_number: str) -> str:
+    """Requests a signup-purpose code for a not-yet-registered phone number
+    and returns it (debug_code, since KAVENEGAR_API_KEY is never set in
+    tests) -- the code to pass as SignupRequest.code."""
+    resp = client.post("/api/v1/auth/signup/request-otp", json={"phone_number": phone_number})
+    assert resp.status_code == 200, resp.text
+    return resp.json()["debug_code"]
+
+
 @pytest.fixture
 def signup_org_admin(client, unique_phone):
     """Signs up a fresh organization and returns (access_token, user_dict)."""
 
     def _signup(org_name: str = "Test Org"):
+        phone = unique_phone()
+        otp_resp = client.post("/api/v1/auth/signup/request-otp", json={"phone_number": phone})
+        assert otp_resp.status_code == 200, otp_resp.text
+        code = otp_resp.json()["debug_code"]
+
         resp = client.post(
             "/api/v1/auth/signup",
             json={
                 "organization_name": org_name,
                 "department_name": "General",
                 "full_name": "Admin User",
-                "phone_number": unique_phone(),
+                "phone_number": phone,
+                "code": code,
                 "password": PASSWORD,
             },
         )

@@ -1,4 +1,4 @@
-from tests.conftest import PASSWORD, auth_headers
+from tests.conftest import PASSWORD, auth_headers, signup_otp_code
 
 
 def test_org_admin_can_update_a_users_role(client, signup_org_admin, create_org_user):
@@ -92,6 +92,7 @@ def test_org_admin_cannot_hijack_a_shared_multi_org_identitys_credentials(client
             "organization_name": "Org B",
             "full_name": "Shared Identity",
             "phone_number": shared_phone,
+            "code": signup_otp_code(client, shared_phone),
             "password": PASSWORD,
         },
     )

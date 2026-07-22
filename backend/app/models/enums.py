@@ -68,6 +68,7 @@ class CalendarEventType(str, enum.Enum):
 class OtpPurpose(str, enum.Enum):
     login = "login"
     password_reset = "password_reset"
+    signup = "signup"
 
 
 class ExportFileType(str, enum.Enum):

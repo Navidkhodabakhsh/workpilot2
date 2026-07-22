@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from app.models.enums import OtpPurpose
 from app.models.otp_code import OtpCode
 from app.services.otp import request_otp, verify_otp
-from tests.conftest import PASSWORD, auth_headers
+from tests.conftest import PASSWORD, auth_headers, signup_otp_code
 
 
 def _request_otp(client, phone_number: str, purpose: str = "login") -> str:
@@ -69,6 +69,7 @@ def test_otp_login_without_new_password_works_when_password_already_set(client, 
             "department_name": "General",
             "full_name": "Admin A",
             "phone_number": phone,
+            "code": signup_otp_code(client, phone),
             "password": PASSWORD,
         },
     )
@@ -88,6 +89,7 @@ def test_wrong_otp_code_is_unauthorized(client, unique_phone):
             "department_name": "General",
             "full_name": "Admin A",
             "phone_number": phone,
+            "code": signup_otp_code(client, phone),
             "password": PASSWORD,
         },
     )
@@ -105,6 +107,7 @@ def test_otp_code_cannot_be_reused(client, unique_phone):
             "department_name": "General",
             "full_name": "Admin A",
             "phone_number": phone,
+            "code": signup_otp_code(client, phone),
             "password": PASSWORD,
         },
     )
@@ -124,6 +127,7 @@ def test_expired_otp_code_is_rejected(client, db_session, unique_phone):
             "department_name": "General",
             "full_name": "Admin A",
             "phone_number": phone,
+            "code": signup_otp_code(client, phone),
             "password": PASSWORD,
         },
     )
@@ -149,6 +153,7 @@ def test_otp_verify_locks_out_after_max_attempts(client, db_session, unique_phon
             "department_name": "General",
             "full_name": "Admin A",
             "phone_number": phone,
+            "code": signup_otp_code(client, phone),
             "password": PASSWORD,
         },
     )
@@ -171,6 +176,7 @@ def test_otp_request_rate_limiting_blocks_after_three_requests(client, unique_ph
             "department_name": "General",
             "full_name": "Admin A",
             "phone_number": phone,
+            "code": signup_otp_code(client, phone),
             "password": PASSWORD,
         },
     )
@@ -192,6 +198,7 @@ def test_password_reset_flow_changes_password(client, unique_phone):
             "department_name": "General",
             "full_name": "Admin A",
             "phone_number": phone,
+            "code": signup_otp_code(client, phone),
             "password": PASSWORD,
         },
     )
@@ -223,6 +230,7 @@ def test_password_reset_code_cannot_be_used_for_login(client, unique_phone):
             "department_name": "General",
             "full_name": "Admin A",
             "phone_number": phone,
+            "code": signup_otp_code(client, phone),
             "password": PASSWORD,
         },
     )
