@@ -43,12 +43,16 @@ class Settings(BaseSettings):
     login_rate_limit_attempts: int = 5
     login_rate_limit_window_seconds: int = 300
 
-    # No real SMS gateway is wired up yet (see docs/PROJECT_STATE.md). While
-    # this is false, otp endpoints return the generated code directly in the
-    # API response instead of silently doing nothing -- this MUST become
-    # true (and an actual provider call added to services/otp.py) before
-    # this app is used with real phone numbers in production.
-    sms_provider_configured: bool = False
+    # Unset by default: otp endpoints return the generated code directly in
+    # the API response instead of sending it anywhere, for local dev/testing
+    # (see services/otp.py). Set KAVENEGAR_API_KEY to switch to actually
+    # sending it via Kavenegar's Verify/Lookup API (https://kavenegar.com) --
+    # once set, the response never contains the code.
+    kavenegar_api_key: str | None = None
+    # Must match a template already approved in the Kavenegar panel -- the
+    # Verify/Lookup API sends that template with the code substituted in,
+    # not free-form text (a carrier requirement for OTP-style messages).
+    kavenegar_otp_template: str = "verify"
     otp_expire_minutes: int = 5
     otp_request_rate_limit_attempts: int = 3
     otp_request_rate_limit_window_seconds: int = 600

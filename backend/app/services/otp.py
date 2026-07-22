@@ -9,6 +9,7 @@ from app.core.rate_limit import check_and_increment
 from app.core.security import hash_password, verify_password
 from app.models.enums import OtpPurpose
 from app.models.otp_code import OtpCode
+from app.services.sms import send_otp_sms
 
 
 def _generate_code() -> str:
@@ -17,11 +18,10 @@ def _generate_code() -> str:
 
 def request_otp(db: Session, phone_number: str, purpose: OtpPurpose) -> str | None:
     """Creates and stores a new OTP for this phone/purpose. Returns the raw
-    code only when no real SMS provider is configured
-    (settings.sms_provider_configured) so a caller can surface it for
-    testing -- once a real provider is wired in, this should send the code
-    instead and always return None. See docs/PROJECT_STATE.md for the
-    current state of this limitation."""
+    code only when no real SMS provider is configured (settings.
+    kavenegar_api_key unset) so a caller can surface it for local dev/testing;
+    once a real key is configured, sends it via Kavenegar instead and always
+    returns None."""
     rate_key = f"otp_request:{purpose.value}:{phone_number}"
     if not check_and_increment(
         rate_key, settings.otp_request_rate_limit_attempts, settings.otp_request_rate_limit_window_seconds
@@ -41,8 +41,8 @@ def request_otp(db: Session, phone_number: str, purpose: OtpPurpose) -> str | No
     db.add(entry)
     db.commit()
 
-    if settings.sms_provider_configured:
-        # TODO: call the real SMS provider here once one is configured.
+    if settings.kavenegar_api_key:
+        send_otp_sms(phone_number, code)
         return None
     return code
 

@@ -91,8 +91,8 @@ class OtpRequestIn(BaseModel):
 
 class OtpRequestOut(BaseModel):
     message: str
-    # Populated only when no real SMS provider is configured yet (see
-    # settings.sms_provider_configured) -- never set this in production.
+    # Populated only when KAVENEGAR_API_KEY isn't set (local dev/testing) --
+    # never populated once real SMS delivery is configured.
     debug_code: str | None = None
 
 
