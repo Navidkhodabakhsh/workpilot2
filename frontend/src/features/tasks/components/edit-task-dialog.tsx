@@ -14,6 +14,7 @@ import { Select } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { useAuthStore } from "@/features/auth/auth-store"
 import { updateTask } from "@/features/tasks/api"
+import { normalizeNumericString } from "@/lib/numeric-input"
 import type { OrgUser, Task, UserRole } from "@/lib/types"
 
 const schema = z.object({
@@ -63,7 +64,7 @@ export function EditTaskDialog({ task, users }: { task: Task; users: OrgUser[] }
       description: values.description || null,
       priority: values.priority,
       value: values.value,
-      estimated_hours: values.estimated_hours ? Number(values.estimated_hours) : null,
+      estimated_hours: values.estimated_hours ? Number(normalizeNumericString(values.estimated_hours)) : null,
       start_date: values.start_date || null,
       deadline: values.deadline || null,
       ...(canAssign && values.assignee_id && values.assignee_id !== task.assignee_id
@@ -137,7 +138,7 @@ export function EditTaskDialog({ task, users }: { task: Task; users: OrgUser[] }
           )}
           <div className="flex flex-col gap-2">
             <Label>زمان تخمینی (ساعت)</Label>
-            <Input type="number" min="0" step="0.25" inputMode="decimal" {...form.register("estimated_hours")} />
+            <Input type="text" inputMode="decimal" dir="ltr" {...form.register("estimated_hours")} />
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">

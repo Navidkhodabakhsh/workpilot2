@@ -20,12 +20,18 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { createWorklog, listTaskWorklogs } from "@/features/worklogs/api"
+import { normalizeNumericString } from "@/lib/numeric-input"
 import type { WorkLogStatus } from "@/lib/types"
+
+const asNumber = (val: unknown) => (typeof val === "string" ? normalizeNumericString(val) : val)
 
 const schema = z.object({
   activity_description: z.string().min(2, "توضیحات فعالیت را وارد کنید"),
-  time_spent_hours: z.coerce.number().positive("زمان باید بیشتر از صفر باشد").max(24, "زمان هر گزارش حداکثر ۲۴ ساعت است"),
-  progress_percent: z.coerce.number().int().min(0).max(100),
+  time_spent_hours: z.preprocess(
+    asNumber,
+    z.coerce.number().positive("زمان باید بیشتر از صفر باشد").max(24, "زمان هر گزارش حداکثر ۲۴ ساعت است")
+  ),
+  progress_percent: z.preprocess(asNumber, z.coerce.number().int().min(0).max(100)),
   log_date: z.string().min(1, "تاریخ را انتخاب کنید"),
 })
 type FormInput = z.input<typeof schema>
@@ -136,13 +142,13 @@ export function LogWorkDialog({
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-2">
                 <Label htmlFor={`time-spent-hours-${taskId}`} required>زمان صرف‌شده (ساعت)</Label>
-                <Input id={`time-spent-hours-${taskId}`} type="number" min={0.05} max={24} step={0.25} inputMode="decimal" {...form.register("time_spent_hours")} />
+                <Input id={`time-spent-hours-${taskId}`} type="text" inputMode="decimal" dir="ltr" {...form.register("time_spent_hours")} />
                 <p className="text-xs text-muted-foreground">مثلاً ۲ برای دو ساعت یا ۰٫۵ برای نیم ساعت</p>
                 {form.formState.errors.time_spent_hours && <p className="text-sm text-danger">{form.formState.errors.time_spent_hours.message}</p>}
               </div>
               <div className="flex flex-col gap-2">
                 <Label htmlFor={`progress-percent-${taskId}`} required>پیشرفت تسک (٪)</Label>
-                <Input id={`progress-percent-${taskId}`} type="number" min={0} max={100} {...form.register("progress_percent")} />
+                <Input id={`progress-percent-${taskId}`} type="text" inputMode="numeric" dir="ltr" {...form.register("progress_percent")} />
                 {form.formState.errors.progress_percent && <p className="text-sm text-danger">{form.formState.errors.progress_percent.message}</p>}
               </div>
             </div>

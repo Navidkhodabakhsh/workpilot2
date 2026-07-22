@@ -26,6 +26,7 @@ import { TaskWorkflowCard } from "@/features/tasks/components/task-workflow-card
 import { TaskDetailDialog } from "@/features/tasks/components/task-detail-dialog"
 import { ACTIVE_STATUS_COLUMNS, VALUE_LABEL } from "@/features/tasks/workflow-constants"
 import { listOrgUsers } from "@/features/users/api"
+import { normalizeNumericString } from "@/lib/numeric-input"
 import type { OrgUser, Project, TaskStatus, UserRole } from "@/lib/types"
 
 type Tab = "self_created" | "assigned_to_me" | "pending"
@@ -62,7 +63,7 @@ function NewTaskDialog({ projects, users }: { projects: Project[]; users: OrgUse
       value: values.value,
       start_date: values.start_date || undefined,
       deadline: values.deadline || undefined,
-      estimated_hours: values.estimated_hours ? Number(values.estimated_hours) : undefined,
+      estimated_hours: values.estimated_hours ? Number(normalizeNumericString(values.estimated_hours)) : undefined,
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"], exact: false })
@@ -89,7 +90,7 @@ function NewTaskDialog({ projects, users }: { projects: Project[]; users: OrgUse
             <div className="flex flex-col gap-2"><Label htmlFor="new-task-start">شروع</Label><Controller control={form.control} name="start_date" render={({ field }) => <JalaliDateInput id="new-task-start" value={field.value ?? ""} onChange={field.onChange} />} /></div>
             <div className="flex flex-col gap-2"><Label htmlFor="new-task-end">پایان</Label><Controller control={form.control} name="deadline" render={({ field }) => <JalaliDateInput id="new-task-end" value={field.value ?? ""} onChange={field.onChange} />} /></div>
           </div>
-          <div className="flex flex-col gap-2"><Label htmlFor="new-task-estimate">ساعت تخمینی</Label><Input id="new-task-estimate" type="number" min="0" step="0.5" {...form.register("estimated_hours")} /></div>
+          <div className="flex flex-col gap-2"><Label htmlFor="new-task-estimate">ساعت تخمینی</Label><Input id="new-task-estimate" type="text" inputMode="decimal" dir="ltr" {...form.register("estimated_hours")} /></div>
           {mutation.isError && <p className="text-sm text-danger">ساخت وظیفه انجام نشد؛ سطح دسترسی یا اطلاعات را بررسی کنید.</p>}
           <Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? "در حال ثبت..." : "ثبت وظیفه"}</Button>
         </form>

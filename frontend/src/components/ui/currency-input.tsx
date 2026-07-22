@@ -1,12 +1,7 @@
 import * as React from "react"
 
 import { Input } from "@/components/ui/input"
-
-const PERSIAN_DIGITS = "۰۱۲۳۴۵۶۷۸۹"
-
-function toAsciiDigits(value: string) {
-  return value.replace(/[۰-۹]/g, (digit) => String(PERSIAN_DIGITS.indexOf(digit)))
-}
+import { toAsciiDigits } from "@/lib/numeric-input"
 
 function onlyDigits(value: string) {
   return toAsciiDigits(value).replace(/[^\d]/g, "")
