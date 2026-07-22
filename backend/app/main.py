@@ -1,3 +1,4 @@
+import sentry_sdk
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -23,10 +24,28 @@ from app.api.routers import (
     users,
     worklogs,
 )
-from app.core.config import settings
+from app.core.config import docs_enabled_for_environment, settings
+from app.core.logging_config import configure_logging
+from app.core.security_headers import SecurityHeadersMiddleware
 
-app = FastAPI(title=settings.app_name)
+configure_logging()
 
+# Opt-in: only reports errors if SENTRY_DSN is actually set (see
+# Settings.sentry_dsn); the app behaves identically without it.
+if settings.sentry_dsn:
+    sentry_sdk.init(dsn=settings.sentry_dsn, environment=settings.environment, send_default_pii=False)
+
+# See docs_enabled_for_environment's docstring -- closed in production
+# (backend/.env.example / render.yaml).
+_docs_enabled = docs_enabled_for_environment(settings.environment)
+app = FastAPI(
+    title=settings.app_name,
+    docs_url="/docs" if _docs_enabled else None,
+    redoc_url="/redoc" if _docs_enabled else None,
+    openapi_url="/openapi.json" if _docs_enabled else None,
+)
+
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
