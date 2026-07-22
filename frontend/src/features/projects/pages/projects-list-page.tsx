@@ -157,8 +157,12 @@ export function ProjectsListPage() {
                 )}
                 {users && users.length > 0 && (
                   <div className="flex flex-col gap-2">
-                    <Label>اعضای پروژه</Label>
-                    <div className="flex max-h-40 flex-col gap-1.5 overflow-y-auto rounded-md border p-2">
+                    <Label id="new-project-members-label">اعضای پروژه</Label>
+                    <div
+                      role="group"
+                      aria-labelledby="new-project-members-label"
+                      className="flex max-h-40 flex-col gap-1.5 overflow-y-auto rounded-md border p-2"
+                    >
                       {users.map((u) => (
                         <label key={u.id} className="flex items-center gap-2 text-sm">
                           <input

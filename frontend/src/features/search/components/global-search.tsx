@@ -55,6 +55,7 @@ export function GlobalSearch() {
           }}
           onFocus={() => setOpen(true)}
           placeholder="جست‌وجو در پروژه‌ها، کارها، کاربران..."
+          aria-label="جست‌وجو در پروژه‌ها، کارها، کاربران"
           className="w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
         />
       </div>

@@ -112,16 +112,16 @@ export function EditTaskDialog({ task, users }: { task: Task; users: OrgUser[] }
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
-              <Label required>ارزش تسک</Label>
-              <Select {...form.register("value")}>
+              <Label htmlFor={`edit-task-value-${task.id}`} required>ارزش تسک</Label>
+              <Select id={`edit-task-value-${task.id}`} {...form.register("value")}>
                 <option value="low">کم</option>
                 <option value="medium">متوسط</option>
                 <option value="high">زیاد</option>
               </Select>
             </div>
             <div className="flex flex-col gap-2">
-              <Label required>اولویت</Label>
-              <Select {...form.register("priority")}>
+              <Label htmlFor={`edit-task-priority-${task.id}`} required>اولویت</Label>
+              <Select id={`edit-task-priority-${task.id}`} {...form.register("priority")}>
                 <option value="low">کم</option>
                 <option value="medium">متوسط</option>
                 <option value="high">زیاد</option>
@@ -130,24 +130,24 @@ export function EditTaskDialog({ task, users }: { task: Task; users: OrgUser[] }
           </div>
           {canAssign && (
             <div className="flex flex-col gap-2">
-              <Label>مسئول انجام</Label>
-              <Select {...form.register("assignee_id")}>
+              <Label htmlFor={`edit-task-assignee-${task.id}`}>مسئول انجام</Label>
+              <Select id={`edit-task-assignee-${task.id}`} {...form.register("assignee_id")}>
                 {assigneeOptions.map((user) => <option key={user.id} value={user.id}>{user.full_name}</option>)}
               </Select>
             </div>
           )}
           <div className="flex flex-col gap-2">
-            <Label>زمان تخمینی (ساعت)</Label>
-            <Input type="text" inputMode="decimal" dir="ltr" {...form.register("estimated_hours")} />
+            <Label htmlFor={`edit-task-estimated-hours-${task.id}`}>زمان تخمینی (ساعت)</Label>
+            <Input id={`edit-task-estimated-hours-${task.id}`} type="text" inputMode="decimal" dir="ltr" {...form.register("estimated_hours")} />
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
-              <Label>تاریخ شروع</Label>
-              <Controller control={form.control} name="start_date" render={({ field }) => <JalaliDateInput value={field.value ?? ""} onChange={field.onChange} />} />
+              <Label htmlFor={`edit-task-start-date-${task.id}`}>تاریخ شروع</Label>
+              <Controller control={form.control} name="start_date" render={({ field }) => <JalaliDateInput id={`edit-task-start-date-${task.id}`} value={field.value ?? ""} onChange={field.onChange} />} />
             </div>
             <div className="flex flex-col gap-2">
-              <Label>مهلت انجام</Label>
-              <Controller control={form.control} name="deadline" render={({ field }) => <JalaliDateInput value={field.value ?? ""} onChange={field.onChange} />} />
+              <Label htmlFor={`edit-task-deadline-${task.id}`}>مهلت انجام</Label>
+              <Controller control={form.control} name="deadline" render={({ field }) => <JalaliDateInput id={`edit-task-deadline-${task.id}`} value={field.value ?? ""} onChange={field.onChange} />} />
             </div>
           </div>
           {mutation.isError && <p className="rounded-lg bg-danger/10 p-3 text-sm text-danger">ذخیره تغییرات انجام نشد؛ دسترسی یا اطلاعات واردشده را بررسی کنید.</p>}

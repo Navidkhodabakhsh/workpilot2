@@ -68,7 +68,7 @@ export function TaskWorkflowCard({ task, users, projectName }: { task: Task; use
           </div>
         </div>
         {task.progress_percent > 0 && <div className="flex flex-col gap-1"><div className="h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary transition-[width]" style={{ width: `${task.progress_percent}%` }} /></div><span className="text-xs text-muted-foreground">{task.progress_percent.toLocaleString("fa-IR")}٪ پیشرفت</span></div>}
-        {isAssignee && task.status !== "archived" ? <Select value={task.status} onChange={(event) => statusMutation.mutate(event.target.value as TaskStatus)} disabled={statusMutation.isPending}>{ACTIVE_STATUS_COLUMNS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</Select> : <Badge variant={STATUS_VARIANT[task.status]} className="w-fit">{STATUS_LABEL[task.status]}</Badge>}
+        {isAssignee && task.status !== "archived" ? <Select aria-label="وضعیت تسک" value={task.status} onChange={(event) => statusMutation.mutate(event.target.value as TaskStatus)} disabled={statusMutation.isPending}>{ACTIVE_STATUS_COLUMNS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</Select> : <Badge variant={STATUS_VARIANT[task.status]} className="w-fit">{STATUS_LABEL[task.status]}</Badge>}
         <div className="flex flex-wrap gap-2">
           <TaskDetailDialog task={task} trigger={<Button variant="outline" size="sm"><MessageSquare className="size-4" />جزئیات و بررسی</Button>} />
           {canEdit && task.status !== "archived" && <EditTaskDialog task={task} users={users} />}

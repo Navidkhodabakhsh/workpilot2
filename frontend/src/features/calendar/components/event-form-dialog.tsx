@@ -49,12 +49,12 @@ function NewCategoryDialog({ onCreated }: { onCreated: (categoryId: string) => v
         </DialogHeader>
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <Label required>نام دسته‌بندی</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} />
+            <Label htmlFor="new-event-category-name" required>نام دسته‌بندی</Label>
+            <Input id="new-event-category-name" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
           <div className="flex flex-col gap-2">
-            <Label required>رنگ</Label>
-            <Input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="h-11" />
+            <Label htmlFor="new-event-category-color" required>رنگ</Label>
+            <Input id="new-event-category-color" type="color" value={color} onChange={(e) => setColor(e.target.value)} className="h-11" />
           </div>
           {mutation.isError && <p className="text-sm text-danger">ساخت دسته‌بندی انجام نشد.</p>}
           <Button disabled={name.trim().length < 2 || mutation.isPending} onClick={() => mutation.mutate()}>

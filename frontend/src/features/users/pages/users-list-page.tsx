@@ -334,12 +334,16 @@ export function UsersListPage() {
             )}
             {departments && departments.length > 0 && editForm.watch("role") !== "org_admin" && (
               <div className="flex flex-col gap-2">
-                <Label>عضویت در دپارتمان‌های دیگر</Label>
+                <Label id="edit-user-other-departments-label">عضویت در دپارتمان‌های دیگر</Label>
                 <p className="text-xs text-muted-foreground">
                   علاوه بر دپارتمان اصلی بالا، این کاربر می‌تواند در دپارتمان‌های دیگر هم عضو باشد -- با نقشی
                   مستقل در هرکدام. اگر بیش از یکی انتخاب شود، خودِ کاربر می‌تواند بین آن‌ها جابه‌جا شود.
                 </p>
-                <div className="flex max-h-48 flex-col gap-2 overflow-y-auto rounded-md border p-2">
+                <div
+                  role="group"
+                  aria-labelledby="edit-user-other-departments-label"
+                  className="flex max-h-48 flex-col gap-2 overflow-y-auto rounded-md border p-2"
+                >
                   {departments.map((d) => {
                     const current = editMemberships.find((m) => m.department_id === d.id)
                     return (
