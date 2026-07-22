@@ -71,7 +71,7 @@ Migration دیتابیس به‌صورت خودکار توسط سرویس `backe
 - Frontend: `http://localhost:5173`
 - سرویس‌های `worker` و `beat` به‌صورت خودکار برای پردازش خروجی فایل و یادآوری مهلت اجرا می‌شوند.
 
-> **محدودیت شناخته‌شده:** پیکربندی `docker-compose.yml` در این مخزن با `docker compose config` اعتبارسنجی شده، ولی به‌دلیل محدودیت دسترسی دیمان Docker در محیط توسعهٔ این جلسه (sandbox)، اجرای واقعی `docker compose up` امکان‌پذیر نبود. تمام فازهای توسعه با Postgres/Redis نصب‌شدهٔ سیستم‌عامل به‌صورت native تأیید شدند (جزئیات در `docs/PROJECT_STATE.md`، بخش «محدودیت محیط»). در یک محیط با دسترسی کامل به Docker باید یک بار `docker compose up` تأیید نهایی شود.
+> **محدودیت شناخته‌شده:** پیکربندی `docker-compose.yml` با `docker compose config` اعتبارسنجی شده و `frontend`/`backend` Dockerfile چندمرحله‌ای (multi-stage) هستند، ولی در محیط توسعهٔ این جلسه (sandbox) دسترسی خروجی به رجیستری Docker Hub توسط سیاست شبکه مسدود است، پس `docker compose build`/`up` واقعی اجرا و تأیید نشد. تمام فازهای توسعه با Postgres/Redis نصب‌شدهٔ سیستم‌عامل به‌صورت native تأیید شدند (جزئیات در `docs/PROJECT_STATE.md`، بخش «محدودیت محیط»). در یک محیط با دسترسی کامل به اینترنت (مثل VM خود شما) باید یک بار `docker compose build && docker compose up` تأیید نهایی شود.
 
 ### بدون Docker (اجرای مستقیم)
 

@@ -51,7 +51,13 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./backend:/app
+      # Named volumes, not a full source bind-mount: the image already has
+      # its own code baked in (see backend/Dockerfile), and a whole-tree
+      # bind-mount would fight the image's non-root file ownership. Only
+      # the two directories the app actually writes to at runtime need to
+      # persist/be shared.
+      - backend_exports:/app/exports
+      - backend_attachments:/app/attachments
     depends_on:
       postgres:
         condition: service_healthy
@@ -68,7 +74,10 @@ services:
       DATABASE_URL: postgresql+psycopg2://workpilot:workpilot@postgres:5432/workpilot
       REDIS_URL: redis://redis:6379/0
     volumes:
-      - ./backend:/app
+      # Same exports volume as backend -- the worker writes the export
+      # file, the API serves it; attachments are only ever touched by the
+      # backend's own upload endpoints, so the worker doesn't need that one.
+      - backend_exports:/app/exports
     depends_on:
       postgres:
         condition: service_healthy
@@ -86,8 +95,6 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg2://workpilot:workpilot@postgres:5432/workpilot
       REDIS_URL: redis://redis:6379/0
-    volumes:
-      - ./backend:/app
     depends_on:
       postgres:
         condition: service_healthy
@@ -97,18 +104,20 @@ services:
         condition: service_started
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        # Vite bakes VITE_* vars into the static bundle at build time, so
+        # this has to be a build arg, not a runtime environment variable
+        # (see frontend/Dockerfile) -- install.sh regenerates the root
+        # .env this reads from with the host's actual LAN IP.
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
     ports:
-      - "5173:5173"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    environment:
-      # See the CORS_ORIGINS comment on the backend service -- both are
-      # generated together by install.sh into the root .env file.
-      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
+      - "5173:8080"
     depends_on:
       - backend
 
 volumes:
   postgres_data:
+  backend_exports:
+  backend_attachments:
