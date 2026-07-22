@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
 
-import { apiClient } from "@/lib/api-client"
+import { refreshAccessToken } from "@/lib/api-client"
 import { fetchMe } from "@/features/auth/api"
 import { useAuthStore } from "@/features/auth/auth-store"
 
@@ -20,10 +20,16 @@ export function AuthBootstrap({ children }: { children: React.ReactNode }) {
 
     async function restore() {
       try {
-        const { data } = await apiClient.post<{ access_token: string }>("/api/v1/auth/refresh")
-        useAuthStore.setState({ accessToken: data.access_token })
+        // Uses the shared, deduped refresh helper (a bare client with no
+        // response interceptor attached) instead of calling the
+        // intercepted apiClient directly -- a 401 here must not itself
+        // trigger the interceptor's own refresh-and-retry, which would
+        // fire a second, redundant /auth/refresh call.
+        const accessToken = await refreshAccessToken()
+        if (!accessToken) throw new Error("No valid refresh cookie")
+        useAuthStore.setState({ accessToken })
         const user = await fetchMe()
-        if (!cancelled) setSession(data.access_token, user)
+        if (!cancelled) setSession(accessToken, user)
       } catch {
         // No valid refresh cookie -- that's fine, the user just isn't logged in.
       } finally {
