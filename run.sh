@@ -30,10 +30,18 @@ mkdir -p "$DEST"
 # __pycache__/.pyc are written by the backend container (running as root)
 # into this bind-mounted dir -- excluding them means rsync never tries to
 # touch (and fails to delete, as a non-root user) those root-owned files.
+#
+# ".env" is excluded for a different, more important reason: it's
+# git-ignored, so it never exists in $SRC (the freshly extracted/synced
+# project) -- without this exclude, --delete would treat the *real*
+# backend/.env already sitting in $DEST (your SECRET_KEY, any
+# KAVENEGAR_API_KEY you've added, etc.) as "extraneous" and erase it on
+# every single run, silently, right before install.sh even starts.
 rsync -a --delete \
   --exclude ".venv" --exclude "node_modules" \
   --exclude "__pycache__" --exclude "*.pyc" \
   --exclude ".pytest_cache" --exclude "dist" \
+  --exclude ".env" \
   "$SRC"/ "$DEST"/
 cd "$DEST"
 chmod +x install.sh
